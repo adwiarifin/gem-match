@@ -29,6 +29,8 @@ class TouchEvent(
 class GameController(
     private var game: Game,
     private val renderer: BoardRenderer,
+    private val store: GameStore,
+    initialBest: Int,
     private val newSeed: () -> Long = System::nanoTime,
 ) {
     private val scene = Scene().also { it.load(game.board) }
@@ -42,13 +44,21 @@ class GameController(
     private var liftedPos: Pos? = null
     private var previewTo: Pos? = null
     private var shownScore = game.score
-    private var bestScore = game.score
+    private var savedBest = maxOf(initialBest, game.score)
+
+    @Volatile private var bestScore = savedBest
+
+    /** The newest resolved game, including a move whose animation is still playing. What gets saved. */
+    @Volatile private var latest = game
 
     @Volatile private var dialogOpen = false
 
     fun onTouch(event: TouchEvent) {
         touches.add(event)
     }
+
+    /** Writes the current game and best score to disk and waits. Called from the UI thread when the app is paused. */
+    fun save() = store.flush(latest, bestScore)
 
     /** True if the back press was used to close the dialog; false means the app should handle it. */
     fun onBack(): Boolean {
@@ -206,6 +216,8 @@ class GameController(
             is SwapOutcome.Accepted -> {
                 timeline = Timeline.forSteps(outcome.steps, ::addPoints)
                 pending = outcome.game
+                latest = outcome.game
+                store.saveGame(outcome.game)
             }
         }
     }
@@ -220,6 +232,9 @@ class GameController(
         scene.load((pending ?: game).board)
         game = Game.new(newSeed())
         pending = game
+        latest = game
+        store.saveGame(game)
+        saveBestIfImproved()
         shownScore = 0
         val allCells = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }.toSet()
         val arrivals = allCells.sortedWith(compareBy({ it.col }, { it.row })).mapNotNull { pos -> game.board[pos]?.let { Placed(it, pos) } }
@@ -239,6 +254,14 @@ class GameController(
             scene.raised = null
             pending = null
             timeline = null
+            saveBestIfImproved()
+        }
+    }
+
+    private fun saveBestIfImproved() {
+        if (bestScore > savedBest) {
+            savedBest = bestScore
+            store.saveBest(bestScore)
         }
     }
 

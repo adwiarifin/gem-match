@@ -11,7 +11,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        gameView = GameSurfaceView(this)
+        gameView = GameSurfaceView(this, GameStore(filesDir))
         setContentView(gameView)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { goBack() }
@@ -27,6 +27,11 @@ class MainActivity : Activity() {
             return true
         }
         return super.onKeyUp(keyCode, event)
+    }
+
+    override fun onPause() {
+        gameView.save()
+        super.onPause()
     }
 
     /** Back closes the New Game dialog if it is open, otherwise leaves the app. */

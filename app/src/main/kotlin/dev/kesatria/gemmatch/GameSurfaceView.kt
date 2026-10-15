@@ -11,9 +11,11 @@ import dev.kesatria.gemmatch.core.Game
 
 class GameSurfaceView(
     context: Context,
+    store: GameStore,
 ) : SurfaceView(context),
     SurfaceHolder.Callback {
-    private val controller = GameController(Game.new(System.nanoTime()), BoardRenderer())
+    private val controller =
+        GameController(store.loadGame() ?: Game.new(System.nanoTime()), BoardRenderer(), store, store.loadBest())
     private var loop: GameLoop? = null
 
     @Volatile private var layout: BoardLayout? = null
@@ -23,6 +25,9 @@ class GameSurfaceView(
     }
 
     fun onBack(): Boolean = controller.onBack()
+
+    /** Saves the game to disk, waiting until it is written. */
+    fun save() = controller.save()
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         controller.onTouch(TouchEvent(event.actionMasked, event.x, event.y))

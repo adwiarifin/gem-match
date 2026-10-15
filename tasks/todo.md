@@ -27,7 +27,7 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 - [ ] Checkpoint C: playable on the A52, owner plays a session, tune numbers
 
 ## Phase 3: Persistence
-- [ ] T16: Autosave, resume, high score
+- [x] T16: Autosave, resume, high score
 
 ## Phase 4: Hint and Release
 - [ ] T17: Idle hint (8 s, foreground time only)
