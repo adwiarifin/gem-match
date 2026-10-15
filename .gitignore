@@ -8,6 +8,15 @@ local.properties
 *.jks
 *.keystore
 keystore.properties
+*.p12
+*.pfx
+*.pem
+*.key
+.env
+.env.*
+*.apk
+*.aab
+.claude/settings.local.json
 
 # IDE
 .idea/
