@@ -5,8 +5,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-RELEASE_CAP=10485760 # 10 MiB, owner's placeholder; ratchet down at T18
-DEBUG_CAP=26214400   # 25 MiB, owner's placeholder
+RELEASE_CAP=1048576   # 1 MiB: measured 53,686 unsigned on 2026-10-15, rounded up for headroom
+DEBUG_CAP=2097152     # 2 MiB: measured 1,053,372 on 2026-10-15, rounded up for headroom
 RELEASE_APK=app/build/outputs/apk/release/app-release-unsigned.apk
 DEBUG_APK=app/build/outputs/apk/debug/app-debug.apk
 
