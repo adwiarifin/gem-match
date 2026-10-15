@@ -36,7 +36,7 @@ class ButtonPainter {
 class Hud {
     private val buttons = ButtonPainter()
     private val label =
-        Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(150, 150, 190) }
+        Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Palette.LABEL_TEXT }
     private val value =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
@@ -80,7 +80,8 @@ class Hud {
         val cell = layout.cellSize
         val centreX = layout.originX + cell * BOARD_SIZE / 2
         val top = layout.originY + cell * BOARD_SIZE + cell * BUTTON_GAP
-        button.set(centreX - cell * BUTTON_WIDTH / 2, top, centreX + cell * BUTTON_WIDTH / 2, top + cell * BUTTON_HEIGHT)
+        val halfWidth = cell * BUTTON_WIDTH / 2
+        button.set(centreX - halfWidth, top, centreX + halfWidth, top + cell * BUTTON_HEIGHT)
         return button
     }
 

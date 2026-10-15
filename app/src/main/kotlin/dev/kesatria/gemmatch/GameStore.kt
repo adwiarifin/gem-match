@@ -64,7 +64,8 @@ class GameStore(
                 it.write(text.toByteArray())
                 it.fd.sync()
             }
-            Files.move(temp.toPath(), File(directory, name).toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            val target = File(directory, name).toPath()
+            Files.move(temp.toPath(), target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
         } catch (_: IOException) {
             // A lost save costs one move of progress. It must never take the game down.
         }

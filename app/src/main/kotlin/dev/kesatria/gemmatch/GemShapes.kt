@@ -24,18 +24,18 @@ object GemShapes {
             color = Color.BLACK
         }
 
-    /** Draws [gem] centred at ([cx], [cy]) fitting a circle of [radius] pixels, [alpha] 0..1. */
+    /** Draws [sprite]'s gem centred at ([cx], [cy]) fitting a circle of [radius] pixels, at the sprite's alpha. */
     fun draw(
         canvas: Canvas,
-        gem: Gem,
+        sprite: Sprite,
         cx: Float,
         cy: Float,
         radius: Float,
-        alpha: Float = 1f,
     ) {
-        fill.color = colorOf(gem)
-        fill.alpha = (alpha * OPAQUE).toInt()
-        outline.alpha = (alpha * OUTLINE_ALPHA).toInt()
+        val gem = sprite.gem
+        fill.color = Palette.of(gem)
+        fill.alpha = (sprite.alpha * OPAQUE).toInt()
+        outline.alpha = (sprite.alpha * OUTLINE_ALPHA).toInt()
         canvas.save()
         canvas.translate(cx, cy)
         canvas.scale(radius, radius)
@@ -44,26 +44,22 @@ object GemShapes {
         canvas.restore()
     }
 
-    private fun colorOf(gem: Gem): Int =
-        when (gem) {
-            Gem.RED -> Color.rgb(229, 57, 53)
-            Gem.ORANGE -> Color.rgb(251, 140, 0)
-            Gem.YELLOW -> Color.rgb(253, 216, 53)
-            Gem.GREEN -> Color.rgb(67, 160, 71)
-            Gem.BLUE -> Color.rgb(30, 136, 229)
-            Gem.PURPLE -> Color.rgb(142, 36, 170)
-            Gem.WHITE -> Color.rgb(236, 239, 241)
-        }
-
     private fun buildPath(gem: Gem): Path =
         when (gem) {
             Gem.RED -> Path().apply { addCircle(0f, 0f, CIRCLE_RADIUS, Path.Direction.CW) }
             Gem.ORANGE -> polygon(sides = 4, radius = DIAMOND_RADIUS, startAngle = -HALF_TURN / 2)
-            Gem.YELLOW -> Path().apply { addRoundRect(-SQUARE_HALF, -SQUARE_HALF, SQUARE_HALF, SQUARE_HALF, SQUARE_CORNER, SQUARE_CORNER, Path.Direction.CW) }
+            Gem.YELLOW -> roundedSquare()
             Gem.GREEN -> polygon(sides = 6, radius = HEXAGON_RADIUS, startAngle = 0.0)
-            Gem.BLUE -> polygon(sides = 3, radius = TRIANGLE_RADIUS, startAngle = -HALF_TURN / 2, centreY = TRIANGLE_DROP)
+            Gem.BLUE ->
+                polygon(sides = 3, radius = TRIANGLE_RADIUS, startAngle = -HALF_TURN / 2, centreY = TRIANGLE_DROP)
             Gem.PURPLE -> star()
             Gem.WHITE -> cross()
+        }
+
+    private fun roundedSquare(): Path =
+        Path().apply {
+            val half = SQUARE_HALF
+            addRoundRect(-half, -half, half, half, SQUARE_CORNER, SQUARE_CORNER, Path.Direction.CW)
         }
 
     private fun polygon(

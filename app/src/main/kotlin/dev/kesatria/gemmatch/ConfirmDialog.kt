@@ -16,7 +16,7 @@ enum class DialogChoice { CANCEL, CONFIRM }
 class ConfirmDialog {
     private val buttons = ButtonPainter()
     private val dim = Paint().apply { color = Color.argb(DIM_ALPHA, 0, 0, 0) }
-    private val panelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(36, 36, 72) }
+    private val panelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Palette.PANEL }
     private val title =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
@@ -25,7 +25,7 @@ class ConfirmDialog {
         }
     private val body =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(190, 190, 220)
+            color = Palette.BODY_TEXT
             textAlign = Paint.Align.CENTER
         }
     private val panel = RectF()
@@ -66,7 +66,9 @@ class ConfirmDialog {
         val cell = layout.cellSize
         val cx = layout.originX + cell * BOARD_SIZE / 2
         val cy = layout.originY + cell * BOARD_SIZE / 2
-        panel.set(cx - cell * PANEL_WIDTH / 2, cy - cell * PANEL_HEIGHT / 2, cx + cell * PANEL_WIDTH / 2, cy + cell * PANEL_HEIGHT / 2)
+        val halfWidth = cell * PANEL_WIDTH / 2
+        val halfHeight = cell * PANEL_HEIGHT / 2
+        panel.set(cx - halfWidth, cy - halfHeight, cx + halfWidth, cy + halfHeight)
         val top = panel.bottom - cell * (BUTTON_HEIGHT + BUTTON_INSET)
         val width = cell * BUTTON_WIDTH
         val gap = cell * BUTTON_GAP

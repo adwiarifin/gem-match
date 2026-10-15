@@ -334,8 +334,10 @@ class Timeline(
 }
 
 object Easing {
+    private const val SMOOTHSTEP_BASE = 3f
+
     /** Slow start, slow end: smoothstep. */
-    fun inOut(t: Float): Float = t * t * (3f - 2f * t)
+    fun inOut(t: Float): Float = t * t * (SMOOTHSTEP_BASE - 2f * t)
 
     /** Fast start, gentle stop. */
     fun out(t: Float): Float = 1f - (1f - t) * (1f - t)

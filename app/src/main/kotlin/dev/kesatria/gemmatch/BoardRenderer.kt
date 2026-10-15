@@ -9,8 +9,8 @@ import dev.kesatria.gemmatch.core.BoardLayout
 
 /** Draws a [Scene] onto a canvas. Owns its paints so nothing is allocated per frame. */
 class BoardRenderer {
-    private val background = Paint().apply { color = Color.rgb(24, 24, 48) }
-    private val panel = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(36, 36, 72) }
+    private val background = Paint().apply { color = Palette.BACKGROUND }
+    private val panel = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Palette.PANEL }
     private val panelRect = RectF()
     private val noticeRect = RectF()
     private val noticeFill = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -48,7 +48,7 @@ class BoardRenderer {
     ) {
         val cx = layout.originX + (sprite.col + sprite.dx + HALF) * layout.cellSize
         val cy = layout.originY + (sprite.row + HALF) * layout.cellSize
-        GemShapes.draw(canvas, sprite.gem, cx, cy, layout.cellSize * GEM_RADIUS * sprite.scale, sprite.alpha)
+        GemShapes.draw(canvas, sprite, cx, cy, layout.cellSize * GEM_RADIUS * sprite.scale)
     }
 
     private fun drawNotice(
@@ -64,7 +64,8 @@ class BoardRenderer {
         val cy = layout.originY + cell * BOARD_SIZE / 2
         val half = cell * NOTICE_HEIGHT / 2
         noticeRect.set(cx - width / 2, cy - half, cx + width / 2, cy + half)
-        noticeFill.color = Color.argb((alpha * NOTICE_ALPHA).toInt(), 20, 20, 40)
+        noticeFill.color = Palette.NOTICE_FILL
+        noticeFill.alpha = (alpha * NOTICE_ALPHA).toInt()
         noticeText.alpha = (alpha * OPAQUE).toInt()
         canvas.drawRoundRect(noticeRect, half, half, noticeFill)
         val baseline = cy - (noticeText.fontMetrics.ascent + noticeText.fontMetrics.descent) / 2

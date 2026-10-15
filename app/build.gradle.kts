@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -30,4 +32,8 @@ android {
 
 dependencies {
     implementation(project(":core"))
+}
+
+detekt {
+    buildUponDefaultConfig = true
 }
