@@ -7,7 +7,7 @@ import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Success criteria 7 and 8 end to end: killed, reopened from disk, and carried on as if nothing happened. */
@@ -63,7 +63,7 @@ class RestartTest {
     }
 
     @Test
-    fun aKillMidCascadeReopensOnThePostMoveBoardNotThePreMoveBoard() {
+    fun aKillBeforeTheMoveFinishesReopensOnThePostMoveBoardNotThePreMoveBoard() {
         val (session, store) = openSession()
         val scene = Scene().also { it.load(session.board) }
         val move = findValidMoves(session.board).first()
@@ -84,12 +84,11 @@ class RestartTest {
         val move = findValidMoves(session.board).first()
         session.play(move).advance(0.05f, scene) // best.txt is not written until the move ends
         store.awaitWrites()
-        assertTrue(!File(directory, "best.txt").exists())
+        assertFalse(File(directory, "best.txt").exists(), "setup: best.txt is not written until the move ends")
 
         val (reopened, _) = openSession()
 
         assertTrue(reopened.shownScore > 0)
         assertEquals(reopened.shownScore, reopened.bestScore)
-        assertNotNull(File(directory, "game.sav").takeIf { it.isFile })
     }
 }

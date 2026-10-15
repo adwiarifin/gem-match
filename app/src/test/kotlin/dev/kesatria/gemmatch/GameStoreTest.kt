@@ -1,15 +1,18 @@
 package dev.kesatria.gemmatch
 
 import dev.kesatria.gemmatch.core.Game
+import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class GameStoreTest {
     @TempDir
@@ -41,6 +44,7 @@ class GameStoreTest {
     }
 
     @Test
+    @Timeout(30)
     fun flushReadsTheNewestStateWhenItsWriteRunsNotWhenItWasCalled() {
         val older = Game.new(10L)
         val newer = Game.new(11L)
@@ -57,13 +61,20 @@ class GameStoreTest {
                     older
                 }, { 0 })
             }
-        writerIsBusy.await()
+        assertTrue(writerIsBusy.await(10, TimeUnit.SECONDS))
         val pause = thread { store.flush({ current.get() }, { 0 }) }
+        // WAITING means the pause thread has called flush and is blocked on its write: whatever flush was going
+        // to read at call time it has read by now, and nothing has been written yet.
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+        while (pause.state != Thread.State.WAITING) {
+            check(System.nanoTime() < deadline) { "the pause thread never reached flush" }
+            Thread.onSpinWait()
+        }
 
         current.set(newer) // a move finishes after the pause was requested but before its write ran
         gate.countDown()
-        busy.join()
-        pause.join()
+        busy.join(10_000)
+        pause.join(10_000)
 
         assertEquals(newer.encode(), File(directory, "game.sav").readText())
     }

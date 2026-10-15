@@ -3,6 +3,7 @@ package dev.kesatria.gemmatch
 import dev.kesatria.gemmatch.core.Game
 import dev.kesatria.gemmatch.core.SwapOutcome
 import dev.kesatria.gemmatch.core.findValidMoves
+import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
@@ -10,12 +11,16 @@ import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** The UI thread saves on pause while the loop thread may be finishing a move. The disk must end on the newest. */
+/**
+ * A regression guard, not a proof: the race window is nanoseconds, so this passes on the old code too.
+ * GameStoreTest.flushReadsTheNewestState... is the deterministic test of the same fix.
+ */
 class PauseRaceTest {
     @TempDir
     lateinit var directory: File
 
     @Test
+    @Timeout(120)
     fun aPauseSaveRacingMovesNeverLeavesAnOlderGameOnDisk() {
         val moveCount = 400
         var expected = Game.new(99L)
