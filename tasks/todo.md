@@ -21,7 +21,7 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 ## Phase 2: App
 - [x] T11: Draw the board (game loop, surface lifecycle)
 - [x] T12: Distinct gem shapes
-- [ ] T13: Input, swap and invalid revert
+- [x] T13: Input, swap and invalid revert
 - [ ] T14: Play back clear, fall, spawn (cascades)
 - [ ] T15: HUD, New Game confirm, reshuffle animation
 - [ ] Checkpoint C: playable on the A52, owner plays a session, tune numbers

@@ -2,6 +2,7 @@ package dev.kesatria.gemmatch
 
 import android.content.Context
 import android.graphics.Canvas
+import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import dev.kesatria.gemmatch.core.BOARD_SIZE
@@ -12,14 +13,18 @@ class GameSurfaceView(
     context: Context,
 ) : SurfaceView(context),
     SurfaceHolder.Callback {
-    private val renderer = BoardRenderer()
-    private val game = Game.new(System.nanoTime())
+    private val controller = GameController(Game.new(System.nanoTime()), BoardRenderer())
     private var loop: GameLoop? = null
 
     @Volatile private var layout: BoardLayout? = null
 
     init {
         holder.addCallback(this)
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        controller.onTouch(TouchEvent(event.actionMasked, event.x, event.y))
+        return true
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -42,11 +47,11 @@ class GameSurfaceView(
         loop = null
     }
 
-    private fun advance(seconds: Float) = Unit
+    private fun advance(seconds: Float) = controller.update(seconds, layout)
 
     private fun render(canvas: Canvas) {
         val current = layout ?: return
-        renderer.draw(canvas, current, game)
+        controller.render(canvas, current)
     }
 
     private companion object {
