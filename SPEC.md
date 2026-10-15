@@ -31,13 +31,13 @@ Success looks like:
 11. App uses the framework `android.app.Activity` and `SurfaceView` only. No AndroidX, no Compose, no Kotlin dependencies beyond stdlib. Gems are drawn as vector shapes (Canvas paths), no bitmap assets. Each gem type has a distinct shape as well as a distinct color.
 12. Portrait only. minSdk 26. compileSdk and targetSdk are the latest stable at scaffold time.
 13. Distribution is sideloading via `adb install`. No Play Store in v1. The release keystore is never committed.
-14. Game and package names avoid the "Bejeweled" trademark (placeholder: `Gem Match`, package `dev.kesatria.gemmatch`). The repo name stays as is.
+14. Game and package names avoid the "Bejeweled" trademark (placeholder: `Gem Match`, package `dev.kesatria.gemmatch`). The GitHub repository is named `gem-match`.
 
 ## Input and Idle Hint
 
 - Input is swipe only, and a move is decided on release. Touch-down picks the gem up: it grows to 120% and is drawn on top. While the finger is down the gem follows it along the dominant axis, up to one cell, and the neighbour in that direction slides the opposite way (with a small sidestep so both stay visible). This is a preview only; dragging back undoes it. On release, if the drag travelled at least 35% of a cell the swap is attempted, continuing from where the gems are. Otherwise the gems spring back. A drag toward the board edge, a perfect diagonal, and a plain tap do nothing. The gem moves the same way whether or not the swap would match, so the preview never reveals which moves are valid. Input is blocked while steps are animating.
 - Idle means: the board is fully settled and the player has not touched the screen for 8 seconds (tunable constant). Then one valid move pulses as a hint. Any touch clears the hint and resets the timer.
-- Idle time is the sum of foreground frame deltas from the game loop, never wall-clock time. The loop stops in `onPause`, so time spent backgrounded (home button, phone call, screen off) never counts. On resume the idle timer restarts at 0 and any hint is cleared.
+- Idle time is the sum of foreground frame deltas from the game loop, never wall-clock time. The loop stops when the surface is destroyed (which happens on pause), so time spent backgrounded (home button, phone call, screen off) never counts. On resume the idle timer restarts at 0 and any hint is cleared.
 
 ## Tech Stack
 

@@ -28,7 +28,10 @@ Status: live. Every command below runs today. `make check-fast`, `make check-tas
 | Static analysis | Zero detekt errors in `core` and `app`, zero Android Lint errors | Standard Kotlin and Android tools, external opinion | `./gradlew detekt :app:lint` | review, CI | block |
 | APK size: release | ≤ 1,048,576 bytes (1 MiB) | Measured 53,686 bytes on 2026-10-15, rounded up to the next MiB so features have room to grow. The checked file is the unsigned APK; signing adds about 13 KB (RSA-4096 certificate and signature blocks), so the signed APK is about 67 KB | `./gradlew assembleRelease` then `scripts/check-apk-size.sh` | review, CI | block |
 | APK size: debug | ≤ 2,097,152 bytes (2 MiB) | Measured 1,053,372 bytes on 2026-10-15, rounded up to the next MiB so features have room to grow | `./gradlew assembleDebug` then `scripts/check-apk-size.sh` | review, CI | block |
+| Permissions | The app declares no Android permission | The "zero permissions" promise is part of the product. The check fails closed: if `aapt2` cannot read the APK it fails rather than passing | `scripts/check-permissions.sh` (its own cases: `scripts/test-check-permissions.sh`, run in `make check-fast`) | review, CI | block |
 | Dependencies | Nothing at high severity or above in what ships in the APK | App is meant to have almost no dependencies, so any finding is a signal. The lockfiles (`core/gradle.lockfile`, `app/gradle.lockfile`) cover `runtimeClasspath` and `releaseRuntimeClasspath` only. Build tooling (AGP, detekt, ktlint) is not scanned because it never reaches a player; scanning it reports bundled BouncyCastle and logback findings that cannot be fixed from this repo | `osv-scanner scan source -r .` | CI | block |
+
+`make release-check BASE=<ref>` runs the floor guard against everything since `BASE`, then every check above. Run it before calling a version released.
 
 External checks (not judged by this project's own tests): APK size, Android Lint, gitleaks, osv-scanner.
 
@@ -44,7 +47,7 @@ External checks (not judged by this project's own tests): APK size, Android Lint
 |--------|-------|-----------|
 | Release APK size | 53,686 bytes unsigned, 66,989 bytes signed (R8 on, 2026-10-15) | must not grow; the cap is the measured value rounded up to the next MiB |
 | Debug APK size | 1,053,372 bytes (2026-10-15) | must not grow |
-| `core` line coverage | 100% (117 tests, 2026-10-15) | must not fall (tolerance 0.5%) |
+| `core` line coverage | 100% (125 tests, 2026-10-15) | must not fall (tolerance 0.5%) |
 | Frame time on the owner's Galaxy A52 | During move animations (755 frames, `dumpsys SurfaceFlinger --latency`, 2026-10-15): mean 17.2 ms, p99 23.1 ms, max 55.7 ms, 7 frames over 33 ms. The panel runs at 90 Hz (11.1 ms) and the game loop at 60 Hz, so frames arrive in an uneven 11/22 ms rhythm | no tool-backed check yet. Candidate fix: drive the loop from the display's vsync (post-v1) |
 
 Ratchet tolerance: 0.5% on coverage.
