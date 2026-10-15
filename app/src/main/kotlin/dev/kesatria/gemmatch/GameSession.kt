@@ -83,7 +83,7 @@ class GameSession(
     }
 
     /** Writes the current game and best score to disk and waits. Called from the UI thread when the app is paused. */
-    fun save() = store.flush(latest, bestScore)
+    fun save() = store.flush({ latest }, { bestScore })
 
     private fun addPoints(points: Int) {
         shownScore = saturatingAdd(shownScore, points)

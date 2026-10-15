@@ -3,6 +3,9 @@ package dev.kesatria.gemmatch
 import dev.kesatria.gemmatch.core.Game
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -32,10 +35,38 @@ class GameStoreTest {
         val game = Game.new(8L)
         val store = store()
 
-        store.flush(game, 1234)
+        store.flush({ game }, { 1234 })
 
         assertEquals(game.encode(), File(directory, "game.sav").readText())
         assertEquals("1234", File(directory, "best.txt").readText())
+    }
+
+    @Test
+    fun flushReadsTheNewestStateWhenItsWriteRunsNotWhenItWasCalled() {
+        val older = Game.new(10L)
+        val newer = Game.new(11L)
+        val current = AtomicReference(older)
+        val gate = CountDownLatch(1)
+        val writerIsBusy = CountDownLatch(1)
+        val store = store()
+        // Keeps the writer thread busy, like a slow disk, so the next flush has to wait its turn.
+        val busy =
+            thread {
+                store.flush({
+                    writerIsBusy.countDown()
+                    gate.await()
+                    older
+                }, { 0 })
+            }
+        writerIsBusy.await()
+        val pause = thread { store.flush({ current.get() }, { 0 }) }
+
+        current.set(newer) // a move finishes after the pause was requested but before its write ran
+        gate.countDown()
+        busy.join()
+        pause.join()
+
+        assertEquals(newer.encode(), File(directory, "game.sav").readText())
     }
 
     @Test
@@ -138,7 +169,7 @@ class GameStoreTest {
 
         store.saveGame(Game.new(3L))
         store.saveBest(5)
-        store.flush(Game.new(3L), 5)
+        store.flush({ Game.new(3L) }, { 5 })
 
         assertTrue(store.loadGame() == null && store.loadBest() == 0)
     }

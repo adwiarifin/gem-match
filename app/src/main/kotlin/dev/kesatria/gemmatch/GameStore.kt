@@ -35,15 +35,19 @@ class GameStore(
         writer.execute { write(BEST_FILE, best.toString()) }
     }
 
-    /** Writes both and waits until they are on disk. For when the app is going to the background. */
+    /**
+     * Writes both and waits until they are on disk. For when the app is going to the background.
+     * The state is read by the writer thread when its turn comes, so a move that finishes after this was called
+     * but before it runs is saved, and an older state can never be written on top of a newer one.
+     */
     fun flush(
-        game: Game,
-        best: Int,
+        game: () -> Game,
+        best: () -> Int,
     ) {
         writer
             .submit {
-                write(GAME_FILE, game.encode())
-                write(BEST_FILE, best.toString())
+                write(GAME_FILE, game().encode())
+                write(BEST_FILE, best().toString())
             }.get()
     }
 
