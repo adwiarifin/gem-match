@@ -3,8 +3,11 @@ package dev.kesatria.gemmatch.core
 import kotlin.math.abs
 import kotlin.math.floor
 
-/** Share of a cell the finger must travel before a swipe is recognised. Tunable by feel. */
-const val SWIPE_THRESHOLD = 0.3f
+/** Share of a cell the finger must travel for a release to count as a move. Tunable by feel. */
+const val SWIPE_THRESHOLD = 0.35f
+
+/** Movement smaller than this share of a cell is treated as holding still, so the preview does not twitch. */
+const val DRAG_DEAD_ZONE = 0.08f
 
 /** A touch position in pixels. */
 data class Point(
@@ -33,9 +36,40 @@ data class BoardLayout(
 }
 
 /**
- * Turns a drag into a swap request: the cell touched first plus one of four directions, picked by the
- * longer axis once the finger has moved [threshold] of a cell. Returns null until the drag is clear,
- * for a touch off the board, for a perfect diagonal, and for a swipe off the board edge.
+ * Where a drag stands right now: the cell touched first, the neighbour it is heading for (null while
+ * undecided, on a perfect diagonal, or toward the board edge) and how far it has gone, 0 to 1 cell.
+ */
+data class DragPreview(
+    val from: Pos,
+    val to: Pos?,
+    val progress: Float,
+)
+
+/** Reads a drag in progress, so the UI can show the gem following the finger. Null if the touch began off the board. */
+fun previewDrag(
+    layout: BoardLayout,
+    down: Point,
+    current: Point,
+): DragPreview? {
+    val from = layout.cellAt(down.x, down.y) ?: return null
+    val dx = (current.x - down.x) / layout.cellSize
+    val dy = (current.y - down.y) / layout.cellSize
+    val travelled = maxOf(abs(dx), abs(dy))
+
+    val to =
+        when {
+            travelled < DRAG_DEAD_ZONE || abs(dx) == abs(dy) -> null
+            abs(dx) > abs(dy) -> Pos(from.row, from.col + if (dx > 0) 1 else -1)
+            else -> Pos(from.row + if (dy > 0) 1 else -1, from.col)
+        }
+    val heading = to?.takeIf { it.isInBounds() }
+    return DragPreview(from, heading, if (heading != null) minOf(1f, travelled) else 0f)
+}
+
+/**
+ * Turns a finished drag into a swap request: the cell touched first plus the neighbour the drag
+ * pointed at, once the finger travelled at least [threshold] of a cell. Null for a short drag, a
+ * touch off the board, a perfect diagonal, and a swipe off the board edge.
  */
 fun resolveSwipe(
     layout: BoardLayout,
@@ -43,17 +77,7 @@ fun resolveSwipe(
     current: Point,
     threshold: Float = SWIPE_THRESHOLD,
 ): Move? {
-    val from = layout.cellAt(down.x, down.y)
-    val dx = current.x - down.x
-    val dy = current.y - down.y
-    val travelled = maxOf(abs(dx), abs(dy))
-    val clear = abs(dx) != abs(dy) && travelled >= threshold * layout.cellSize
-
-    val to =
-        when {
-            from == null || !clear -> null
-            abs(dx) > abs(dy) -> Pos(from.row, from.col + if (dx > 0) 1 else -1)
-            else -> Pos(from.row + if (dy > 0) 1 else -1, from.col)
-        }
-    return if (from != null && to != null && to.isInBounds()) Move(from, to) else null
+    val preview = previewDrag(layout, down, current) ?: return null
+    val to = preview.to
+    return if (to != null && preview.progress >= threshold) Move(preview.from, to) else null
 }
