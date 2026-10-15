@@ -39,8 +39,8 @@ External checks (not judged by this project's own tests): APK size, Android Lint
 
 | Metric | Today | Direction |
 |--------|-------|-----------|
-| Release APK size | not built yet | must not grow; tighten the cap to the first measured value plus 10% |
-| Debug APK size | not built yet | must not grow |
+| Release APK size | 16,938 bytes (unsigned, R8 on, empty SurfaceView app, 2026-10-15) | must not grow; ratchet the cap at T18 once real content exists |
+| Debug APK size | 942,276 bytes (empty SurfaceView app, 2026-10-15) | must not grow |
 | `core` line coverage | no code yet | must not fall |
 | Frame time on the owner's Galaxy A52 | not measured | record manually once the render loop exists. No tool-backed check yet |
 
