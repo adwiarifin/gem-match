@@ -9,7 +9,7 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 - [ ] Checkpoint A: foundation green, size baseline recorded, owner review
 
 ## Phase 1: Core (test-first)
-- [ ] T4: Board, positions, gems, RNG
+- [x] T4: Board, positions, gems, RNG
 - [ ] T5: Match detection
 - [ ] T6: Valid moves
 - [ ] T7: Cascade resolution and tiered scoring
