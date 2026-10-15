@@ -158,7 +158,7 @@ Conventions: `PascalCase` types, `camelCase` functions, `UPPER_SNAKE` constants,
 
 1. `./gradlew :core:test` passes. `:core:koverVerify` reports ≥ 80% on `core`.
 2. `scripts/check-core-boundary.sh` finds no `android.*`, `java.*`, `javax.*` import in `core`.
-3. Release APK ≤ 10 MiB today (the placeholder cap), with the target of ~1-2 MiB recorded and the cap ratcheted down after the first build.
+3. Release APK ≤ 1 MiB (measured 53,686 bytes unsigned, 2026-10-15). The cap is the measured size rounded up to the next MiB.
 4. Manifest declares zero permissions. Game works in airplane mode.
 5. On the A52: a swap that makes a match plays swap, clear, fall and spawn in order, and cascades chain with rising multiplier.
 6. On the A52: an invalid swap animates back and costs nothing.
