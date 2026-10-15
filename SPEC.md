@@ -35,7 +35,7 @@ Success looks like:
 
 ## Input and Idle Hint
 
-- Input is swipe only, and a move is decided on release. Touch-down selects the gem under the finger and lifts it slightly; nothing else happens while the finger is down. On release, the drag from where it started to where it ended is read: if it travelled a small threshold (a fraction of one cell), the dominant axis picks one of four directions and the swap is attempted. Dragging out and back before release, a drag toward the board edge, a perfect diagonal, and a plain tap all do nothing. Input is blocked while steps are animating.
+- Input is swipe only, and a move is decided on release. Touch-down picks the gem up: it grows to 120% and is drawn on top. While the finger is down the gem follows it along the dominant axis, up to one cell, and the neighbour in that direction slides the opposite way (with a small sidestep so both stay visible). This is a preview only; dragging back undoes it. On release, if the drag travelled at least 35% of a cell the swap is attempted, continuing from where the gems are. Otherwise the gems spring back. A drag toward the board edge, a perfect diagonal, and a plain tap do nothing. The gem moves the same way whether or not the swap would match, so the preview never reveals which moves are valid. Input is blocked while steps are animating.
 - Idle means: the board is fully settled and the player has not touched the screen for 8 seconds (tunable constant). Then one valid move pulses as a hint. Any touch clears the hint and resets the timer.
 - Idle time is the sum of foreground frame deltas from the game loop, never wall-clock time. The loop stops in `onPause`, so time spent backgrounded (home button, phone call, screen off) never counts. On resume the idle timer restarts at 0 and any hint is cleared.
 
@@ -215,10 +215,11 @@ The owner approved these without being able to judge their impact yet, and asked
 
 First playtest: 89 accepted and 18 rejected moves in about 13 minutes, median 59 fps, no swipe missed because of the threshold. Feedback led to these changes.
 
-**D6. A move is decided on release, not when the drag passes the threshold.**
+**D6. A move is decided on release, with a live drag preview (approach C).**
 - Why: the owner did not like a move firing while the finger was still down (it fired a median 101 ms after touch).
-- Impact: `GameController` reads the swipe at release with `resolveSwipe(start, release point)`; dragging back to the start cancels. A small lift on the touched gem shows it is held but not committed. `core` is unchanged.
-- Rollback: restore resolving in the move handler in `GameController.kt` (two small functions, `beginTouch` and `endTouch`). No data impact.
+- Alternatives considered: commit when the drag passes the threshold (first build), release-only with just a lift, tap-tap selection, and live preview plus tap-tap. Live preview was chosen because it is the only one where the swap is visible before it is final. Tap-tap was left out because mixing input methods is a known bug source.
+- Impact: `core` gained `previewDrag` (where a drag stands: held cell, neighbour, progress 0..1) and `resolveSwipe` now uses it; the commit threshold moved from 0.3 to 0.35 of a cell. `GameController` moves the held gem and its neighbour on every touch move and decides on release. Constants: lift 120% (`LIFT_SCALE`), commit 35% (`SWIPE_THRESHOLD`), dead zone 8% (`DRAG_DEAD_ZONE`), neighbour sidestep 0.22 cell (`SIDESTEP`), spring-back 0.12 s. The held gem hides under the finger, so the neighbour's movement is what makes the preview readable.
+- Rollback: to get back to lift-only release, remove `followFinger` and the preview calls in `GameController.kt`. To go back to the old threshold, set `SWIPE_THRESHOLD` to 0.3 (two core tests change with it). No data impact.
 
 **D7. A reshuffle is announced and slow enough to notice.**
 - Why: the owner saw the board change too fast to tell anything had happened.
