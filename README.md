@@ -37,7 +37,7 @@ make sign
 adb install app/build/outputs/apk/release/gemmatch-release.apk
 ```
 
-The script refuses to sign with uncommitted changes, or an unsigned APK built from a different revision than `HEAD`, so a signed build always matches a commit. It prints that commit and the signing certificate's SHA-256 when it finishes.
+The script refuses to run with uncommitted changes and always rebuilds the APK itself (there is no way to sign an existing file), then checks that the APK records the current `HEAD`, so a signed build always matches a commit. It prints that commit and the signing certificate's SHA-256 when it finishes.
 
 It expects the keystore at `~/Private/keys/gemmatch/gemmatch-release.jks` with alias `gemmatch`; override with `GEMMATCH_KEYSTORE` and `GEMMATCH_KEY_ALIAS`. The keystore is never committed. Lose it and a later update cannot install over the old app.
 
