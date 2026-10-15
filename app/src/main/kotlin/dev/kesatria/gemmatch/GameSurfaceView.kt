@@ -22,6 +22,8 @@ class GameSurfaceView(
         holder.addCallback(this)
     }
 
+    fun onBack(): Boolean = controller.onBack()
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         controller.onTouch(TouchEvent(event.actionMasked, event.x, event.y))
         return true

@@ -23,7 +23,7 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 - [x] T12: Distinct gem shapes
 - [x] T13: Input, swap and invalid revert
 - [x] T14: Play back clear, fall, spawn (cascades)
-- [ ] T15: HUD, New Game confirm, reshuffle animation
+- [x] T15: HUD, New Game confirm, reshuffle animation
 - [ ] Checkpoint C: playable on the A52, owner plays a session, tune numbers
 
 ## Phase 3: Persistence

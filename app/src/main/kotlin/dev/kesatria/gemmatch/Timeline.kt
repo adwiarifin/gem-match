@@ -61,6 +61,8 @@ class SwapAnimation(
 /** Shrinks and fades the gems on [cells], then removes them. */
 class ClearAnimation(
     private val cells: Set<Pos>,
+    private val points: Int,
+    private val onCleared: (Int) -> Unit,
 ) : Animation {
     override val seconds = CLEAR_SECONDS
 
@@ -77,6 +79,7 @@ class ClearAnimation(
 
     override fun finish(scene: Scene) {
         for (pos in cells) scene.remove(pos)
+        onCleared(points)
     }
 
     private companion object {
@@ -142,21 +145,34 @@ class SpawnAnimation(
     override fun finish(scene: Scene) = apply(scene, 1f)
 }
 
-/** Placeholder for a reshuffle: pauses briefly, then shows the new [board]. Replaced by a real animation in T15. */
-class LoadBoardAnimation(
+/** Every gem shrinks away, then the rearranged [board] grows back in. */
+class ReshuffleAnimation(
     private val board: Board,
 ) : Animation {
-    override val seconds = PAUSE_SECONDS
+    override val seconds = RESHUFFLE_SECONDS
+    private var swapped = false
+
+    override fun start(scene: Scene) {
+        swapped = false
+    }
 
     override fun apply(
         scene: Scene,
         progress: Float,
-    ) = Unit
+    ) {
+        if (progress >= HALF && !swapped) {
+            scene.load(board)
+            swapped = true
+        }
+        val scale = if (progress < HALF) 1f - progress / HALF else (progress - HALF) / HALF
+        scene.forEach { it.scale = scale }
+    }
 
     override fun finish(scene: Scene) = scene.load(board)
 
     private companion object {
-        const val PAUSE_SECONDS = 0.3f
+        const val RESHUFFLE_SECONDS = 0.6f
+        const val HALF = 0.5f
     }
 }
 
@@ -198,16 +214,22 @@ class Timeline(
     }
 
     companion object {
-        /** One animation per core step, in order. */
-        fun forSteps(steps: List<Step>): Timeline = Timeline(steps.map(::animationFor))
+        /** One animation per core step, in order. [onCleared] hears the points of each clear as it finishes. */
+        fun forSteps(
+            steps: List<Step>,
+            onCleared: (Int) -> Unit,
+        ): Timeline = Timeline(steps.map { animationFor(it, onCleared) })
 
-        private fun animationFor(step: Step): Animation =
+        private fun animationFor(
+            step: Step,
+            onCleared: (Int) -> Unit,
+        ): Animation =
             when (step) {
                 is Step.Swap -> SwapAnimation(step.a, step.b)
-                is Step.Clear -> ClearAnimation(step.cells)
+                is Step.Clear -> ClearAnimation(step.cells, step.points, onCleared)
                 is Step.Fall -> FallAnimation(step.moves)
                 is Step.Spawn -> SpawnAnimation(step.gems)
-                is Step.Reshuffle -> LoadBoardAnimation(step.board)
+                is Step.Reshuffle -> ReshuffleAnimation(step.board)
             }
     }
 }
