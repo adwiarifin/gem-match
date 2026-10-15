@@ -140,6 +140,9 @@ def main():
     base = "HEAD"
     if "--base" in sys.argv:
         base = sys.argv[sys.argv.index("--base") + 1]
+    if base.startswith("-"):
+        print(f"floor-guard: refusing a base that looks like a git option: {base}", file=sys.stderr)
+        return 2
 
     top = git("rev-parse", "--show-toplevel").strip()
     if not top:
