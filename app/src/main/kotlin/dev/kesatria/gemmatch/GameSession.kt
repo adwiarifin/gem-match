@@ -7,6 +7,7 @@ import dev.kesatria.gemmatch.core.Move
 import dev.kesatria.gemmatch.core.Placed
 import dev.kesatria.gemmatch.core.Pos
 import dev.kesatria.gemmatch.core.SwapOutcome
+import dev.kesatria.gemmatch.core.saturatingAdd
 
 /**
  * The game being played, its score and what has been written to disk. A move resolves instantly in the
@@ -85,7 +86,7 @@ class GameSession(
     fun save() = store.flush(latest, bestScore)
 
     private fun addPoints(points: Int) {
-        shownScore += points
+        shownScore = saturatingAdd(shownScore, points)
         bestScore = maxOf(bestScore, shownScore)
     }
 

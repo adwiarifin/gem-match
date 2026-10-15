@@ -21,6 +21,12 @@ fun scoreFor(group: MatchGroup): Int {
     return group.runs.sumOf { scoreFor(it) } + shapeBonus
 }
 
+/** Adds two scores, stopping at [Int.MAX_VALUE] so a score can never wrap around to a negative number. */
+fun saturatingAdd(
+    a: Int,
+    b: Int,
+): Int = (a.toLong() + b).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
 /** All groups cleared together at one cascade [depth] (1 = the player's own match). */
 fun scoreGroups(
     groups: List<MatchGroup>,

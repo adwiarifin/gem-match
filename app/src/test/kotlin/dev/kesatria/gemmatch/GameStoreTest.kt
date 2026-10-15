@@ -65,6 +65,26 @@ class GameStoreTest {
     }
 
     @Test
+    fun anOversizedSaveFileIsIgnoredWithoutBeingReadIntoMemory() {
+        File(directory, "game.sav").writeText("1".repeat(50_000))
+        File(directory, "best.txt").writeText("1".repeat(50_000))
+
+        assertNull(store().loadGame())
+        assertEquals(0, store().loadBest())
+    }
+
+    @Test
+    fun aHugeFileIsNeverReadIntoMemory() {
+        // Sparse, so it costs no disk. Reading it with readText() would throw OutOfMemoryError.
+        for (name in listOf("game.sav", "best.txt")) {
+            java.io.RandomAccessFile(File(directory, name), "rw").use { it.setLength(3_000_000_000L) }
+        }
+
+        assertNull(store().loadGame())
+        assertEquals(0, store().loadBest())
+    }
+
+    @Test
     fun anUnreadableBestScoreLoadsAsZero() {
         for (text in listOf("", "abc", "-5", "1.5", "99999999999999999999")) {
             File(directory, "best.txt").writeText(text)

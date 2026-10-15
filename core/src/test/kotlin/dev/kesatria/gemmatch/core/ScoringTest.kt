@@ -88,4 +88,11 @@ class ScoringTest {
         assertEquals(60, scoreGroups(groups, depth = 2))
         assertEquals(90, scoreGroups(groups, depth = 3))
     }
+
+    @Test
+    fun addingScoresStopsAtTheLargestScoreInsteadOfWrappingNegative() {
+        assertEquals(130, saturatingAdd(100, 30))
+        assertEquals(Int.MAX_VALUE, saturatingAdd(Int.MAX_VALUE - 10, 30))
+        assertEquals(Int.MAX_VALUE, saturatingAdd(Int.MAX_VALUE, Int.MAX_VALUE))
+    }
 }

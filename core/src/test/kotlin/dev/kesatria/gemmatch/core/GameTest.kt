@@ -3,6 +3,7 @@ package dev.kesatria.gemmatch.core
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class GameTest {
@@ -55,6 +56,18 @@ class GameTest {
         assertEquals(clearPoints, outcome.game.score)
         assertPlayable(outcome.game, "after first move")
         assertEquals(outcome.game.board, replay(game.board, outcome.steps))
+    }
+
+    @Test
+    fun aGameAtTheScoreCeilingStaysThereInsteadOfWrappingNegative() {
+        val fresh = Game.new(8L)
+        val atCeiling = assertNotNull(Game.decode(fresh.encode().replace(";0;", ";${Int.MAX_VALUE};")))
+        val move = findValidMoves(atCeiling.board).first()
+
+        val outcome = atCeiling.trySwap(move.from, move.to) as SwapOutcome.Accepted
+
+        assertEquals(Int.MAX_VALUE, outcome.game.score)
+        assertNotNull(Game.decode(outcome.game.encode()), "the saved game must still load")
     }
 
     @Test

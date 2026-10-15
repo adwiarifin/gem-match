@@ -28,7 +28,7 @@ class Game private constructor(
         val resolution = resolveSwap(board, a, b, nextRng)
         val (settled, reshuffle) = ensureMoveExists(resolution.board, nextRng)
         val steps = if (reshuffle != null) resolution.steps + reshuffle else resolution.steps
-        return SwapOutcome.Accepted(Game(settled, score + resolution.score, nextRng), steps)
+        return SwapOutcome.Accepted(Game(settled, saturatingAdd(score, resolution.score), nextRng), steps)
     }
 
     fun encode(): String = encodeState(SavedState(board, score, rng.state))

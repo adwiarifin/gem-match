@@ -132,6 +132,26 @@ class SaveCodecTest {
     }
 
     @Test
+    fun anOversizedSaveIsRejectedWithoutBuildingAHugeBoard() {
+        val valid = Game.new(3L).encode()
+        val hugeBoard = valid.substringBeforeLast(';') + ";" + "1".repeat(5_000_000)
+
+        assertNull(Game.decode(hugeBoard))
+        assertNull(Game.decode(valid + " ".repeat(10_000)))
+    }
+
+    @Test
+    fun aSaveAtTheLargestRealisticSizeStillLoads() {
+        val game = Game.new(3L)
+        val biggest = game.encode().replace(Regex(";\\d+;-?\\d+;"), ";2147483647;-9223372036854775807;")
+
+        val loaded = assertNotNull(Game.decode(biggest))
+
+        assertEquals(Int.MAX_VALUE, loaded.score)
+        assertTrue(biggest.length < 128, "a real save is about 100 bytes, was ${biggest.length}")
+    }
+
+    @Test
     fun boardDigitsMatchTheGameForReadability() {
         val game = played(8L, 5)
 

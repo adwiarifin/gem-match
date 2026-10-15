@@ -54,7 +54,7 @@ class GameStore(
 
     private fun read(name: String): String? =
         try {
-            File(directory, name).takeIf { it.isFile }?.readText()
+            File(directory, name).takeIf { it.isFile && it.length() <= MAX_FILE_BYTES }?.readText()
         } catch (_: IOException) {
             null
         }
@@ -79,5 +79,8 @@ class GameStore(
     private companion object {
         const val GAME_FILE = "game.sav"
         const val BEST_FILE = "best.txt"
+
+        /** Both files are under 128 bytes when the app wrote them; a bigger file is damaged or planted. */
+        const val MAX_FILE_BYTES = 1024L
     }
 }

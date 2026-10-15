@@ -101,6 +101,24 @@ class GameSessionTest {
     }
 
     @Test
+    fun theShownScoreNeverWrapsNegativeNearTheCeiling() {
+        val fresh = Game.new(23L)
+        val game = Game.decode(fresh.encode().replace(";0;", ";${Int.MAX_VALUE - 5};"))!!
+        val move = findValidMoves(game.board).first()
+        val scene = Scene().also { it.load(game.board) }
+        val session = sessionOf(game)
+        val timeline = session.play(move)
+
+        while (!timeline.isFinished) {
+            timeline.advance(1f / 60, scene)
+            assertTrue(session.shownScore >= 0 && session.bestScore >= 0, "score wrapped negative")
+        }
+        session.finish(scene)
+
+        assertEquals(Int.MAX_VALUE, session.shownScore)
+    }
+
+    @Test
     fun aRejectedMoveChangesNothingAndWritesNothing() {
         val game = Game.new(14L)
         val scene = Scene().also { it.load(game.board) }
