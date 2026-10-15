@@ -51,7 +51,10 @@ class GameSession(
 
     /** The old gems shrink away, then the new board rains in from the top. Score resets at once; best stays. */
     fun newGame(scene: Scene): Timeline {
-        scene.load((pending ?: game).board)
+        // A move still animating was already scored by the core; its points count even though the player walked away.
+        val abandoned = pending ?: game
+        bestScore = maxOf(bestScore, abandoned.score)
+        scene.load(abandoned.board)
         game = Game.new(newSeed())
         pending = game
         latest = game

@@ -178,6 +178,24 @@ class GameSessionTest {
     }
 
     @Test
+    fun startingANewGameMidAnimationStillCreditsTheAbandonedMovesScoreToBest() {
+        val game = Game.new(11L)
+        val move = findValidMoves(game.board).first()
+        val outcome = game.trySwap(move.from, move.to) as SwapOutcome.Accepted
+        val scene = Scene().also { it.load(game.board) }
+        val session = sessionOf(game, seed = 5L)
+
+        session.play(move).advance(0.05f, scene) // mid-swap: no clear has finished, so no points counted yet
+        session.newGame(scene)
+        storeInUse!!.awaitWrites()
+
+        assertTrue(outcome.game.score > 0)
+        assertEquals(outcome.game.score, session.bestScore, "the move's points must not be lost from Best")
+        assertEquals(outcome.game.score.toString(), saved("best.txt"))
+        assertEquals(0, session.shownScore)
+    }
+
+    @Test
     fun theScoreResetsTheMomentNewGameStartsNotWhenItsAnimationEnds() {
         val game = Game.new(20L)
         val move = findValidMoves(game.board).first()
