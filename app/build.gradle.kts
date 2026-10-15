@@ -32,6 +32,11 @@ android {
 
 dependencies {
     implementation(project(":core"))
+    testImplementation(libs.kotlin.test.junit5)
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
 detekt {

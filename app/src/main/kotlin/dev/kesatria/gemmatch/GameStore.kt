@@ -47,6 +47,11 @@ class GameStore(
             }.get()
     }
 
+    /** Waits until every write queued so far has finished. Lets tests check the disk without polling. */
+    internal fun awaitWrites() {
+        writer.submit {}.get()
+    }
+
     private fun read(name: String): String? =
         try {
             File(directory, name).takeIf { it.isFile }?.readText()
