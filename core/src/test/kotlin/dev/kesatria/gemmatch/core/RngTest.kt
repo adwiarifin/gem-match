@@ -49,6 +49,18 @@ class RngTest {
     }
 
     @Test
+    fun nextIntValuesArePinnedBecauseTheyDecideWhichGemsSpawnInSavedGames() {
+        // Reference: SplitMix64, then (output ushr 33) % bound. Computed independently of this code.
+        assertEquals(listOf(5, 5, 5), Rng(0L).let { rng -> List(3) { rng.nextInt(7) } })
+        assertEquals(listOf(2, 4, 3), Rng(12345L).let { rng -> List(3) { rng.nextInt(7) } })
+    }
+
+    @Test
+    fun nextGemUsesThePinnedMapping() {
+        assertEquals(Gem.PURPLE, Rng(0L).nextGem())
+    }
+
+    @Test
     fun nextIntStaysInsideTheBound() {
         val rng = Rng(5L)
 

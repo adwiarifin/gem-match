@@ -58,6 +58,29 @@ class GameTest {
     }
 
     @Test
+    fun aMoveLeavesTheOriginalGamesRandomStateAlone() {
+        val game = Game.new(5L)
+        val before = game.encode()
+        val move = findValidMoves(game.board).first()
+
+        game.trySwap(move.from, move.to)
+
+        assertEquals(before, game.encode())
+    }
+
+    @Test
+    fun tryingTheSameMoveTwiceGivesTheSameOutcome() {
+        val game = Game.new(6L)
+        val move = findValidMoves(game.board).first()
+
+        val first = game.trySwap(move.from, move.to) as SwapOutcome.Accepted
+        val second = game.trySwap(move.from, move.to) as SwapOutcome.Accepted
+
+        assertEquals(first.game.encode(), second.game.encode())
+        assertEquals(first.steps, second.steps)
+    }
+
+    @Test
     fun theOriginalGameIsNotMutatedByAMove() {
         val game = Game.new(5L)
         val boardBefore = game.board
