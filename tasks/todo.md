@@ -31,5 +31,5 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 
 ## Phase 4: Hint and Release
 - [x] T17: Idle hint (8 s, foreground time only)
-- [ ] T18: Signed release build, icon, size ratchet, airplane-mode check
+- [x] T18: Signed release build, icon, size ratchet, airplane-mode check
 - [ ] Checkpoint D: all SPEC success criteria verified, owner sign-off

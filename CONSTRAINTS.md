@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-10-15 by @adwiarifin
 
-Status: written, not yet runnable. The repo has no Gradle project yet. Every command below becomes live when the scaffold lands (see "Pending setup").
+Status: live. Every command below runs today. `make check-fast`, `make check-task` and `make check-full` mirror this file.
 
 ## Floor (always enforced, blocks)
 
@@ -10,6 +10,7 @@ Status: written, not yet runnable. The repo has no Gradle project yet. Every com
 - No unimplemented stubs: `TODO()`, `throw NotImplementedError()`, empty `catch` blocks.
 - No `@Ignore`d or deleted tests without a reason in the commit message.
 - No secrets in source.
+- No signing material in the repo or in an agent session. Release signing runs through `scripts/sign-release.sh` in the owner's own terminal, which prompts for the password.
 - This file does not get weakened to make a change pass.
 
 ## Enforced with numbers
@@ -17,15 +18,16 @@ Status: written, not yet runnable. The repo has no Gradle project yet. Every com
 | Dimension | Rule | Why | Checked by | Runs at | On failure |
 |-----------|------|-----|-----------|---------|-----------|
 | Compile | Zero errors in `core` | Cheapest signal there is | `./gradlew :core:compileKotlin` | every edit | block |
-| Style | Zero ktlint errors | Formatting noise stays out of diffs | `./gradlew ktlintCheck` | every edit | warn until 2026-10-29, then block |
+| Style | Zero ktlint errors in `core` and `app` | Formatting noise stays out of diffs | `./gradlew ktlintCheck` | every edit | block |
 | Secrets | No secrets in source | A leaked key in a public repo or blog repo is permanent | `gitleaks detect --redact --no-banner` | every edit | block |
+| Floor guard | No new suppression comments, stubs, skipped or deleted tests, removed assertions, new exceptions, or loosened rules in this file | The five moves an agent makes to get to green. Diff-scoped, so it costs milliseconds | `scripts/floor-guard.py` | every edit | block |
 | Core boundary | `core` has no `android.*`, `java.*`, `javax.*` imports and applies no Android Gradle plugin | Keeps the core KMP-ready and the presentation layer replaceable (stated project goal) | `scripts/check-core-boundary.sh` | every edit | block |
 | Core tests | All `core` tests pass | Game rules are the product | `./gradlew :core:test` | task end | block |
-| Coverage | `core` line coverage ≥ 80% | Core is pure logic and built test-first, so 80% is reachable from day one. Kover has no diff-scoped mode, so the rule is project-wide on `core` | `./gradlew :core:koverVerify` | task end | warn until 2026-10-29, then block |
-| Static analysis | Zero detekt errors, zero Android Lint errors | Standard Kotlin and Android tools, external opinion | `./gradlew detekt lint` | review, CI | warn until 2026-10-29, then block |
-| APK size: release | ≤ 10,485,760 bytes (10 MiB) | Placeholder guess from the owner. Real target is ~1-2 MB, so ratchet down after the first release build | `./gradlew assembleRelease` then `scripts/check-apk-size.sh` | review, CI | block |
-| APK size: debug | ≤ 26,214,400 bytes (25 MiB) | Placeholder guess from the owner | `./gradlew assembleDebug` then `scripts/check-apk-size.sh` | review, CI | block |
-| Dependencies | Nothing at high severity or above | App is meant to have almost no dependencies, so any finding is a signal | `osv-scanner scan source -r .` (needs Gradle dependency lockfiles) | CI | warn until 2026-10-29, then block |
+| Coverage | `core` line coverage ≥ 80% | Core is pure logic and built test-first, so 80% is reachable from day one. Kover has no diff-scoped mode, so the rule is project-wide on `core` | `./gradlew :core:koverVerify` | task end | block |
+| Static analysis | Zero detekt errors in `core` and `app`, zero Android Lint errors | Standard Kotlin and Android tools, external opinion | `./gradlew detekt :app:lint` | review, CI | block |
+| APK size: release | ≤ 1,048,576 bytes (1 MiB) | Measured 53,686 bytes on 2026-10-15, rounded up to the next MiB so features have room to grow. The checked file is the unsigned APK; signing adds about 13 KB (RSA-4096 certificate and signature blocks), so the signed APK is about 67 KB | `./gradlew assembleRelease` then `scripts/check-apk-size.sh` | review, CI | block |
+| APK size: debug | ≤ 2,097,152 bytes (2 MiB) | Measured 1,053,372 bytes on 2026-10-15, rounded up to the next MiB so features have room to grow | `./gradlew assembleDebug` then `scripts/check-apk-size.sh` | review, CI | block |
+| Dependencies | Nothing at high severity or above in what ships in the APK | App is meant to have almost no dependencies, so any finding is a signal. The lockfiles (`core/gradle.lockfile`, `app/gradle.lockfile`) cover `runtimeClasspath` and `releaseRuntimeClasspath` only. Build tooling (AGP, detekt, ktlint) is not scanned because it never reaches a player; scanning it reports bundled BouncyCastle and logback findings that cannot be fixed from this repo | `osv-scanner scan source -r .` | CI | block |
 
 External checks (not judged by this project's own tests): APK size, Android Lint, gitleaks, osv-scanner.
 
@@ -39,10 +41,10 @@ External checks (not judged by this project's own tests): APK size, Android Lint
 
 | Metric | Today | Direction |
 |--------|-------|-----------|
-| Release APK size | 16,938 bytes (unsigned, R8 on, empty SurfaceView app, 2026-10-15) | must not grow; ratchet the cap at T18 once real content exists |
-| Debug APK size | 942,276 bytes (empty SurfaceView app, 2026-10-15) | must not grow |
-| `core` line coverage | 100% (110 tests, 2026-10-15) | must not fall (tolerance 0.5%) |
-| Frame time on the owner's Galaxy A52 | not measured | record manually once the render loop exists. No tool-backed check yet |
+| Release APK size | 53,686 bytes unsigned, 66,989 bytes signed (R8 on, 2026-10-15) | must not grow; the cap is the measured value rounded up to the next MiB |
+| Debug APK size | 1,053,372 bytes (2026-10-15) | must not grow |
+| `core` line coverage | 100% (117 tests, 2026-10-15) | must not fall (tolerance 0.5%) |
+| Frame time on the owner's Galaxy A52 | During move animations (755 frames, `dumpsys SurfaceFlinger --latency`, 2026-10-15): mean 17.2 ms, p99 23.1 ms, max 55.7 ms, 7 frames over 33 ms. The panel runs at 90 Hz (11.1 ms) and the game loop at 60 Hz, so frames arrive in an uneven 11/22 ms rhythm | no tool-backed check yet. Candidate fix: drive the loop from the display's vsync (post-v1) |
 
 Ratchet tolerance: 0.5% on coverage.
 
@@ -50,15 +52,6 @@ Ratchet tolerance: 0.5% on coverage.
 
 - Lighthouse, Core Web Vitals, axe-core: they need a running URL and this is a native app. Revisit only if a web build is ever added.
 - Mutation testing (Stryker): JS-only. PIT is the Kotlin equivalent. Add after the core has real tests, if wanted.
-
-## Pending setup (do when the scaffold exists)
-
-1. Create Gradle project with a `core` module (plain `kotlin("jvm")`, no Android plugin) and an `app` module.
-2. Add Kover, ktlint, detekt, and Android Lint config. Turn on Gradle dependency locking for osv-scanner.
-3. Write `scripts/check-core-boundary.sh` and `scripts/check-apk-size.sh`.
-4. Install gitleaks (`brew install gitleaks`) and osv-scanner (`brew install osv-scanner`).
-5. Add a floor guard (diff-scoped check for the Floor rules above) and wire `check:fast`, `check:task`, `check:full` as a `Makefile` or Gradle aliases.
-6. After the first release build, record the measured APK size above and lower the cap.
 
 ## Exceptions
 
