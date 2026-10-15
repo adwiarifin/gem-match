@@ -19,7 +19,7 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 - [ ] Checkpoint B: core complete, coverage ≥ 80%, owner review of API
 
 ## Phase 2: App
-- [ ] T11: Draw the board (game loop, surface lifecycle)
+- [x] T11: Draw the board (game loop, surface lifecycle)
 - [ ] T12: Distinct gem shapes
 - [ ] T13: Input, swap and invalid revert
 - [ ] T14: Play back clear, fall, spawn (cascades)
