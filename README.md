@@ -37,6 +37,8 @@ make sign
 adb install app/build/outputs/apk/release/gemmatch-release.apk
 ```
 
+The script refuses to sign with uncommitted changes, or an unsigned APK built from a different revision than `HEAD`, so a signed build always matches a commit. It prints that commit and the signing certificate's SHA-256 when it finishes.
+
 It expects the keystore at `~/Private/keys/gemmatch/gemmatch-release.jks` with alias `gemmatch`; override with `GEMMATCH_KEYSTORE` and `GEMMATCH_KEY_ALIAS`. The keystore is never committed. Lose it and a later update cannot install over the old app.
 
 ## Checks
@@ -48,6 +50,8 @@ It expects the keystore at `~/Private/keys/gemmatch/gemmatch-release.jks` with a
 | `make check-fast` | core compile, ktlint, core boundary, floor guard, gitleaks | seconds |
 | `make check-task` | the above, plus core tests, the 80% coverage gate and the app unit tests | about a minute |
 | `make check-full` | the above, plus detekt, Android Lint, APK builds, APK size caps, osv-scanner | a few minutes |
+
+`make release-check BASE=<last reviewed commit or tag>` is the gate before calling a version released: the floor guard against everything since `BASE`, then `make check-full`. `check-full` also fails if the app ever declares an Android permission.
 
 The floor guard (`scripts/floor-guard.py`) looks at the working diff for new suppression comments, stubs, skipped or deleted tests, removed assertions and loosened rules.
 
