@@ -4,7 +4,7 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 
 ## Phase 0: Foundation
 - [x] T1: Root Gradle project and `core` module (Kover, ktlint, detekt, smoke test)
-- [ ] T2: `app` module, empty SurfaceView, installed on the A52, first APK size recorded (built and measured; A52 install check pending, no device connected)
+- [x] T2: `app` module, empty SurfaceView, installed on the A52, first APK size recorded
 - [x] T3: Constraint scripts (core boundary, APK size) and check aliases
 - [ ] Checkpoint A: foundation green, size baseline recorded, owner review
 
