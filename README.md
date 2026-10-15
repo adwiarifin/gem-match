@@ -57,7 +57,8 @@ The floor guard (`scripts/floor-guard.py`) looks at the working diff for new sup
 core/    pure Kotlin game rules and tests
 app/     Android UI: SurfaceView, game loop, animation, save files
 scripts/ core boundary, APK size, floor guard and release signing
-SPEC.md  what the game is and the decisions made along the way
+SPEC.md  what the game is and must do
+docs/    decision log (why it is built this way) and the original intent
 tasks/   plan and task list
 ```
 
