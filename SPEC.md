@@ -35,7 +35,7 @@ Success looks like:
 
 ## Input and Idle Hint
 
-- Input is swipe only. Touch-down selects the gem under the finger. Once the drag passes a small threshold (a fraction of one cell), the dominant axis picks one of four directions and the swap is attempted. A drag toward the board edge is ignored. Input is blocked while steps are animating.
+- Input is swipe only, and a move is decided on release. Touch-down selects the gem under the finger and lifts it slightly; nothing else happens while the finger is down. On release, the drag from where it started to where it ended is read: if it travelled a small threshold (a fraction of one cell), the dominant axis picks one of four directions and the swap is attempted. Dragging out and back before release, a drag toward the board edge, a perfect diagonal, and a plain tap all do nothing. Input is blocked while steps are animating.
 - Idle means: the board is fully settled and the player has not touched the screen for 8 seconds (tunable constant). Then one valid move pulses as a hint. Any touch clears the hint and resets the timer.
 - Idle time is the sum of foreground frame deltas from the game loop, never wall-clock time. The loop stops in `onPause`, so time spent backgrounded (home button, phone call, screen off) never counts. On resume the idle timer restarts at 0 and any hint is cleared.
 
@@ -210,6 +210,25 @@ The owner approved these without being able to judge their impact yet, and asked
 - Why: no config loosening. The tool's default is the standard that ktlint's ecosystem targets, and `CONSTRAINTS.md` says to use the de facto tool as is.
 - Impact: every file uses trailing commas and one parameter per line for functions with several parameters. The snippet in "Code Style" is the older, more compact look and is intentionally left as a rough illustration.
 - Rollback: add a `.editorconfig` with `ktlint_code_style = intellij_idea`, then run `./gradlew ktlintFormat`. Produces one large formatting-only diff and no behaviour change.
+
+### Decisions made after the first playtest (approved by the owner, 2026-10-15)
+
+First playtest: 89 accepted and 18 rejected moves in about 13 minutes, median 59 fps, no swipe missed because of the threshold. Feedback led to these changes.
+
+**D6. A move is decided on release, not when the drag passes the threshold.**
+- Why: the owner did not like a move firing while the finger was still down (it fired a median 101 ms after touch).
+- Impact: `GameController` reads the swipe at release with `resolveSwipe(start, release point)`; dragging back to the start cancels. A small lift on the touched gem shows it is held but not committed. `core` is unchanged.
+- Rollback: restore resolving in the move handler in `GameController.kt` (two small functions, `beginTouch` and `endTouch`). No data impact.
+
+**D7. A reshuffle is announced and slow enough to notice.**
+- Why: the owner saw the board change too fast to tell anything had happened.
+- Impact: about 1.5 s total: the board rattles under a "No moves left - reshuffling" notice (0.8 s), the gems shrink away (0.3 s), and the new arrangement grows in (0.4 s). Input is blocked meanwhile, so a stuck board costs the player a short pause. The durations and the notice text are constants in `Timeline.kt`.
+- Rollback: shorten or remove the shake and notice in `ReshuffleAnimation`. Cosmetic, no data impact.
+
+**D8. New game has a visible transition.**
+- Why: same complaint, the new layout appeared instantly.
+- Impact: the old gems shrink away (0.2 s) and the new board drops in from the top (about 0.6 s). The score resets immediately and the best score is kept. Input is blocked for the transition.
+- Rollback: replace the two-animation timeline in `startNewGame` with an instant load. Cosmetic, no data impact.
 
 **What would be expensive to change later (not decided here, for awareness):** the save format `GM1` once real games are saved on your phone (needs a version bump and a migration), and the `Step` vocabulary once the renderer depends on it (every new step type needs animation code).
 
