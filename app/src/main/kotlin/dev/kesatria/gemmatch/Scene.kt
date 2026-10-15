@@ -33,6 +33,19 @@ class Scene {
 
     operator fun get(pos: Pos): Sprite? = slots[indexOf(pos)]
 
+    fun remove(pos: Pos): Sprite? {
+        val sprite = slots[indexOf(pos)]
+        slots[indexOf(pos)] = null
+        return sprite
+    }
+
+    fun place(
+        pos: Pos,
+        sprite: Sprite,
+    ) {
+        slots[indexOf(pos)] = sprite
+    }
+
     fun swapSlots(
         a: Pos,
         b: Pos,

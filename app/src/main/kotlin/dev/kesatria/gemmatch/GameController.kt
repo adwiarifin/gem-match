@@ -70,7 +70,7 @@ class GameController(
             }
 
             is SwapOutcome.Accepted -> {
-                timeline = Timeline(listOf(SwapAnimation(move.from, move.to)))
+                timeline = Timeline.forSteps(outcome.steps)
                 pending = outcome.game
             }
         }

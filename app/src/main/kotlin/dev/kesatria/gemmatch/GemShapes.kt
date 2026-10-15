@@ -21,18 +21,21 @@ object GemShapes {
             style = Paint.Style.STROKE
             strokeWidth = OUTLINE_WIDTH
             strokeJoin = Paint.Join.ROUND
-            color = Color.argb(OUTLINE_ALPHA, 0, 0, 0)
+            color = Color.BLACK
         }
 
-    /** Draws [gem] centred at ([cx], [cy]) fitting a circle of [radius] pixels. */
+    /** Draws [gem] centred at ([cx], [cy]) fitting a circle of [radius] pixels, [alpha] 0..1. */
     fun draw(
         canvas: Canvas,
         gem: Gem,
         cx: Float,
         cy: Float,
         radius: Float,
+        alpha: Float = 1f,
     ) {
         fill.color = colorOf(gem)
+        fill.alpha = (alpha * OPAQUE).toInt()
+        outline.alpha = (alpha * OUTLINE_ALPHA).toInt()
         canvas.save()
         canvas.translate(cx, cy)
         canvas.scale(radius, radius)
@@ -126,4 +129,5 @@ object GemShapes {
     private const val CROSS_REACH = 0.95f
     private const val OUTLINE_WIDTH = 0.07f
     private const val OUTLINE_ALPHA = 90
+    private const val OPAQUE = 255
 }

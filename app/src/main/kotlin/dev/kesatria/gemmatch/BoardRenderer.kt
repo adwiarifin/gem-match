@@ -24,11 +24,14 @@ class BoardRenderer {
         panelRect.set(layout.originX, layout.originY, layout.originX + side, layout.originY + side)
         canvas.drawRoundRect(panelRect, layout.cellSize * PANEL_CORNER, layout.cellSize * PANEL_CORNER, panel)
 
+        canvas.save()
+        canvas.clipRect(panelRect)
         scene.forEach { sprite ->
             val cx = layout.originX + (sprite.col + HALF) * layout.cellSize
             val cy = layout.originY + (sprite.row + HALF) * layout.cellSize
-            GemShapes.draw(canvas, sprite.gem, cx, cy, layout.cellSize * GEM_RADIUS * sprite.scale)
+            GemShapes.draw(canvas, sprite.gem, cx, cy, layout.cellSize * GEM_RADIUS * sprite.scale, sprite.alpha)
         }
+        canvas.restore()
     }
 
     private companion object {
