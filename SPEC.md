@@ -1,6 +1,6 @@
 # Spec: Gem Match (Bejeweled-style clone, Android)
 
-Status: DRAFT, awaiting owner approval.
+Status: approved by the owner, living document. Updated 2026-10-15 after the core module (T4-T10) was built.
 Source of intent: `docs/intent/bejeweled-clone.md`. Quality bar: `CONSTRAINTS.md`.
 
 Scope check (Phase 0): one product with two layers (`core`, `app`). Not decomposed into a capability map, because the layers are not independently shippable. Layer boundaries are specified below.
@@ -22,7 +22,7 @@ Success looks like:
 2. A move is a swap of two orthogonally adjacent gems. A swap that creates no match is rejected and reverts.
 3. A match is 3 or more in a row or column. Intersecting runs (L, T, +) clear as one union.
 4. After a clear, gems above fall, new gems spawn from above the top edge, and new matches cascade automatically.
-5. Scoring is tiered, to reward planned moves over lucky chains. Each cleared run scores by length: 3 gems = 30, 4 gems = 60, 5 or more = 100. Two runs that intersect (L, T, +) also earn a flat +50 shape bonus. Everything is multiplied by cascade depth (1x for the player's own match, 2x for the first chain, and so on). Constants live in one place and are tunable. A "best single move" record is a possible later addition and is not in v1.
+5. Scoring is tiered, to reward planned moves over lucky chains. Each cleared run scores by length: 3 gems = 30, 4 gems = 60, 5 or more = 100. A group of runs that intersect (L, T, +) also earns one flat +50 shape bonus per group. Everything is multiplied by cascade depth (1x for the player's own match, 2x for the first chain, and so on). Constants live in one place and are tunable. A "best single move" record is a possible later addition and is not in v1.
 6. The starting board has no matches and at least one valid move.
 7. If no valid move exists after a cascade settles, the board reshuffles its existing gems until it has no matches and at least one valid move. There is no game over.
 8. Core resolves a whole move instantly and returns a list of steps. The presentation layer plays those steps back as animation. State is saved after the move resolves, so a resumed game is never mid-animation.
@@ -68,7 +68,7 @@ Dependencies:        osv-scanner scan source -r .
 ## Project Structure
 
 ```
-core/src/main/kotlin/...    Pure game logic (board, match, cascade, scoring, rng, save codec)
+core/src/main/kotlin/...    Pure game logic (board, match, cascade, scoring, rng, save codec, swipe geometry)
 core/src/test/kotlin/...    Unit tests, written test-first
 app/src/main/kotlin/...     Activity, SurfaceView, game loop, renderer, input, persistence
 app/src/main/res/           Manifest resources, launcher icon (vector)
@@ -99,7 +99,7 @@ sealed interface Step {                               // what the renderer anima
     data class Clear(val cells: Set<Pos>, val points: Int, val depth: Int) : Step
     data class Fall(val moves: List<Move>) : Step     // existing gems drop
     data class Spawn(val gems: List<Placed>) : Step   // new gems enter from the top
-    object Reshuffle : Step
+    data class Reshuffle(val board: Board) : Step     // dead board rearranged into this one
 }
 ```
 
@@ -181,6 +181,37 @@ Special gems and power-ups, levels or goals, timers, "best single move" record, 
 - Swipe-only input (gem plus constrained direction): chosen by owner.
 - Tiered scoring is the v1 minimum: chosen by owner. Simple flat scoring and the "best single move" record are the other levels considered.
 - Idle hint is in v1, with the definition above.
+
+### Decisions made while building the core (approved by the owner, 2026-10-15)
+
+The owner approved these without being able to judge their impact yet, and asked that implications and rollback be written down. Each entry says what depends on the decision and what it costs to reverse. General rule: everything here is cheap to reverse today and gets more expensive once the renderer (T11-T15) and real saved games exist.
+
+**D1. `Step.Reshuffle` carries the whole new `Board`, not a list of moves.**
+- Why: a dead board is rearranged, and sometimes (rare fallback) replaced by a fresh one. A full board describes both exactly, and replaying steps stays trivial.
+- Impact: the renderer (T15) must animate the old layout into the new one itself, by pairing each gem with a same-type destination (for example nearest first). Core does not say which gem went where.
+- Rollback: change `Step.Reshuffle` to carry moves (`GemMove` list), make `rearranged()` in `Reshuffle.kt` return the permutation, and adjust `TestReplay.kt` and the reshuffle tests. Core only, roughly 3 files, under an hour today. After T15 it also touches the renderer's reshuffle animation. The fallback fresh board would then need its own step, because a fresh board is not a permutation.
+
+**D2. The +50 shape bonus is once per group, not once per intersecting pair.**
+- Why: simpler to explain, and a +, T or L is one visible event. Three or more runs in one group still earn one bonus.
+- Impact: score balance only. Larger shapes score slightly less than the per-pair reading.
+- Rollback: change one function, `scoreFor(group)` in `Scoring.kt`, plus about 3 tests in `ScoringTest.kt`. No save format impact, because scores are stored as plain numbers. The one cost: a saved high score earned under the old rule is not strictly comparable to scores under the new one.
+
+**D3. Reshuffle keeps the same gems, places them without completing a run, and falls back to a fresh board only if that is impossible.**
+- Why: the board keeps its composition. A plain random shuffle almost never works with few gem colours, so run-avoiding placement is needed. The fallback guarantees the game never stalls.
+- Impact: gameplay feel only (a reshuffle does not change which gems exist). It happens rarely with 7 colours. Saved games are not affected, because they store the board and random state, not the reshuffle method.
+- Rollback: replace `rearranged()` in `Reshuffle.kt` (for example with "always generate a fresh board"). No data or format impact. Past games and saves stay valid. Only future reshuffles differ.
+
+**D4. Swipe geometry lives in `core`, with small `Point` and `BoardLayout` types.**
+- Why: testable on the JVM and reusable by any future UI (Compose, KMP port). The owner noted it is arguable whether it belongs in core or an input layer.
+- Impact: the app's input handler (T13) must build a `BoardLayout` from the renderer's board position and a `Point` from each touch, then call `resolveSwipe`. A future port must supply the same two things.
+- Rollback: move `Swipe.kt` and `SwipeTest.kt` into the app (or a new `input` module). They depend only on `Pos` and `Move`, so nothing else changes. The core boundary check keeps passing either way. Under an hour.
+
+**D5. Code follows ktlint's default (`ktlint_official`) style, which is stricter than the snippet in "Code Style" below.**
+- Why: no config loosening. The tool's default is the standard that ktlint's ecosystem targets, and `CONSTRAINTS.md` says to use the de facto tool as is.
+- Impact: every file uses trailing commas and one parameter per line for functions with several parameters. The snippet in "Code Style" is the older, more compact look and is intentionally left as a rough illustration.
+- Rollback: add a `.editorconfig` with `ktlint_code_style = intellij_idea`, then run `./gradlew ktlintFormat`. Produces one large formatting-only diff and no behaviour change.
+
+**What would be expensive to change later (not decided here, for awareness):** the save format `GM1` once real games are saved on your phone (needs a version bump and a migration), and the `Step` vocabulary once the renderer depends on it (every new step type needs animation code).
 
 ## Open Questions
 
