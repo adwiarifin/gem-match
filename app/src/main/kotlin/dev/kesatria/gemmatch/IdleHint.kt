@@ -47,8 +47,8 @@ class IdleHint(
 
     private fun restart() {
         hint?.let { move ->
-            scene[move.from]?.scale = 1f
-            scene[move.to]?.scale = 1f
+            // The gem the player just picked up keeps its lift: it may be one of the pair that was pulsing.
+            listOfNotNull(scene[move.from], scene[move.to]).filter { it !== scene.raised }.forEach { it.scale = 1f }
         }
         hint = null
         idleSeconds = 0f

@@ -2,8 +2,10 @@ package dev.kesatria.gemmatch
 
 import dev.kesatria.gemmatch.core.BOARD_SIZE
 import dev.kesatria.gemmatch.core.Board
+import dev.kesatria.gemmatch.core.BoardLayout
 import dev.kesatria.gemmatch.core.Game
 import dev.kesatria.gemmatch.core.Gem
+import dev.kesatria.gemmatch.core.Point
 import dev.kesatria.gemmatch.core.Pos
 import dev.kesatria.gemmatch.core.findValidMoves
 import kotlin.test.Test
@@ -132,5 +134,21 @@ class IdleHintTest {
         hint.tick(30f, board, settled = false)
 
         assertTrue(pulsing().isEmpty())
+    }
+
+    @Test
+    fun touchingAGemWhileItPulsesAsTheHintStillLiftsIt() {
+        val layout = BoardLayout(originX = 0f, originY = 0f, cellSize = 100f)
+        val drag = DragGesture(scene)
+        hint.tick(8.5f, board, settled = true)
+        val held = pulsing().first()
+
+        // What the controller does in one frame: the touch begins a drag, then the idle hint ticks.
+        hint.touched()
+        drag.begin(Point(held.col * 100f + 50f, held.row * 100f + 50f), layout)
+        hint.tick(1f / 60, board, settled = !drag.isActive)
+
+        assertEquals(1.2f, scene[held]!!.scale, "the held gem keeps its lift")
+        assertTrue(pulsing() == setOf(held), "the other hint gem goes back to normal")
     }
 }
