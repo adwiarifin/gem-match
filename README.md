@@ -65,3 +65,7 @@ tasks/   plan and task list
 ## Saves
 
 Two small files in the app's private storage: `game.sav` (score, random-generator state and the 64 cells, in a versioned text format) and `best.txt`. Both are written to a temporary file, synced, and renamed over the real one, so a kill mid-write cannot leave a half-written save. A corrupt or empty save starts a new game.
+
+## License
+
+MIT, see `LICENSE`.
