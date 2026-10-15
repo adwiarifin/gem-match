@@ -30,6 +30,7 @@ EXCEPTION_ROW = re.compile(r"^\|\s*[WE]\d+\s*\|")
 MIN_WORDS = re.compile(r"(≥|>=|at least|must not fall|or more)", re.I)
 MAX_WORDS = re.compile(r"(≤|<=|at most|must not grow|or less|under)", re.I)
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+NOISE = re.compile(r"\d{4}-\d{2}-\d{2}|\(\s*\d+\s*[KMG]i?B\s*\)")
 
 
 def git(*args):
@@ -92,6 +93,15 @@ def rule_key(text):
 
 
 def numbers_with_direction(text):
+    """Numbers whose direction (a minimum or a maximum) the words around them state. Others are prose."""
+    text = NOISE.sub(" ", text)
+    cells = [c.strip() for c in text.strip().split("|") if c.strip()]
+    if text.strip().startswith("|") and len(cells) == 3:
+        # A measured-metric row: | Metric | Today | Direction |. The direction word sits in its own cell.
+        direction = "min" if MIN_WORDS.search(cells[2]) else "max" if MAX_WORDS.search(cells[2]) else None
+        first = NUMBER.search(cells[1])
+        if direction and first:
+            return [(float(first.group().replace(",", "")), direction)]
     found = []
     for match in NUMBER.finditer(text):
         before = text[max(0, match.start() - 24) : match.start()]
@@ -101,14 +111,16 @@ def numbers_with_direction(text):
         elif MAX_WORDS.search(before) or MAX_WORDS.search(after):
             direction = "max"
         else:
-            direction = None
+            continue
         found.append((float(match.group().replace(",", "")), direction))
     return found
 
 
 def weakened(old, new):
     """Name the way `new` loosens `old`, or None when it tightens or is unchanged."""
-    for direction in ("min", "max", None):
+    if re.search(r"\bblock\b", old, re.I) and not re.search(r"\bblock\b", new, re.I) and re.search(r"\bwarn\b", new, re.I):
+        return "severity-lowered"
+    for direction in ("min", "max"):
         was = [n for n, d in numbers_with_direction(old) if d == direction]
         now = [n for n, d in numbers_with_direction(new) if d == direction]
         for i, before in enumerate(was):
@@ -121,8 +133,6 @@ def weakened(old, new):
                 return "threshold-loosened"
             if direction == "max" and after > before:
                 return "threshold-loosened"
-            if direction is None:
-                return "threshold-changed"
     return None
 
 
