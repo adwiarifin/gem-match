@@ -8,11 +8,13 @@ import dev.kesatria.gemmatch.core.Move
 import dev.kesatria.gemmatch.core.Placed
 import dev.kesatria.gemmatch.core.Point
 import dev.kesatria.gemmatch.core.Pos
+import dev.kesatria.gemmatch.core.findValidMoves
 import dev.kesatria.gemmatch.core.previewDrag
 import dev.kesatria.gemmatch.core.SwapOutcome
 import dev.kesatria.gemmatch.core.resolveSwipe
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 
 /** A touch copied off the UI thread: MotionEvent objects are recycled, so only plain values cross over. */
@@ -53,8 +55,17 @@ class GameController(
 
     @Volatile private var dialogOpen = false
 
+    @Volatile private var idleResetRequested = true
+    private var idleSeconds = 0f
+    private var hint: Move? = null
+
     fun onTouch(event: TouchEvent) {
         touches.add(event)
+    }
+
+    /** Starts the idle timer from zero. Called when the app comes back, so time away never counts. */
+    fun resetIdle() {
+        idleResetRequested = true
     }
 
     /** Writes the current game and best score to disk and waits. Called from the UI thread when the app is paused. */
@@ -73,9 +84,11 @@ class GameController(
     ) {
         while (true) {
             val event = touches.poll() ?: break
+            idleResetRequested = true
             if (layout != null) handle(event, layout)
         }
         advanceTimeline(seconds)
+        updateIdleHint(seconds)
     }
 
     fun render(
@@ -222,6 +235,35 @@ class GameController(
         }
     }
 
+    /**
+     * After [HINT_AFTER_SECONDS] of a settled board with no touch, one valid move pulses. The timer counts
+     * game-loop time only, so it never runs in the background. Any touch, animation or dialog clears it.
+     */
+    private fun updateIdleHint(seconds: Float) {
+        val idle = timeline == null && !dialogOpen && gestureStart == null && !buttonPressed
+        if (!idle || idleResetRequested) {
+            clearHint()
+            idleSeconds = 0f
+            idleResetRequested = false
+            return
+        }
+        idleSeconds += seconds
+        if (idleSeconds < HINT_AFTER_SECONDS) return
+        val move = hint ?: findValidMoves(game.board).randomOrNull()?.also { hint = it } ?: return
+        val phase = (idleSeconds - HINT_AFTER_SECONDS) / HINT_PULSE_SECONDS
+        val scale = 1f + HINT_PULSE * (0.5f - 0.5f * cos(2 * PI * phase).toFloat())
+        scene[move.from]?.scale = scale
+        scene[move.to]?.scale = scale
+    }
+
+    private fun clearHint() {
+        hint?.let { move ->
+            scene[move.from]?.scale = 1f
+            scene[move.to]?.scale = 1f
+        }
+        hint = null
+    }
+
     private fun addPoints(points: Int) {
         shownScore += points
         bestScore = maxOf(bestScore, shownScore)
@@ -272,5 +314,8 @@ class GameController(
         private const val ACTION_BACK = -1
         private const val LIFT_SCALE = 1.2f
         private const val SIDESTEP = 0.22f
+        private const val HINT_AFTER_SECONDS = 8f
+        private const val HINT_PULSE_SECONDS = 1f
+        private const val HINT_PULSE = 0.2f
     }
 }

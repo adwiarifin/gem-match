@@ -35,6 +35,7 @@ class GameSurfaceView(
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
+        controller.resetIdle()
         loop = GameLoop(holder, ::advance, ::render).also { it.start() }
     }
 
