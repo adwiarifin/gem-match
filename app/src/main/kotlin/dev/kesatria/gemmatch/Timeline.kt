@@ -23,20 +23,55 @@ interface Animation {
     fun finish(scene: Scene)
 }
 
-/** Slides the sprites at [a] and [b] into each other's cell, then swaps their slots. */
+/** Where a sprite was when an animation began, so it can carry on from a half-dragged position. */
+private class Frame(
+    val row: Float,
+    val col: Float,
+    val scale: Float,
+) {
+    companion object {
+        fun of(sprite: Sprite?): Frame? = sprite?.let { Frame(it.row, it.col, it.scale) }
+    }
+}
+
+/** Moves [sprite] from where it started to ([row], [col]) at normal size, [t] being 0..1. */
+private fun glide(
+    sprite: Sprite?,
+    start: Frame?,
+    row: Float,
+    col: Float,
+    t: Float,
+) {
+    if (sprite == null || start == null) return
+    sprite.row = start.row + (row - start.row) * t
+    sprite.col = start.col + (col - start.col) * t
+    sprite.scale = start.scale + (1f - start.scale) * t
+}
+
+/**
+ * Slides the sprites at [a] and [b] into each other's cell, then swaps their slots. Starts from
+ * wherever the sprites are now, so a swap dragged half way continues without a jump.
+ */
 class SwapAnimation(
     private val a: Pos,
     private val b: Pos,
 ) : Animation {
     override val seconds = SWAP_SECONDS
+    private var startA: Frame? = null
+    private var startB: Frame? = null
+
+    override fun start(scene: Scene) {
+        startA = Frame.of(scene[a])
+        startB = Frame.of(scene[b])
+    }
 
     override fun apply(
         scene: Scene,
         progress: Float,
     ) {
         val eased = Easing.inOut(progress)
-        move(scene[a], a, b, eased)
-        move(scene[b], b, a, eased)
+        glide(scene[a], startA, b.row.toFloat(), b.col.toFloat(), eased)
+        glide(scene[b], startB, a.row.toFloat(), a.col.toFloat(), eased)
     }
 
     override fun finish(scene: Scene) {
@@ -44,19 +79,38 @@ class SwapAnimation(
         scene.swapSlots(a, b)
     }
 
-    private fun move(
-        sprite: Sprite?,
-        from: Pos,
-        to: Pos,
-        t: Float,
-    ) {
-        if (sprite == null) return
-        sprite.row = from.row + (to.row - from.row) * t
-        sprite.col = from.col + (to.col - from.col) * t
-    }
-
     private companion object {
         const val SWAP_SECONDS = 0.18f
+    }
+}
+
+/** A drag that was let go short of the commit point: the gem (and the neighbour it nudged) spring back. */
+class SettleAnimation(
+    private val held: Pos,
+    private val neighbour: Pos?,
+) : Animation {
+    override val seconds = SETTLE_SECONDS
+    private var startHeld: Frame? = null
+    private var startNeighbour: Frame? = null
+
+    override fun start(scene: Scene) {
+        startHeld = Frame.of(scene[held])
+        startNeighbour = neighbour?.let { Frame.of(scene[it]) }
+    }
+
+    override fun apply(
+        scene: Scene,
+        progress: Float,
+    ) {
+        val eased = Easing.out(progress)
+        glide(scene[held], startHeld, held.row.toFloat(), held.col.toFloat(), eased)
+        neighbour?.let { glide(scene[it], startNeighbour, it.row.toFloat(), it.col.toFloat(), eased) }
+    }
+
+    override fun finish(scene: Scene) = apply(scene, 1f)
+
+    private companion object {
+        const val SETTLE_SECONDS = 0.12f
     }
 }
 
@@ -282,6 +336,9 @@ class Timeline(
 object Easing {
     /** Slow start, slow end: smoothstep. */
     fun inOut(t: Float): Float = t * t * (3f - 2f * t)
+
+    /** Fast start, gentle stop. */
+    fun out(t: Float): Float = 1f - (1f - t) * (1f - t)
 
     /** Starts slow and speeds up, like something falling. */
     fun fall(t: Float): Float = t * t

@@ -25,12 +25,16 @@ class Sprite(
 class Scene {
     private val slots = arrayOfNulls<Sprite>(BOARD_SIZE * BOARD_SIZE)
 
+    /** The sprite the player is holding. It is drawn last so it sits on top of its neighbours. */
+    var raised: Sprite? = null
+
     /** A short notice drawn over the board (for example before a reshuffle), or null. */
     var message: String? = null
     var messageAlpha = 1f
 
     /** Resets every sprite to rest on its cell of [board]. */
     fun load(board: Board) {
+        raised = null
         for (row in 0 until BOARD_SIZE) {
             for (col in 0 until BOARD_SIZE) {
                 slots[indexOf(Pos(row, col))] = board[Pos(row, col)]?.let { Sprite(it, row.toFloat(), col.toFloat()) }

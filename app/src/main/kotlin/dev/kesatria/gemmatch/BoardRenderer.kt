@@ -34,14 +34,21 @@ class BoardRenderer {
 
         canvas.save()
         canvas.clipRect(panelRect)
-        scene.forEach { sprite ->
-            val cx = layout.originX + (sprite.col + sprite.dx + HALF) * layout.cellSize
-            val cy = layout.originY + (sprite.row + HALF) * layout.cellSize
-            GemShapes.draw(canvas, sprite.gem, cx, cy, layout.cellSize * GEM_RADIUS * sprite.scale, sprite.alpha)
-        }
+        scene.forEach { if (it !== scene.raised) drawSprite(canvas, layout, it) }
+        scene.raised?.let { drawSprite(canvas, layout, it) }
         canvas.restore()
 
         scene.message?.let { drawNotice(canvas, layout, it, scene.messageAlpha) }
+    }
+
+    private fun drawSprite(
+        canvas: Canvas,
+        layout: BoardLayout,
+        sprite: Sprite,
+    ) {
+        val cx = layout.originX + (sprite.col + sprite.dx + HALF) * layout.cellSize
+        val cy = layout.originY + (sprite.row + HALF) * layout.cellSize
+        GemShapes.draw(canvas, sprite.gem, cx, cy, layout.cellSize * GEM_RADIUS * sprite.scale, sprite.alpha)
     }
 
     private fun drawNotice(

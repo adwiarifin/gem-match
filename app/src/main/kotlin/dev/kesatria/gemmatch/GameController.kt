@@ -8,9 +8,12 @@ import dev.kesatria.gemmatch.core.Move
 import dev.kesatria.gemmatch.core.Placed
 import dev.kesatria.gemmatch.core.Point
 import dev.kesatria.gemmatch.core.Pos
+import dev.kesatria.gemmatch.core.previewDrag
 import dev.kesatria.gemmatch.core.SwapOutcome
 import dev.kesatria.gemmatch.core.resolveSwipe
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.math.PI
+import kotlin.math.sin
 
 /** A touch copied off the UI thread: MotionEvent objects are recycled, so only plain values cross over. */
 class TouchEvent(
@@ -37,6 +40,7 @@ class GameController(
     private var gestureStart: Point? = null
     private var buttonPressed = false
     private var liftedPos: Pos? = null
+    private var previewTo: Pos? = null
     private var shownScore = game.score
     private var bestScore = game.score
 
@@ -107,12 +111,12 @@ class GameController(
     ) {
         when (event.action) {
             ACTION_DOWN -> beginTouch(event, layout)
-            ACTION_MOVE -> Unit
+            ACTION_MOVE -> followFinger(Point(event.x, event.y), layout)
             else -> endTouch(event, layout)
         }
     }
 
-    /** Touching a gem only lifts it a little. Nothing is decided until the finger is released. */
+    /** Touching a gem picks it up: it grows and sits on top. Nothing is decided until release. */
     private fun beginTouch(
         event: TouchEvent,
         layout: BoardLayout,
@@ -121,23 +125,76 @@ class GameController(
         val start = if (!buttonPressed && timeline == null) Point(event.x, event.y) else null
         gestureStart = start
         liftedPos = start?.let { layout.cellAt(it.x, it.y) }
-        liftedPos?.let { scene[it]?.scale = LIFT_SCALE }
+        liftedPos?.let { pos ->
+            scene[pos]?.let {
+                it.scale = LIFT_SCALE
+                scene.raised = it
+            }
+        }
     }
 
-    /** The move is read from where the finger started and where it was released, never mid-drag. */
+    /** The held gem follows the finger along its axis and the neighbour slides the other way: a swap that is not final yet. */
+    private fun followFinger(
+        point: Point,
+        layout: BoardLayout,
+    ) {
+        val start = gestureStart ?: return
+        val held = liftedPos ?: return
+        restPreview(held)
+        val preview = previewDrag(layout, start, point) ?: return
+        val to = preview.to ?: return
+        val dRow = (to.row - held.row) * preview.progress
+        val dCol = (to.col - held.col) * preview.progress
+        scene[held]?.let {
+            it.row = held.row + dRow
+            it.col = held.col + dCol
+        }
+        scene[to]?.let {
+            // The neighbour sidesteps a little as it passes, so both gems stay visible at the half-way point.
+            val sidestep = (SIDESTEP * sin(PI * preview.progress)).toFloat()
+            it.row = to.row - dRow + if (to.row == held.row) sidestep else 0f
+            it.col = to.col - dCol + if (to.col == held.col) sidestep else 0f
+        }
+        previewTo = to
+    }
+
+    private fun restPreview(held: Pos) {
+        scene[held]?.let {
+            it.row = held.row.toFloat()
+            it.col = held.col.toFloat()
+        }
+        previewTo?.let { to ->
+            scene[to]?.let {
+                it.row = to.row.toFloat()
+                it.col = to.col.toFloat()
+            }
+        }
+        previewTo = null
+    }
+
+    /**
+     * Release decides. Past the commit point the swap is attempted, carrying on from where the gems
+     * are. Short of it, the gems spring back. A cancelled touch always springs back.
+     */
     private fun endTouch(
         event: TouchEvent,
         layout: BoardLayout,
     ) {
-        liftedPos?.let { scene[it]?.scale = 1f }
-        liftedPos = null
-        val start = gestureStart
-        gestureStart = null
-        if (event.action == ACTION_UP) {
-            if (buttonPressed && hud.isOnNewGameButton(layout, event.x, event.y)) dialogOpen = true
-            start?.let { resolveSwipe(layout, it, Point(event.x, event.y))?.let(::startMove) }
-        }
+        val released = event.action == ACTION_UP
+        if (released && buttonPressed && hud.isOnNewGameButton(layout, event.x, event.y)) dialogOpen = true
         buttonPressed = false
+
+        val start = gestureStart
+        val held = liftedPos
+        if (start != null && held != null) {
+            val point = Point(event.x, event.y)
+            if (released) followFinger(point, layout)
+            val move = if (released) resolveSwipe(layout, start, point) else null
+            if (move != null) startMove(move) else timeline = Timeline(listOf(SettleAnimation(held, previewTo)))
+        }
+        gestureStart = null
+        liftedPos = null
+        previewTo = null
     }
 
     private fun startMove(move: Move) {
@@ -179,6 +236,7 @@ class GameController(
                 shownScore = it.score
                 bestScore = maxOf(bestScore, shownScore)
             }
+            scene.raised = null
             pending = null
             timeline = null
         }
@@ -189,6 +247,7 @@ class GameController(
         const val ACTION_UP = 1
         const val ACTION_MOVE = 2
         private const val ACTION_BACK = -1
-        private const val LIFT_SCALE = 1.15f
+        private const val LIFT_SCALE = 1.2f
+        private const val SIDESTEP = 0.22f
     }
 }
