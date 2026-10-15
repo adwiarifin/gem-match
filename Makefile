@@ -1,7 +1,7 @@
 # Mirrors CONSTRAINTS.md. If this file and CONSTRAINTS.md disagree, CONSTRAINTS.md wins.
 # osv-scanner joins check-full once Gradle dependency lockfiles exist (planned for T18).
 
-.PHONY: check-fast check-task check-full
+.PHONY: check-fast check-task check-full sign
 
 # Edit loop: seconds.
 check-fast:
@@ -17,3 +17,7 @@ check-task: check-fast
 check-full: check-task
 	./gradlew detekt :app:lint :app:assembleDebug :app:assembleRelease
 	scripts/check-apk-size.sh all
+
+# Builds and signs the release APK. Run from your own terminal: it prompts for the key password.
+sign:
+	scripts/sign-release.sh
