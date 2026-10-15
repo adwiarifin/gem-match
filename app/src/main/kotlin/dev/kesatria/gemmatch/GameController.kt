@@ -1,10 +1,13 @@
 package dev.kesatria.gemmatch
 
 import android.graphics.Canvas
+import dev.kesatria.gemmatch.core.BOARD_SIZE
 import dev.kesatria.gemmatch.core.BoardLayout
 import dev.kesatria.gemmatch.core.Game
 import dev.kesatria.gemmatch.core.Move
+import dev.kesatria.gemmatch.core.Placed
 import dev.kesatria.gemmatch.core.Point
+import dev.kesatria.gemmatch.core.Pos
 import dev.kesatria.gemmatch.core.SwapOutcome
 import dev.kesatria.gemmatch.core.resolveSwipe
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -33,6 +36,7 @@ class GameController(
     private var pending: Game? = null
     private var gestureStart: Point? = null
     private var buttonPressed = false
+    private var liftedPos: Pos? = null
     private var shownScore = game.score
     private var bestScore = game.score
 
@@ -101,27 +105,42 @@ class GameController(
         event: TouchEvent,
         layout: BoardLayout,
     ) {
-        val point = Point(event.x, event.y)
         when (event.action) {
-            ACTION_DOWN -> {
-                buttonPressed = hud.isOnNewGameButton(layout, event.x, event.y)
-                gestureStart = if (!buttonPressed && timeline == null) point else null
-            }
-
-            ACTION_MOVE -> gestureStart?.let { start -> resolveSwipe(layout, start, point)?.let(::startMove) }
-
-            else -> {
-                if (event.action == ACTION_UP && buttonPressed && hud.isOnNewGameButton(layout, event.x, event.y)) {
-                    dialogOpen = true
-                }
-                buttonPressed = false
-                gestureStart = null
-            }
+            ACTION_DOWN -> beginTouch(event, layout)
+            ACTION_MOVE -> Unit
+            else -> endTouch(event, layout)
         }
     }
 
-    private fun startMove(move: Move) {
+    /** Touching a gem only lifts it a little. Nothing is decided until the finger is released. */
+    private fun beginTouch(
+        event: TouchEvent,
+        layout: BoardLayout,
+    ) {
+        buttonPressed = hud.isOnNewGameButton(layout, event.x, event.y)
+        val start = if (!buttonPressed && timeline == null) Point(event.x, event.y) else null
+        gestureStart = start
+        liftedPos = start?.let { layout.cellAt(it.x, it.y) }
+        liftedPos?.let { scene[it]?.scale = LIFT_SCALE }
+    }
+
+    /** The move is read from where the finger started and where it was released, never mid-drag. */
+    private fun endTouch(
+        event: TouchEvent,
+        layout: BoardLayout,
+    ) {
+        liftedPos?.let { scene[it]?.scale = 1f }
+        liftedPos = null
+        val start = gestureStart
         gestureStart = null
+        if (event.action == ACTION_UP) {
+            if (buttonPressed && hud.isOnNewGameButton(layout, event.x, event.y)) dialogOpen = true
+            start?.let { resolveSwipe(layout, it, Point(event.x, event.y))?.let(::startMove) }
+        }
+        buttonPressed = false
+    }
+
+    private fun startMove(move: Move) {
         when (val outcome = game.trySwap(move.from, move.to)) {
             SwapOutcome.Rejected -> {
                 timeline = Timeline(listOf(SwapAnimation(move.from, move.to), SwapAnimation(move.from, move.to)))
@@ -139,12 +158,15 @@ class GameController(
         bestScore = maxOf(bestScore, shownScore)
     }
 
+    /** The old gems shrink away, then the new board rains in from the top. Score resets at once; best stays. */
     private fun startNewGame() {
+        scene.load((pending ?: game).board)
         game = Game.new(newSeed())
-        scene.load(game.board)
-        timeline = null
-        pending = null
+        pending = game
         shownScore = 0
+        val allCells = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }.toSet()
+        val arrivals = allCells.sortedWith(compareBy({ it.col }, { it.row })).mapNotNull { pos -> game.board[pos]?.let { Placed(it, pos) } }
+        timeline = Timeline(listOf(ClearAnimation(allCells, 0) {}, SpawnAnimation(arrivals)))
     }
 
     private fun advanceTimeline(seconds: Float) {
@@ -167,5 +189,6 @@ class GameController(
         const val ACTION_UP = 1
         const val ACTION_MOVE = 2
         private const val ACTION_BACK = -1
+        private const val LIFT_SCALE = 1.15f
     }
 }

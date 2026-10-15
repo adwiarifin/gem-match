@@ -12,6 +12,14 @@ class BoardRenderer {
     private val background = Paint().apply { color = Color.rgb(24, 24, 48) }
     private val panel = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(36, 36, 72) }
     private val panelRect = RectF()
+    private val noticeRect = RectF()
+    private val noticeFill = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val noticeText =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            isFakeBoldText = true
+        }
 
     fun draw(
         canvas: Canvas,
@@ -27,16 +35,43 @@ class BoardRenderer {
         canvas.save()
         canvas.clipRect(panelRect)
         scene.forEach { sprite ->
-            val cx = layout.originX + (sprite.col + HALF) * layout.cellSize
+            val cx = layout.originX + (sprite.col + sprite.dx + HALF) * layout.cellSize
             val cy = layout.originY + (sprite.row + HALF) * layout.cellSize
             GemShapes.draw(canvas, sprite.gem, cx, cy, layout.cellSize * GEM_RADIUS * sprite.scale, sprite.alpha)
         }
         canvas.restore()
+
+        scene.message?.let { drawNotice(canvas, layout, it, scene.messageAlpha) }
+    }
+
+    private fun drawNotice(
+        canvas: Canvas,
+        layout: BoardLayout,
+        text: String,
+        alpha: Float,
+    ) {
+        val cell = layout.cellSize
+        noticeText.textSize = cell * NOTICE_TEXT
+        val width = noticeText.measureText(text) + cell * NOTICE_PADDING
+        val cx = layout.originX + cell * BOARD_SIZE / 2
+        val cy = layout.originY + cell * BOARD_SIZE / 2
+        val half = cell * NOTICE_HEIGHT / 2
+        noticeRect.set(cx - width / 2, cy - half, cx + width / 2, cy + half)
+        noticeFill.color = Color.argb((alpha * NOTICE_ALPHA).toInt(), 20, 20, 40)
+        noticeText.alpha = (alpha * OPAQUE).toInt()
+        canvas.drawRoundRect(noticeRect, half, half, noticeFill)
+        val baseline = cy - (noticeText.fontMetrics.ascent + noticeText.fontMetrics.descent) / 2
+        canvas.drawText(text, cx, baseline, noticeText)
     }
 
     private companion object {
         const val HALF = 0.5f
         const val GEM_RADIUS = 0.38f
         const val PANEL_CORNER = 0.2f
+        const val NOTICE_TEXT = 0.5f
+        const val NOTICE_PADDING = 1.2f
+        const val NOTICE_HEIGHT = 1.1f
+        const val NOTICE_ALPHA = 220
+        const val OPAQUE = 255
     }
 }

@@ -5,6 +5,8 @@ import dev.kesatria.gemmatch.core.GemMove
 import dev.kesatria.gemmatch.core.Placed
 import dev.kesatria.gemmatch.core.Pos
 import dev.kesatria.gemmatch.core.Step
+import kotlin.math.PI
+import kotlin.math.sin
 
 /** A timed change to the [Scene]. [apply] is called with progress 0..1, then [finish] once. */
 interface Animation {
@@ -145,34 +147,77 @@ class SpawnAnimation(
     override fun finish(scene: Scene) = apply(scene, 1f)
 }
 
-/** Every gem shrinks away, then the rearranged [board] grows back in. */
+/**
+ * Tells the player the board was stuck: the gems rattle under a notice, shrink away, and the
+ * rearranged [board] grows back in. Long enough to see that something happened.
+ */
 class ReshuffleAnimation(
     private val board: Board,
 ) : Animation {
-    override val seconds = RESHUFFLE_SECONDS
+    override val seconds = SHAKE_SECONDS + SHRINK_SECONDS + GROW_SECONDS
     private var swapped = false
 
     override fun start(scene: Scene) {
         swapped = false
+        scene.message = MESSAGE
+        scene.messageAlpha = 0f
     }
 
     override fun apply(
         scene: Scene,
         progress: Float,
     ) {
-        if (progress >= HALF && !swapped) {
-            scene.load(board)
-            swapped = true
+        val t = progress * seconds
+        when {
+            t < SHAKE_SECONDS -> {
+                scene.messageAlpha = minOf(1f, t / NOTICE_FADE_SECONDS)
+                scene.forEach { it.dx = rattle(it, t) }
+            }
+
+            t < SHAKE_SECONDS + SHRINK_SECONDS -> {
+                val scale = 1f - (t - SHAKE_SECONDS) / SHRINK_SECONDS
+                scene.forEach {
+                    it.dx = 0f
+                    it.scale = scale
+                }
+            }
+
+            else -> {
+                if (!swapped) {
+                    scene.load(board)
+                    scene.message = null
+                    swapped = true
+                }
+                val scale = (t - SHAKE_SECONDS - SHRINK_SECONDS) / GROW_SECONDS
+                scene.forEach { it.scale = scale }
+            }
         }
-        val scale = if (progress < HALF) 1f - progress / HALF else (progress - HALF) / HALF
-        scene.forEach { it.scale = scale }
     }
 
-    override fun finish(scene: Scene) = scene.load(board)
+    override fun finish(scene: Scene) {
+        scene.load(board)
+        scene.message = null
+    }
+
+    /** Neighbouring gems rattle in opposite directions; the shake builds up over its first moments. */
+    private fun rattle(
+        sprite: Sprite,
+        t: Float,
+    ): Float {
+        val phase = if ((sprite.row + sprite.col).toInt() % 2 == 0) 0.0 else PI
+        val buildUp = minOf(1f, t / RATTLE_BUILD_UP_SECONDS)
+        return (RATTLE_AMPLITUDE * buildUp * sin(2 * PI * RATTLE_HZ * t + phase)).toFloat()
+    }
 
     private companion object {
-        const val RESHUFFLE_SECONDS = 0.6f
-        const val HALF = 0.5f
+        const val MESSAGE = "No moves left - reshuffling"
+        const val SHAKE_SECONDS = 0.8f
+        const val SHRINK_SECONDS = 0.3f
+        const val GROW_SECONDS = 0.4f
+        const val NOTICE_FADE_SECONDS = 0.2f
+        const val RATTLE_BUILD_UP_SECONDS = 0.15f
+        const val RATTLE_AMPLITUDE = 0.07f
+        const val RATTLE_HZ = 9.0
     }
 }
 

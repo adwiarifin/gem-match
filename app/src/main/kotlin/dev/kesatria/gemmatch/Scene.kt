@@ -13,6 +13,9 @@ class Sprite(
 ) {
     var scale = 1f
     var alpha = 1f
+
+    /** Sideways offset in cell units, used to rattle the board. */
+    var dx = 0f
 }
 
 /**
@@ -21,6 +24,10 @@ class Sprite(
  */
 class Scene {
     private val slots = arrayOfNulls<Sprite>(BOARD_SIZE * BOARD_SIZE)
+
+    /** A short notice drawn over the board (for example before a reshuffle), or null. */
+    var message: String? = null
+    var messageAlpha = 1f
 
     /** Resets every sprite to rest on its cell of [board]. */
     fun load(board: Board) {
