@@ -11,7 +11,7 @@ check-fast:
 
 # Task end: aim under 2 minutes, ceiling 5.
 check-task: check-fast
-	./gradlew :core:test :core:koverVerify
+	./gradlew :core:test :core:koverVerify :app:testDebugUnitTest
 
 # Review and CI: no time limit.
 check-full: check-task
