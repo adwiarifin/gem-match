@@ -32,6 +32,16 @@ class SceneTest {
     }
 
     @Test
+    fun loadingAlsoClearsAnyNoticeLeftOverFromAnAbandonedAnimation() {
+        scene.message = "No moves left - reshuffling"
+        scene.messageAlpha = 1f
+
+        scene.load(board)
+
+        assertNull(scene.message)
+    }
+
+    @Test
     fun removeTakesTheSpriteOutOfItsSlot() {
         val sprite = scene.remove(Pos(4, 4))
 

@@ -229,6 +229,20 @@ class GameSessionTest {
     }
 
     @Test
+    fun aNewGameConfirmedMidReshuffleLeavesNoNoticeOnTheFreshBoard() {
+        val game = Game.new(61L)
+        val scene = Scene().also { it.load(game.board) }
+        val session = sessionOf(game, seed = 7L)
+        val reshuffle = Timeline(listOf(ReshuffleAnimation(Game.new(62L).board)))
+        reshuffle.advance(0.4f, scene) // the notice is up and the player confirms New Game right now
+
+        playToEnd(session.newGame(scene), scene)
+        session.finish(scene)
+
+        assertSceneShows(session.board, scene)
+    }
+
+    @Test
     fun theNewGameTransitionShrinksTheOldGemsThenDropsInTheNewOnes() {
         val game = Game.new(18L)
         val scene = Scene().also { it.load(game.board) }

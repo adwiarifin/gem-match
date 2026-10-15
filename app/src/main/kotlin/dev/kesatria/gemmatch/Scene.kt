@@ -32,9 +32,10 @@ class Scene {
     var message: String? = null
     var messageAlpha = 1f
 
-    /** Resets every sprite to rest on its cell of [board]. */
+    /** Resets every sprite to rest on its cell of [board], and drops the held gem and any notice. */
     fun load(board: Board) {
         raised = null
+        message = null
         for (row in 0 until BOARD_SIZE) {
             for (col in 0 until BOARD_SIZE) {
                 slots[indexOf(Pos(row, col))] = board[Pos(row, col)]?.let { Sprite(it, row.toFloat(), col.toFloat()) }
