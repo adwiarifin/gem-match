@@ -12,7 +12,7 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 - [x] T4: Board, positions, gems, RNG
 - [x] T5: Match detection
 - [x] T6: Valid moves
-- [ ] T7: Cascade resolution and tiered scoring
+- [x] T7: Cascade resolution and tiered scoring
 - [ ] T8: `Game`: new game, trySwap, reshuffle
 - [ ] T9: Save codec
 - [ ] T10: Swipe geometry
