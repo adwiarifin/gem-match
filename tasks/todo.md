@@ -15,7 +15,7 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 - [x] T7: Cascade resolution and tiered scoring
 - [x] T8: `Game`: new game, trySwap, reshuffle
 - [x] T9: Save codec
-- [ ] T10: Swipe geometry
+- [x] T10: Swipe geometry
 - [ ] Checkpoint B: core complete, coverage ≥ 80%, owner review of API
 
 ## Phase 2: App
