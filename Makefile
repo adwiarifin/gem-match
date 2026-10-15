@@ -7,6 +7,7 @@ check-fast:
 	./gradlew :core:compileKotlin ktlintCheck
 	scripts/check-core-boundary.sh
 	scripts/floor-guard.py
+	scripts/test-check-permissions.sh
 	gitleaks detect --redact --no-banner
 
 # Task end: aim under 2 minutes, ceiling 5.
@@ -28,5 +29,5 @@ sign:
 # commit or tag (the guard on its own only sees uncommitted changes). Usage: make release-check BASE=v0.1.0
 release-check:
 	@test -n "$(BASE)" || { echo "usage: make release-check BASE=<last reviewed commit or tag>"; exit 2; }
-	scripts/floor-guard.py --base $(BASE)
+	scripts/floor-guard.py --base "$(BASE)"
 	$(MAKE) check-full
