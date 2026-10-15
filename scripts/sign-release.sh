@@ -15,6 +15,13 @@ KEY_ALIAS=${GEMMATCH_KEY_ALIAS:-gemmatch}
 UNSIGNED=app/build/outputs/apk/release/app-release-unsigned.apk
 SIGNED=app/build/outputs/apk/release/gemmatch-release.apk
 
+# The signed APK is published as the build of a revision, so it must be built from exactly that revision.
+if [ -z "${GEMMATCH_ALLOW_DIRTY:-}" ] && [ -n "$(git status --porcelain)" ]; then
+    echo "ERROR: uncommitted changes in the working tree; commit them first so the APK matches a revision" >&2
+    echo "       (GEMMATCH_ALLOW_DIRTY=1 overrides, for a build that will not be published)" >&2
+    exit 2
+fi
+
 if [ ! -t 0 ]; then
     echo "ERROR: needs an interactive terminal to prompt for the password" >&2
     exit 2
@@ -39,8 +46,18 @@ if [ ! -f "$UNSIGNED" ]; then
     exit 2
 fi
 
+# Gradle records the git revision it built from inside the APK; refuse an APK built from any other revision.
+embedded=$(unzip -p "$UNSIGNED" META-INF/version-control-info.textproto 2>/dev/null | sed -n 's/.*revision: "\([0-9a-f]*\)".*/\1/p')
+head=$(git rev-parse HEAD)
+if [ -z "${GEMMATCH_ALLOW_DIRTY:-}" ] && [ "$embedded" != "$head" ]; then
+    echo "ERROR: the unsigned APK was built from ${embedded:-an unknown revision}, but HEAD is $head" >&2
+    echo "       run without --no-build to rebuild it" >&2
+    exit 2
+fi
+
 "$zipalign" -c -P 16 4 "$UNSIGNED"
 
 "$apksigner" sign --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" --out "$SIGNED" "$UNSIGNED"
 "$apksigner" verify --verbose "$SIGNED"
-echo "signed: $SIGNED ($(wc -c <"$SIGNED" | tr -d ' ') bytes)"
+echo "signed: $SIGNED ($(wc -c <"$SIGNED" | tr -d ' ') bytes), built from $(git rev-parse --short HEAD)"
+"$apksigner" verify --print-certs "$SIGNED" | grep "certificate SHA-256 digest" | head -1
