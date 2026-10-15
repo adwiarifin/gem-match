@@ -44,7 +44,8 @@ class ReshuffleTest {
 
     @Test
     fun boardThatStillHasAMoveIsLeftAlone() {
-        val board = randomStableBoard(1L).let { b -> if (hasValidMove(b)) b else randomStableBoard(2L) }
+        val board = generateBoard(Rng(1L))
+        assertTrue(isPlayable(board), "the fixture must already be playable")
 
         val (result, step) = ensureMoveExists(board, Rng(1L))
 

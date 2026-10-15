@@ -10,7 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class GameStoreTest {
     @TempDir
@@ -95,8 +94,10 @@ class GameStoreTest {
         }
     }
 
+    // Core's own length check rejects this, so it does not prove the size guard in GameStore.
+    // aHugeFileIsNeverReadIntoMemory below is the test that does.
     @Test
-    fun anOversizedSaveFileIsIgnoredWithoutBeingReadIntoMemory() {
+    fun aFileFarLargerThanASaveLoadsAsNothing() {
         File(directory, "game.sav").writeText("1".repeat(50_000))
         File(directory, "best.txt").writeText("1".repeat(50_000))
 
@@ -171,6 +172,7 @@ class GameStoreTest {
         store.saveBest(5)
         store.flush({ Game.new(3L) }, { 5 })
 
-        assertTrue(store.loadGame() == null && store.loadBest() == 0)
+        assertNull(store.loadGame())
+        assertEquals(0, store.loadBest())
     }
 }

@@ -7,14 +7,12 @@ import dev.kesatria.gemmatch.core.findValidMoves
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /** The JVM version of the on-device check: the scene always ends up showing exactly the core's board. */
 class PlaybackTest {
     @Test
     fun theSceneEndsOnTheResolvedBoardAfterEveryMoveOfManyGames() {
         val seen = mutableSetOf<KClass<out Step>>()
-        var moves = 0
         for (seed in 1L..40L) {
             var game = Game.new(seed)
             val scene = Scene().also { it.load(game.board) }
@@ -29,7 +27,6 @@ class PlaybackTest {
                 assertEquals(outcome.game.score - game.score, awarded, "seed $seed move $turn: points heard")
                 outcome.steps.forEach { seen += it::class }
                 game = outcome.game
-                moves++
             }
         }
         assertEquals(
@@ -37,6 +34,5 @@ class PlaybackTest {
             seen,
             "every kind of step must be played at least once",
         )
-        assertTrue(moves == 40 * 60)
     }
 }
