@@ -46,7 +46,7 @@ It expects the keystore at `~/Private/keys/gemmatch/gemmatch-release.jks` with a
 | Command | What it runs | Budget |
 |---|---|---|
 | `make check-fast` | core compile, ktlint, core boundary, floor guard, gitleaks | seconds |
-| `make check-task` | the above, plus core tests and the 80% coverage gate | about a minute |
+| `make check-task` | the above, plus core tests, the 80% coverage gate and the app unit tests | about a minute |
 | `make check-full` | the above, plus detekt, Android Lint, APK builds, APK size caps, osv-scanner | a few minutes |
 
 The floor guard (`scripts/floor-guard.py`) looks at the working diff for new suppression comments, stubs, skipped or deleted tests, removed assertions and loosened rules.
