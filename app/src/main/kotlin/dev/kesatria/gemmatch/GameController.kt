@@ -36,15 +36,13 @@ class GameController(
 
     @Volatile private var dialogOpen = false
 
-    @Volatile private var idleResetRequested = true
-
     fun onTouch(event: TouchEvent) {
         touches.add(event)
     }
 
     /** Starts the idle timer from zero. Called when the app comes back, so time away never counts. */
     fun resetIdle() {
-        idleResetRequested = true
+        idleHint.touched()
     }
 
     /** Writes the current game and best score to disk and waits. Called from the UI thread when the app is paused. */
@@ -63,7 +61,7 @@ class GameController(
     ) {
         while (true) {
             val event = touches.poll() ?: break
-            idleResetRequested = true
+            idleHint.touched()
             if (layout != null) handle(event, layout)
         }
         timeline?.let { running ->
@@ -74,13 +72,8 @@ class GameController(
                 timeline = null
             }
         }
-        val idle = timeline == null && !dialogOpen && !drag.isActive && !buttonPressed
-        if (!idle || idleResetRequested) {
-            idleHint.reset()
-            idleResetRequested = false
-        } else {
-            idleHint.update(seconds, session.board)
-        }
+        val settled = timeline == null && !dialogOpen && !drag.isActive && !buttonPressed
+        idleHint.tick(seconds, session.board, settled)
     }
 
     fun render(
