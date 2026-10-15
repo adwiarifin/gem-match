@@ -31,7 +31,12 @@ class Game private constructor(
         return SwapOutcome.Accepted(Game(settled, score + resolution.score, nextRng), steps)
     }
 
+    fun encode(): String = encodeState(SavedState(board, score, rng.state))
+
     companion object {
+        /** Restores a saved game, or null if [text] is not a complete, valid save. */
+        fun decode(text: String): Game? = decodeState(text)?.let { Game(it.board, it.score, Rng(it.rngState)) }
+
         fun new(seed: Long): Game {
             val rng = Rng(seed)
             return Game(generateBoard(rng), 0, rng)

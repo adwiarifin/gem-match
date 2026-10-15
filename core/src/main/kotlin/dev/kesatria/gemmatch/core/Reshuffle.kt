@@ -2,7 +2,7 @@ package dev.kesatria.gemmatch.core
 
 private const val MAX_SHUFFLE_ATTEMPTS = 200
 
-private fun isPlayable(board: Board): Boolean = findRuns(board).isEmpty() && hasValidMove(board)
+internal fun isPlayable(board: Board): Boolean = findRuns(board).isEmpty() && hasValidMove(board)
 
 /** A full board with no runs and at least one valid move. */
 fun generateBoard(rng: Rng): Board = generateSequence { fillWithoutRuns(rng) }.first { hasValidMove(it) }
