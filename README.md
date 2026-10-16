@@ -28,9 +28,21 @@ The core never knows about animation or drawing, so a second UI (Compose, a read
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Signed release
+## Releases
 
-Signing never happens in an automated or agent session. `scripts/sign-release.sh` builds the unsigned release APK, then runs `apksigner`, which prompts for the key password in your own terminal.
+Versions follow [Semantic Versioning](https://semver.org), 0.x until the game feels finished. [release-please](https://github.com/googleapis/release-please) reads the conventional commits on `main` and keeps a release pull request open: `feat` bumps the minor version, `fix` bumps the patch version, and the changelog is built from them. `versionCode` is derived from the version (1.4.2 becomes 10402), so nothing is bumped by hand.
+
+Merging the release pull request tags `vX.Y.Z` and starts the signing job. It rebuilds from the tagged commit, runs `make check-full`, then waits for the owner's approval in the `release` environment before it gets the signing key. The signed `gemmatch-X.Y.Z.apk` and its `.sha256` are attached to the GitHub release.
+
+Setup, once, in the repository settings: allow Actions to create pull requests, create an environment named `release` with a required reviewer, and add the secrets `KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD` and `KEY_PASSWORD` to it. Version `0.1.0` is forced by `release-as` in `release-please-config.json`; delete that line after the first release.
+
+### Installing a release
+
+Download the APK from the latest release, check it with `shasum -a 256 -c gemmatch-X.Y.Z.apk.sha256`, and open it on the phone (Android asks to allow installs from that app). Play Protect may warn that the developer is unknown, because the app is not on Google Play. Update by installing the newer APK over the old one; uninstalling first deletes the saved game.
+
+### Signing on your own machine
+
+`scripts/sign-release.sh` does the same locally and prompts for the key password in your own terminal. Signing never happens in an agent session.
 
 ```
 make sign
