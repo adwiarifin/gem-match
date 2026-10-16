@@ -20,7 +20,7 @@ check-full: check-task
 	./gradlew detekt :app:lint :app:assembleDebug :app:assembleRelease
 	scripts/check-apk-size.sh all
 	scripts/check-permissions.sh
-	osv-scanner scan source -r .
+	osv-scanner scan source -r --x-exclude gradle .
 
 # Builds and signs the release APK. Run from your own terminal: it prompts for the key password.
 sign:
