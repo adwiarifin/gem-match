@@ -42,8 +42,8 @@ Release steps:
 - [ ] Merge release PR #1, approve the `sign` job, check the published APK's certificate against `RELEASE_CERT_SHA256` (owner)
 - [ ] Remove `release-as` from `release-please-config.json` right after the first release
 - [ ] Install the CI-signed APK over the old build on the A52 and check the game resumes the saved board (owner plugs in the phone)
-- [ ] Add a tag ruleset on `v*` (restrict updates and deletions) in the repository settings (owner)
-- [ ] Back up the keystore and both passwords outside this machine (owner)
+- [x] Add a tag ruleset on `v*` (restrict updates and deletions) in the repository settings (owner)
+- [x] Back up the keystore and both passwords outside this machine (owner; backed up to cloud storage, location not recorded)
 
 Testing and robustness:
 - [ ] `GameController`, the renderer and the lifecycle wiring have no JVM tests. Either split the controller into a testable core and a thin Android shell, or keep it frozen and record a manual check per release
@@ -53,7 +53,7 @@ Testing and robustness:
 - [ ] The floor guard's regex checks have known blind spots; `check-fast` and `check-task` do not run detekt or Lint (they run in `check-full` and CI, as `CONSTRAINTS.md` says)
 
 Build and supply chain:
-- [ ] Gradle dependency verification: commit `gradle/verification-metadata.xml` so a replaced dependency fails the build. Do it before the second release
+- [x] Gradle dependency verification: `gradle/verification-metadata.xml` is committed and enforced (PR #2). Regenerate it on a clean `GRADLE_USER_HOME` after an upgrade, or CI on a cold cache fails
 - [ ] Pin the build-tools version the signing job uses
 
 Product (see also `docs/ideas.md`):
