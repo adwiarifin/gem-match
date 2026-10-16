@@ -29,6 +29,7 @@ class DragGesture(
         point: Point?,
         layout: BoardLayout,
     ) {
+        putDown()
         start = point
         held = point?.let { layout.cellAt(it.x, it.y) }
         held?.let { pos ->
@@ -92,6 +93,14 @@ class DragGesture(
             it.row = to.row - dRow + if (to.row == pos.row) sidestep else 0f
             it.col = to.col - dCol + if (to.col == pos.col) sidestep else 0f
         }
+    }
+
+    /** If the previous touch never ended (a lost finger-up), its gems go back to rest and normal size. */
+    private fun putDown() {
+        val pos = held ?: return
+        rest(pos)
+        scene[pos]?.scale = 1f
+        if (scene.raised === scene[pos]) scene.raised = null
     }
 
     private fun rest(pos: Pos) {

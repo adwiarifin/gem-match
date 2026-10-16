@@ -40,6 +40,22 @@ class DragGestureTest {
     }
 
     @Test
+    fun aNewTouchWhileAGemIsStillHeldPutsTheFirstGemDown() {
+        drag.begin(centre(3, 3), layout)
+        drag.follow(Point(centre(3, 3).x + 40f, centre(3, 3).y), layout)
+
+        // The finger-up never arrived (lost event), and another touch lands on a different gem.
+        drag.begin(centre(5, 5), layout)
+
+        assertEquals(1f, sprite(3, 3).scale)
+        assertEquals(3f, sprite(3, 3).row)
+        assertEquals(3f, sprite(3, 3).col)
+        assertEquals(4f, sprite(3, 4).col)
+        assertEquals(1.2f, sprite(5, 5).scale)
+        assertSame(sprite(5, 5), scene.raised)
+    }
+
+    @Test
     fun noStartPointMeansNoGestureAndNothingLifted() {
         drag.begin(null, layout)
 
