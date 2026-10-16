@@ -34,7 +34,7 @@ Versions follow [Semantic Versioning](https://semver.org), 0.x until the game fe
 
 Merging the release pull request tags `vX.Y.Z` and starts the signing job. It rebuilds from the tagged commit, runs `make check-full`, then waits for the owner's approval in the `release` environment before it gets the signing key. The signed `gemmatch-X.Y.Z.apk` and its `.sha256` are attached to the GitHub release.
 
-Setup, once, in the repository settings: allow Actions to create pull requests, create an environment named `release` with a required reviewer, and add the secrets `KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD` and `KEY_PASSWORD` to it. Version `0.1.0` is forced by `release-as` in `release-please-config.json`; delete that line after the first release.
+Setup, once, in the repository settings: allow Actions to create pull requests, create an environment named `release` with a required reviewer, and add the secrets `KEYSTORE_BASE64` (the keystore, base64) and `KEYSTORE_PASSWORD` (used for both the store and the key) to it. The key alias `gemmatch` is not secret and is set in the workflow. Version `0.1.0` is forced by `release-as` in `release-please-config.json`; delete that line after the first release.
 
 ### Installing a release
 

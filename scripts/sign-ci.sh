@@ -7,7 +7,8 @@
 #        EXPECTED_SHA            the commit the release was cut from; the APK must record exactly this revision
 #        KEYSTORE_PATH           decoded keystore file
 #        KEY_ALIAS               key alias
-#        KEYSTORE_PASSWORD, KEY_PASSWORD   read by apksigner from the environment, never from arguments
+#        KEYSTORE_PASSWORD       store and key password (they are the same); apksigner reads it from the environment,
+#                                never from arguments
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -23,7 +24,7 @@ if [ "${CI:-}" != "true" ]; then
     echo "ERROR: this script is for the release workflow; use scripts/sign-release.sh locally" >&2
     exit 2
 fi
-for name in EXPECTED_SHA KEYSTORE_PATH KEY_ALIAS KEYSTORE_PASSWORD KEY_PASSWORD; do
+for name in EXPECTED_SHA KEYSTORE_PATH KEY_ALIAS KEYSTORE_PASSWORD; do
     if [ -z "${!name:-}" ]; then
         echo "ERROR: $name is not set" >&2
         exit 2
@@ -60,7 +61,7 @@ mkdir -p "$out_dir"
 "${tools}zipalign" -c -P 16 4 "$UNSIGNED"
 "${tools}apksigner" sign \
     --ks "$KEYSTORE_PATH" --ks-key-alias "$KEY_ALIAS" \
-    --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD --v4-signing-enabled false \
+    --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEYSTORE_PASSWORD --v4-signing-enabled false \
     --out "$SIGNED" "$UNSIGNED"
 "${tools}apksigner" verify --verbose "$SIGNED"
 (cd "$out_dir" && shasum -a 256 "gemmatch-$version.apk" >"gemmatch-$version.apk.sha256")

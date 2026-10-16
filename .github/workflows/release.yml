@@ -58,9 +58,8 @@ jobs:
           EXPECTED_SHA: ${{ needs.release-please.outputs.sha }}
           VERSION: ${{ needs.release-please.outputs.version }}
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_ALIAS: gemmatch
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
           umask 077
