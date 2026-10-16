@@ -27,7 +27,10 @@ tool aapt2 'echo "package: name='"'"'x'"'"' versionCode='"'"'100'"'"' versionNam
 tool apksigner 'echo "$@" >>"'"$work"'/apksigner.args"
 case "$1" in
     sign) while [ $# -gt 0 ]; do [ "$1" = "--out" ] && cp "${@: -1}" "$2"; shift; done ;;
-    verify) if [ "${2:-}" = "--print-certs" ]; then echo "Signer #1 certificate SHA-256 digest: '"$cert"'"; fi ;;
+    verify) if [ "${2:-}" = "--print-certs" ]; then
+        if [ "${SIGNER_FORMAT:-}" = sdk ]; then echo "Signer (minSdkVersion=24, maxSdkVersion=2147483647) certificate SHA-256 digest: '"$cert"'"
+        else echo "Signer #1 certificate SHA-256 digest: '"$cert"'"; fi
+    fi ;;
 esac
 exit 0'
 
@@ -58,6 +61,7 @@ expect() { # expect <name> <exit> <text the error must contain, or empty> -- <co
 }
 
 expect "a good build is signed" 0 "built from 0123456" -- run 0.1.0
+expect "the newer apksigner certificate format is read" 0 "built from 0123456" -- run 0.1.0 SIGNER_FORMAT=sdk
 ok_files=$(ls "$work/out" 2>/dev/null | tr '\n' ' ')
 if [ "$ok_files" = "gemmatch-0.1.0.apk gemmatch-0.1.0.apk.sha256 " ]; then
     echo "ok   the signed APK and its hash are written"

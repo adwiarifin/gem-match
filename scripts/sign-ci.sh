@@ -86,10 +86,13 @@ mkdir -p "$out_dir"
 "${tools}apksigner" verify --verbose "$SIGNED"
 (cd "$out_dir" && shasum -a 256 "gemmatch-$version.apk" >"gemmatch-$version.apk.sha256")
 echo "signed: $SIGNED ($(wc -c <"$SIGNED" | tr -d ' ') bytes), built from ${EXPECTED_SHA:0:7}"
-cert=$("${tools}apksigner" verify --print-certs "$SIGNED" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)
+certs=$("${tools}apksigner" verify --print-certs "$SIGNED")
+# Newer apksigner prints "Signer (minSdkVersion=..., ...) certificate ..." instead of "Signer #1 certificate ...".
+cert=$(sed -n 's/^Signer .*certificate SHA-256 digest: //p' <<<"$certs" | head -1)
 echo "certificate SHA-256: ${cert:-'(none)'}"
 if [ "$cert" != "$EXPECTED_CERT_SHA256" ]; then
     rm -f "$SIGNED" "$SIGNED.sha256"
+    echo "$certs" >&2
     echo "ERROR: signed with certificate ${cert:-'(none)'}, expected $EXPECTED_CERT_SHA256; nothing was kept" >&2
     exit 2
 fi
