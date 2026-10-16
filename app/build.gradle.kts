@@ -5,7 +5,7 @@ plugins {
 }
 
 // The one place the version is written. release-please rewrites the string on the marked line.
-val appVersion = "0.1.1" // x-release-please-version
+val appVersion = "0.1.2" // x-release-please-version
 
 // 1.4.2 becomes 10402, so versionCode only ever grows with the version and never needs a manual bump.
 // Every 0.x.y stays below 1.0.0 (10000). Minor and patch must stay below 100 or two versions would share a code.

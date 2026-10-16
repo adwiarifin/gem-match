@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/adwiarifin/gem-match/compare/v0.1.1...v0.1.2) (2026-10-16)
+
+
+### Bug Fixes
+
+* **ci:** match the signer certificate line on any apksigner format ([499f3a4](https://github.com/adwiarifin/gem-match/commit/499f3a425d26ef2d7e90def73de51794b001eb59))
+
 ## [0.1.1](https://github.com/adwiarifin/gem-match/compare/v0.1.0...v0.1.1) (2026-10-16)
 
 
