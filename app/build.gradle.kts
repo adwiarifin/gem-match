@@ -8,8 +8,12 @@ plugins {
 val appVersion = "0.1.0" // x-release-please-version
 
 // 1.4.2 becomes 10402, so versionCode only ever grows with the version and never needs a manual bump.
+// Every 0.x.y stays below 1.0.0 (10000). Minor and patch must stay below 100 or two versions would share a code.
 val appVersionCode =
-    appVersion.split(".").map { it.toInt() }.let { (major, minor, patch) ->
+    appVersion.split(".").map { it.toInt() }.let { parts ->
+        require(parts.size == 3) { "appVersion must be plain major.minor.patch, got $appVersion" }
+        val (major, minor, patch) = parts
+        require(minor < 100 && patch < 100) { "versionCode needs minor and patch below 100, got $appVersion" }
         major * 10_000 + minor * 100 + patch
     }
 
