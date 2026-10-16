@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.1](https://github.com/adwiarifin/gem-match/compare/v0.1.0...v0.1.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **ci:** read the signer certificate on newer apksigner ([cb131df](https://github.com/adwiarifin/gem-match/commit/cb131df909faed08da87fae41e237815f1167810))
+
+
+### Build
+
+* verify the aapt2 artifacts ([56f3cab](https://github.com/adwiarifin/gem-match/commit/56f3cab2fd122860b1db910acd4adbb3edaec84c))
+
+
+### CI
+
+* release on every conventional commit type except chore ([e3c5e13](https://github.com/adwiarifin/gem-match/commit/e3c5e13b7d828410512c1ae27eed4f647a413347))
+
+
+### Documentation
+
+* describe the release triggers ([8aa8e9a](https://github.com/adwiarifin/gem-match/commit/8aa8e9ad14ff8c9c0cfaf881c6d62ae2e7187ef7))
+* drop the release-as note after the first release ([bbb5905](https://github.com/adwiarifin/gem-match/commit/bbb59056e94e33496b0c3dcd35c1e83a653af4d5))
+
 ## 0.1.0 (2026-10-16)
 
 
