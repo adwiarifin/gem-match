@@ -117,10 +117,19 @@ class GameStoreTest {
     }
 
     @Test
+    fun theSizeCapIsExactlyOneKilobyte() {
+        File(directory, "best.txt").writeText("1200".padEnd(1024))
+        assertEquals(1200, store().loadBest(), "1024 bytes is still read")
+
+        File(directory, "best.txt").writeText("1200".padEnd(1025))
+        assertEquals(0, store().loadBest(), "1025 bytes is refused")
+    }
+
+    @Test
     fun aHugeFileIsNeverReadIntoMemory() {
         // Sparse, so it costs no disk. Reading it with readText() would throw OutOfMemoryError.
         for (name in listOf("game.sav", "best.txt")) {
-            java.io.RandomAccessFile(File(directory, name), "rw").use { it.setLength(3_000_000_000L) }
+            java.io.RandomAccessFile(File(directory, name), "rw").use { it.setLength(HUGE_BYTES) }
         }
 
         assertNull(store().loadGame())
@@ -185,5 +194,9 @@ class GameStoreTest {
 
         assertNull(store.loadGame())
         assertEquals(0, store.loadBest())
+    }
+
+    private companion object {
+        const val HUGE_BYTES = 3_000_000_000L
     }
 }
