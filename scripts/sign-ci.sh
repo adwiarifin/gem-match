@@ -7,6 +7,10 @@
 #        EXPECTED_SHA            the commit the release was cut from; the APK must record exactly this revision
 #        KEYSTORE_PATH           decoded keystore file
 #        KEY_ALIAS               key alias
+#        EXPECTED_APK_SHA256     SHA-256 of the unsigned APK the build job produced; it must not have changed since
+#        EXPECTED_CERT_SHA256    SHA-256 of the signing certificate (public); a wrong keystore must not publish an APK
+#                                that installed copies reject
+#        UNSIGNED_APK            the unsigned APK (default app/build/outputs/apk/release/app-release-unsigned.apk)
 #        KEYSTORE_PASSWORD       store and key password (they are the same); apksigner reads it from the environment,
 #                                never from arguments
 set -euo pipefail
@@ -24,7 +28,7 @@ if [ "${CI:-}" != "true" ]; then
     echo "ERROR: this script is for the release workflow; use scripts/sign-release.sh locally" >&2
     exit 2
 fi
-for name in EXPECTED_SHA KEYSTORE_PATH KEY_ALIAS KEYSTORE_PASSWORD; do
+for name in EXPECTED_SHA EXPECTED_APK_SHA256 EXPECTED_CERT_SHA256 KEYSTORE_PATH KEY_ALIAS KEYSTORE_PASSWORD; do
     if [ -z "${!name:-}" ]; then
         echo "ERROR: $name is not set" >&2
         exit 2
@@ -35,7 +39,7 @@ if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     exit 2
 fi
 
-UNSIGNED=app/build/outputs/apk/release/app-release-unsigned.apk
+UNSIGNED=${UNSIGNED_APK:-app/build/outputs/apk/release/app-release-unsigned.apk}
 SIGNED="$out_dir/gemmatch-$version.apk"
 
 if [ ! -f "$UNSIGNED" ]; then
@@ -43,7 +47,23 @@ if [ ! -f "$UNSIGNED" ]; then
     exit 2
 fi
 
-tools=$(ls -d "${ANDROID_HOME:?ANDROID_HOME is not set}"/build-tools/*/ | sort -V | tail -1)
+if [ ! -f "$KEYSTORE_PATH" ] || [ ! -s "$KEYSTORE_PATH" ]; then
+    echo "ERROR: keystore $KEYSTORE_PATH is missing or empty (is the KEYSTORE_BASE64 secret set?)" >&2
+    exit 2
+fi
+
+tools=$(ls -d "${ANDROID_HOME:?ANDROID_HOME is not set}"/build-tools/*/ 2>/dev/null | sort -V | tail -1 || true)
+if [ -z "$tools" ]; then
+    echo "ERROR: no build-tools under $ANDROID_HOME" >&2
+    exit 2
+fi
+
+# The APK being signed is the one the build job checked and hashed, not something swapped in between.
+actual_apk=$(shasum -a 256 "$UNSIGNED" | cut -d' ' -f1)
+if [ "$actual_apk" != "$EXPECTED_APK_SHA256" ]; then
+    echo "ERROR: the unsigned APK hash is $actual_apk, but the build job produced $EXPECTED_APK_SHA256" >&2
+    exit 2
+fi
 
 # The release is the build of one commit: the APK must record it, and its version must match the release.
 embedded=$(unzip -p "$UNSIGNED" META-INF/version-control-info.textproto 2>/dev/null | sed -n 's/.*revision: "\([0-9a-f]*\)".*/\1/p' || true)
@@ -66,4 +86,10 @@ mkdir -p "$out_dir"
 "${tools}apksigner" verify --verbose "$SIGNED"
 (cd "$out_dir" && shasum -a 256 "gemmatch-$version.apk" >"gemmatch-$version.apk.sha256")
 echo "signed: $SIGNED ($(wc -c <"$SIGNED" | tr -d ' ') bytes), built from ${EXPECTED_SHA:0:7}"
-"${tools}apksigner" verify --print-certs "$SIGNED" | grep "certificate SHA-256 digest" | head -1
+cert=$("${tools}apksigner" verify --print-certs "$SIGNED" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)
+echo "certificate SHA-256: ${cert:-'(none)'}"
+if [ "$cert" != "$EXPECTED_CERT_SHA256" ]; then
+    rm -f "$SIGNED" "$SIGNED.sha256"
+    echo "ERROR: signed with certificate ${cert:-'(none)'}, expected $EXPECTED_CERT_SHA256; nothing was kept" >&2
+    exit 2
+fi
