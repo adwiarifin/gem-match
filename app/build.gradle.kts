@@ -4,6 +4,15 @@ plugins {
     alias(libs.plugins.detekt)
 }
 
+// The one place the version is written. release-please rewrites the string on the marked line.
+val appVersion = "0.1.0" // x-release-please-version
+
+// 1.4.2 becomes 10402, so versionCode only ever grows with the version and never needs a manual bump.
+val appVersionCode =
+    appVersion.split(".").map { it.toInt() }.let { (major, minor, patch) ->
+        major * 10_000 + minor * 100 + patch
+    }
+
 android {
     namespace = "dev.kesatria.gemmatch"
     compileSdk = 37
@@ -12,8 +21,8 @@ android {
         applicationId = "dev.kesatria.gemmatch"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersion
     }
 
     buildTypes {
