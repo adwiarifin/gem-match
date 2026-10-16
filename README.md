@@ -30,7 +30,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Releases
 
-Versions follow [Semantic Versioning](https://semver.org), 0.x until the game feels finished. [release-please](https://github.com/googleapis/release-please) reads the conventional commits on `main` and keeps a release pull request open: `feat` bumps the minor version, `fix` bumps the patch version, and the changelog is built from them. `versionCode` is derived from the version (1.4.2 becomes 10402), so nothing is bumped by hand.
+Versions follow [Semantic Versioning](https://semver.org), 0.x until the game feels finished. [release-please](https://github.com/googleapis/release-please) reads the conventional commits on `main` and keeps a release pull request open: `feat` bumps the minor version and every other type (`fix`, `docs`, `ci`, `test` and so on, but not `chore`) bumps the patch version, so each merge to `main` can become a release; the changelog is built from them. `versionCode` is derived from the version (1.4.2 becomes 10402), so nothing is bumped by hand.
 
 Merging the release pull request tags `vX.Y.Z` and starts three jobs. `build` has no secrets and a read-only token: it runs `make release-check` (every check, plus the floor guard against everything since the previous release) and builds the unsigned APK. `sign` waits for the owner's approval in the `release` environment, by which point `build` is green, then signs that exact APK; it runs no build code, and it refuses an APK whose hash changed since `build`, or a certificate other than the expected one. `publish` attaches the signed `gemmatch-X.Y.Z.apk` and its `.sha256` to the GitHub release. Before approving, look at the head commit and the APK hash in the `build` job.
 
