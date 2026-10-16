@@ -1,0 +1,81 @@
+name: Release
+
+# Every push to main updates the release PR. Merging that PR tags the release, and the second job then builds,
+# checks and signs it. Both jobs live in this file because a tag made with the default token would not start
+# a separate workflow.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  sign:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # The signing secrets live in this environment, which requires the owner's approval before the job starts.
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      # No secrets are available to any step until the signing step below.
+      - name: Check and build
+        run: make check-full
+
+      - name: Sign
+        env:
+          EXPECTED_SHA: ${{ needs.release-please.outputs.sha }}
+          VERSION: ${{ needs.release-please.outputs.version }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          export KEYSTORE_PATH="$RUNNER_TEMP/release.jks"
+          trap 'rm -f "$KEYSTORE_PATH"' EXIT
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d >"$KEYSTORE_PATH"
+          scripts/sign-ci.sh "$VERSION" "$RUNNER_TEMP/signed"
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+          VERSION: ${{ needs.release-please.outputs.version }}
+        run: |
+          gh release upload "$TAG" \
+            "$RUNNER_TEMP/signed/gemmatch-$VERSION.apk" \
+            "$RUNNER_TEMP/signed/gemmatch-$VERSION.apk.sha256" \
+            --repo "$GITHUB_REPOSITORY"
