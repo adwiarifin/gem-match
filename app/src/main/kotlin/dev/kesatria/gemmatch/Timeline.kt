@@ -239,7 +239,6 @@ class ReshuffleAnimation(
             else -> {
                 if (!swapped) {
                     scene.load(board)
-                    scene.message = null
                     swapped = true
                 }
                 val scale = (t - SHAKE_SECONDS - SHRINK_SECONDS) / GROW_SECONDS
@@ -248,10 +247,7 @@ class ReshuffleAnimation(
         }
     }
 
-    override fun finish(scene: Scene) {
-        scene.load(board)
-        scene.message = null
-    }
+    override fun finish(scene: Scene) = scene.load(board)
 
     /** Neighbouring gems rattle in opposite directions; the shake builds up over its first moments. */
     private fun rattle(
