@@ -58,3 +58,20 @@ First playtest: 89 accepted and 18 rejected moves in about 13 minutes, median 59
 - Rollback: replace the two-animation timeline in `startNewGame` with an instant load. Cosmetic, no data impact.
 
 **What would be expensive to change later (not decided here, for awareness):** the save format `GM1` once real games are saved on your phone (needs a version bump and a migration), and the `Step` vocabulary once the renderer depends on it (every new step type needs animation code).
+
+## Decisions made after the review and release work (2026-10-16)
+
+**D9. Starting a new game mid-move credits the score of the abandoned move to Best.**
+- Why: the player has already seen the points of a move that is still animating, so dropping them from Best would look like a lost score. The on-screen score and the saved state both already include them.
+- Impact: `GameSession.newGame` compares Best against the pending game (the resolved state of the move being animated), not the last settled one. Covered by `GameSessionTest`.
+- Rollback: change that one line back to the settled game. No save format impact.
+
+**D10. The game loop stops when the surface is destroyed, not in `onPause`.**
+- Why: the surface is what the loop draws to, so tying the loop to it avoids drawing to a dead surface. Android destroys the surface whenever the app goes to the background, so time spent backgrounded still does not count toward the idle hint.
+- Impact: `SPEC.md` now says this. `MainActivity.onPause` still flushes the save synchronously, and the flush reads the newest game state on the writer thread, so a move that finishes while pausing is saved (`PauseRaceTest`).
+- Rollback: start and stop the loop from the activity lifecycle instead, and move the idle reset with it.
+
+**D11. Releases are versioned by release-please and built and signed in separate CI jobs.**
+- Why: the owner wants one place to get a signed APK to share, and no Play Store account yet. Conventional commits already drive the changelog and the version, so nothing is bumped by hand. `versionCode` is derived from the version (1.4.2 becomes 10402), so it can only grow. The signing key cannot be rotated for installed copies, so the key must never share a job with build code: `build` has no secrets and a read-only token, `sign` runs only `scripts/sign-ci.sh` after the owner approves, and `publish` has the write token and no secrets. The signer checks the APK's hash, the release commit, the version and the certificate before it keeps anything.
+- Impact: minor and patch numbers must stay below 100 (the build fails otherwise). Going to 1.0.0 needs a `Release-As: 1.0.0` footer. The keystore and its password now also live in the `release` GitHub Environment, so losing the GitHub account's protection means losing the key.
+- Rollback: Android refuses downgrades on release builds, so roll forward: revert the bad commit, let release-please cut the next version, and install over the old app (the same key keeps the save). Local signing with `make sign` stays as a fallback.
