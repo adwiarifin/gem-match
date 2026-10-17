@@ -249,20 +249,20 @@ T2 and T3 can run in parallel after T1. T4 onward is strictly sequential. T10 ca
 
 ## Special gems (second feature, planned 2026-10-17)
 
-Spec: `SPEC.md` ("Special Gems", assumptions 2, 3, 7, 10, 11, success criteria 13-18). Intent: `docs/intent/special-gems.md`. Decisions: `docs/decisions.md` D12-D15. Tasks tracked in `tasks/todo.md`, T19 onward. Commit policy as above: one-line conventional commits, selective staging, docs separate from code, nothing committed until the owner says so.
+Spec: `SPEC.md` ("Special Gems", assumptions 2, 3, 7, 10, 11, success criteria 13-18). Intent: `docs/intent/special-gems.md`. Decisions: `docs/decisions.md` D12-D15 (D16 to D18 revise them after the playtest). Tasks tracked in `tasks/todo.md`, T19 onward. Commit policy as above: one-line conventional commits, selective staging, docs separate from code, nothing committed until the owner says so.
 
 ### Revision after the owner's playtest (2026-10-17)
 
 The rules below were built as planned, then changed after the owner played them. Where this section and the text below disagree, this section wins. `docs/special-gem-rules.md` is the current rule page.
 
 - Specials join matches, fire when matched, and matches make specials at any cascade depth (D16, supersedes D14 and the "inert" and "depth 1 only" lines below).
-- Shape table: a run of 3 with a hanging gem is a line gem (off an end) or a short X (off the middle); an L with both arms of 3 or more is the cross gem; a long T or + is a full X (D17). Two new kinds, `X_SHORT` and `X_FULL`.
+- Shape table (D17, then D18): a run of 3 with a gem hanging off an end is a line gem; an L is the cross gem; a T is a short X (every run exactly 3) or a full X (any run of 4 or more); crossing shapes beat the colour gem; a gem hanging off the middle makes nothing. Two new kinds, `X_SHORT` and `X_FULL`.
 - A run of 3 with a hanging gem scores 60. A pair table is pinned in `PairCombosTest`.
 - Tasks T19 to T35 are done as listed. The changes above went in as separate commits after Checkpoint I's first install; T36 (docs close-out) is still open.
 
 ### Overview
 
-Add four special gems (blast, line, cross, colour) that the player's own match creates and a swap fires. Core first and test-first: types, creation, activation, chains, combos, scoring, save format `GM2` with a `GM1` reader. Then the app: white gem becomes a pentagon, overlays, effect animations, idle hint fallback. Every core task ends green on `make check-task`. Every app task ends with something visible on the A52.
+Add four special gems (blast, line, cross, colour; two X gems were added after the playtest, see the revision above) that the player's own match creates and a swap fires. Core first and test-first: types, creation, activation, chains, combos, scoring, save format `GM2` with a `GM1` reader. Then the app: white gem becomes a pentagon, overlays, effect animations, idle hint fallback. Every core task ends green on `make check-task`. Every app task ends with something visible on the A52.
 
 ### Architecture decisions
 
@@ -326,7 +326,7 @@ No open questions remain for the special gems.
 Every core task: write the failing tests first (red), then the code (green), then tidy. Verify with `make check-task` (compile, ktlint, boundary, floor guard, gitleaks, core and app tests, 80% coverage). `check-task` does not run detekt or Lint, so Checkpoints G and H also run `make check-full`: `Resolution.kt` and `Timeline.kt` are the likely size and complexity offenders and suppressions are banned. Existing tests are migrated, never weakened or deleted.
 
 #### T19: `Piece`, `Special`, and `Board` stores `Piece`
-**Description:** Add `Special` (BLAST, LINE_ROW, LINE_COL, CROSS, COLOUR) and `Piece(gem: Gem?, special: Special?)`, where `gem` is null only for COLOUR (enforced in `init`). `Board` stores `Piece?` internally and gains `piece(pos)` and `with(pos, Piece?)`. For now `Board.get` still returns `Gem?` and `with(pos, Gem?)` stays, as temporary shims so every other file compiles unchanged. No special gem exists yet, so behaviour is identical.
+**Description:** Add `Special` (BLAST, LINE_ROW, LINE_COL, CROSS, COLOUR; X_SHORT and X_FULL came later, D17) and `Piece(gem: Gem?, special: Special?)`, where `gem` is null only for COLOUR (enforced in `init`). `Board` stores `Piece?` internally and gains `piece(pos)` and `with(pos, Piece?)`. For now `Board.get` still returns `Gem?` and `with(pos, Gem?)` stays, as temporary shims so every other file compiles unchanged. No special gem exists yet, so behaviour is identical.
 **Acceptance:**
 - [ ] `Piece(null, BLAST)` and `Piece(RED, COLOUR)` are rejected; `Piece(null, COLOUR)` and every plain gem are accepted.
 - [ ] A board round-trips `piece` and `with`, and equality and swap work on pieces.
@@ -345,7 +345,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 **Files:** `Board.kt`, `Step.kt`, `Matches.kt`, `Move.kt`, `Resolution.kt`, `Reshuffle.kt`, `SaveCodec.kt`, `Scene.kt` (+ tests).
 **Scope:** Medium-Large (watch it; stop and re-split if it passes 10 files). **Depends on:** T19.
 
-#### T21: Specials are inert in matches, and a special swap is always legal
+#### T21: Specials are inert in matches, and a special swap is always legal (inertness reversed by D16)
 **Description:** `findRuns` ignores special pieces. `isValidSwap` accepts any adjacent, occupied swap that forms a run or touches a special. Add `findMatchMoves` (swaps that form a run) for the hint; `findValidMoves` and `hasValidMove` include special swaps.
 **Acceptance:**
 - [ ] Three same-colour pieces in a row, one special, form no run.
@@ -356,7 +356,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 **Files:** `Matches.kt`, `Move.kt`, `MatchesTest.kt`, `MoveTest.kt`.
 **Scope:** Small. **Depends on:** T20.
 
-#### T22: Classify match groups
+#### T22: Classify match groups (table revised by D17 and D18)
 **Description:** Pure function from a `MatchGroup` to the special it makes: run of 4 blast, 5 or more colour, L line (direction from the longer arm, equal arms row), T or + cross. Priority colour, cross, line, blast. L against T per spec rule 5, including groups of three or more runs.
 **Acceptance:**
 - [ ] Table-driven tests for 4, 5, 6, L (both arm orders, equal arms; arm length is the run length including the corner), T, +, and a 3-run group.
@@ -366,7 +366,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 **Files:** `Creation.kt`, `CreationTest.kt`.
 **Scope:** Small. **Depends on:** T21.
 
-#### T23: Creation inside `resolveSwap`
+#### T23: Creation inside `resolveSwap` (any depth since D16)
 **Description:** After the player's own match (depth 1) clears, place at most one special per group at the swapped cell that belongs to the group (the dragged one if both do). Add `Step.Create(pos, piece)` after the `Clear`. Later cascade matches create nothing. Spawned gems are always plain.
 **Acceptance:**
 - [ ] A swap forming a run of 4, a run of 5, an L and a T each leave exactly one special of the right kind at the right cell (SC13).
@@ -404,7 +404,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 **Files:** `Activation.kt`, `ActivationTest.kt`.
 **Scope:** Small. **Depends on:** T24.
 
-#### T26: Chain reactions
+#### T26: Chain reactions (matched specials fire too since D16)
 **Description:** If an effect covers another special, that piece fires too, from where it sits. Each piece fires once per move. Only the player's own swap starts a chain; nothing at depth 2 or more fires a special. One `Activate` step per fired piece, in a deterministic order.
 **Acceptance:**
 - [ ] A blast covering a line gem fires the line gem; a loop between two specials fires each once.
