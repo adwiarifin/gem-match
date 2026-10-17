@@ -2,12 +2,13 @@ package dev.kesatria.gemmatch
 
 import dev.kesatria.gemmatch.core.Board
 import dev.kesatria.gemmatch.core.Move
+import dev.kesatria.gemmatch.core.findMatchMoves
 import dev.kesatria.gemmatch.core.findValidMoves
 import kotlin.math.PI
 import kotlin.math.cos
 
 /**
- * After [HINT_AFTER_SECONDS] of a settled board with no touch, one valid move pulses. The timer counts
+ * After [HINT_AFTER_SECONDS] of a settled board with no touch, one move pulses: a match if there is one, else a special swap. The timer counts
  * game-loop time only, so it never runs in the background. Anything that happens (a touch, the app coming
  * back) calls [touched], and the next [tick] clears the hint and restarts the timer.
  */
@@ -60,7 +61,7 @@ class IdleHint(
     ) {
         idleSeconds += seconds
         if (idleSeconds < HINT_AFTER_SECONDS) return
-        val move = hint ?: findValidMoves(board).randomOrNull()?.also { hint = it }
+        val move = hint ?: pickMove(board)?.also { hint = it }
         if (move != null) {
             val phase = (idleSeconds - HINT_AFTER_SECONDS) / HINT_PULSE_SECONDS
             val scale = 1f + HINT_PULSE * (HALF - HALF * cos(2 * PI * phase).toFloat())
@@ -68,6 +69,9 @@ class IdleHint(
             scene[move.to]?.scale = scale
         }
     }
+
+    /** A move that makes a match if there is one; only when there is none, a swap that fires a special. */
+    private fun pickMove(board: Board): Move? = findMatchMoves(board).randomOrNull() ?: findValidMoves(board).randomOrNull()
 
     private companion object {
         const val HINT_AFTER_SECONDS = 8f

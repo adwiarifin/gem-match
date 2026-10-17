@@ -8,6 +8,8 @@ import dev.kesatria.gemmatch.core.Gem
 import dev.kesatria.gemmatch.core.Piece
 import dev.kesatria.gemmatch.core.Point
 import dev.kesatria.gemmatch.core.Pos
+import dev.kesatria.gemmatch.core.Special
+import dev.kesatria.gemmatch.core.findMatchMoves
 import dev.kesatria.gemmatch.core.findValidMoves
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -152,4 +154,43 @@ class IdleHintTest {
         assertEquals(1.2f, scene[held]!!.scale, "the held gem keeps its lift")
         assertTrue(pulsing() == setOf(held), "the other hint gem goes back to normal")
     }
+
+    private fun pulsingOn(board: Board): Set<Pos> {
+        val shown = Scene().also { it.load(board) }
+        IdleHint(shown).also { it.touched() }.run {
+            tick(0f, board, settled = true)
+            tick(8.5f, board, settled = true)
+        }
+        val cells = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }
+        return cells.filter { shown[it]!!.scale != 1f }.toSet()
+    }
+
+    @Test
+    fun aMatchIsHintedEvenWhenASpecialGemIsOnTheBoard() {
+        for (seed in 1L..30L) {
+            val withSpecial = randomBoardWithAMove(seed).with(Pos(0, 0), Piece(Gem.WHITE, Special.BLAST))
+            val matchMoves = findMatchMoves(withSpecial).map { setOf(it.from, it.to) }
+            if (matchMoves.isEmpty()) continue
+
+            assertTrue(pulsingOn(withSpecial) in matchMoves, "seed $seed")
+        }
+    }
+
+    @Test
+    fun withOnlySpecialSwapsLeftTheHintPointsAtOne() {
+        var dead = Board.empty()
+        val diagonal = listOf(Gem.RED, Gem.GREEN, Gem.BLUE)
+        for (row in 0 until BOARD_SIZE) {
+            for (col in 0 until BOARD_SIZE) dead = dead.with(Pos(row, col), Piece(diagonal[(row + col) % 3]))
+        }
+        val board = dead.with(Pos(3, 3), Piece(Gem.WHITE, Special.CROSS))
+        assertTrue(findMatchMoves(board).isEmpty(), "the fixture has no match move")
+
+        val pair = pulsingOn(board)
+
+        assertEquals(2, pair.size)
+        assertTrue(Pos(3, 3) in pair, "the pulsing pair $pair must touch the special")
+    }
+
+    private fun randomBoardWithAMove(seed: Long): Board = Game.new(seed).board
 }
