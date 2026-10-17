@@ -44,11 +44,11 @@ Details: `tasks/plan.md` ("Special gems"). Spec: `SPEC.md` "Special Gems". Every
 - [x] T22: Classify groups (4 blast, 5+ colour, L line with direction, T/+ cross, priority). Done when: table tests cover every shape and priority. Verify: `make check-task`
 - [x] T23: Creation in `resolveSwap` (depth 1 only, `Step.Create`). Done when: SC13 holds in tests, cascade matches make none, gem count stays 64, step order is Clear, Create, Fall, Spawn. Verify: `make check-task`
 - [ ] Checkpoint E: creation green, owner reviews `Piece` and `Step` shape
-- [ ] T24: Blast, line, cross fire on swap (`Step.Activate`, 10 per effect gem). Done when: exact cells incl. edges, same-`Clear` normal match, cascade at depth 2. Verify: `make check-task`
-- [ ] T25: Colour gem fires on its partner's colour. Done when: all of that colour and itself clear, forms no run. Verify: `make check-task`
-- [ ] T26: Chain reactions (each piece once, player's swap only). Done when: chain and loop tests pass, a special beside a cascade match is untouched, all `Activate` steps come before the single `Clear`. Verify: `make check-task`
-- [ ] T27: Combos (colour+colour clears board, colour+special converts and fires, other pairs fire both). Done when: SC14 holds in tests, colour gem's `Activate` lists converted cells then one `Activate` per converted piece. Verify: `make check-task`
-- [ ] Checkpoint F: activation green (the open questions were decided on 2026-10-17)
+- [x] T24: Blast, line, cross fire on swap (`Step.Activate`, 10 per effect gem). Done when: exact cells incl. edges, same-`Clear` normal match, cascade at depth 2. Verify: `make check-task`
+- [x] T25: Colour gem fires on its partner's colour. Done when: all of that colour and itself clear, forms no run. Verify: `make check-task`
+- [x] T26: Chain reactions (each piece once, player's swap only). Done when: chain and loop tests pass, a special beside a cascade match is untouched, all `Activate` steps come before the single `Clear`. Verify: `make check-task`
+- [x] T27: Combos (colour+colour clears board, colour+special converts and fires, other pairs fire both). Done when: SC14 holds in tests, colour gem's `Activate` lists converted cells then one `Activate` per converted piece. Verify: `make check-task`
+- [x] Checkpoint F: activation green (the open questions were decided on 2026-10-17)
 - [ ] T28: Scoring pass (literal expected scores, no double count, sum of `Clear.points` equals score). Verify: `make check-task`
 - [x] T29: Save `GM2` with a `GM1` reader. Done when: SC15 holds, malformed input returns null, worst case under 256 characters. Verify: `make check-task`
 - [ ] T30: Game-level soak over many seeds with specials. Done when: invariants hold after every move, no reshuffle with a special on the board. Verify: `make check-task`
