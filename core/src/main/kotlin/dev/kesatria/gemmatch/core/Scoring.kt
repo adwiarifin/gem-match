@@ -18,6 +18,7 @@ private fun scoreFor(run: Run): Int =
 
 /** Each run by length, plus one flat bonus when the group is an L, T or + shape. */
 fun scoreFor(group: MatchGroup): Int {
+    // A run of 3 with a hanging gem clears four gems, so it scores like a run of 4, with no shape bonus.
     if (group.hanging != null) return POINTS_RUN_OF_4
     val shapeBonus = if (group.isCompound) POINTS_SHAPE_BONUS else 0
     return group.runs.sumOf { scoreFor(it) } + shapeBonus

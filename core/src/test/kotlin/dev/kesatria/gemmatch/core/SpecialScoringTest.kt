@@ -5,16 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class SpecialScoringTest {
-    /** The red, orange, yellow diagonal has no runs and no moves; only the cells passed in are overwritten. */
-    private fun patterned(vararg overrides: Pair<Pos, Piece>): Board {
-        val rows =
-            (0 until BOARD_SIZE).map { row ->
-                CharArray(BOARD_SIZE) { col -> "ROY"[(row + col) % 3] }
-            }
-        val base = boardOf(*rows.map { String(it) }.toTypedArray())
-        return overrides.fold(base) { board, (pos, piece) -> board.with(pos, piece) }
-    }
-
     private fun firstClear(
         board: Board,
         a: Pos,

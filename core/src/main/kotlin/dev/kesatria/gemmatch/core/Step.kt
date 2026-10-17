@@ -33,7 +33,7 @@ sealed interface Step {
         val depth: Int,
     ) : Step
 
-    /** A special piece made by the player's match, placed on a cell that the preceding [Clear] emptied. */
+    /** A special piece made by the match that the preceding [Clear] cleared, placed on one of the cells it emptied. */
     data class Create(
         val pos: Pos,
         val piece: Piece,

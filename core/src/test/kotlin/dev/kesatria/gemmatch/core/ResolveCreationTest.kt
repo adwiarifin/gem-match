@@ -5,19 +5,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ResolveCreationTest {
-    /** The red, orange, yellow diagonal has no runs and no moves; only the cells passed in are overwritten. */
+    /** The shared diagonal board with gems written over it by character, for example `3 to 1` cells in green. */
     private fun patterned(vararg overrides: Pair<Pos, Char>): Board {
-        val rows =
-            (0 until BOARD_SIZE).map { row ->
-                CharArray(BOARD_SIZE) { col -> "ROY"[(row + col) % 3] }
-            }
-        overrides.forEach { (pos, char) -> rows[pos.row][pos.col] = char }
-        return boardOf(*rows.map { String(it) }.toTypedArray())
+        val pieces = overrides.map { (pos, char) -> pos to Piece(gemOf(char)) }
+        return patternedBoard(pieces)
     }
 
     private fun greens(vararg cells: Pair<Int, Int>) = cells.map { Pos(it.first, it.second) to 'G' }.toTypedArray()
 
     private fun creates(steps: List<Step>) = steps.filterIsInstance<Step.Create>()
+
+    /** The steps up to the first Fall: the first clear of the move and what it made. */
+    private fun firstClear(steps: List<Step>) = steps.takeWhile { it !is Step.Fall }
 
     @Test
     fun aRunOfFourLeavesABlastAtTheSwappedCell() {
@@ -44,11 +43,11 @@ class ResolveCreationTest {
     }
 
     @Test
-    fun aLongTLeavesAFullXGem() {
+    fun aShortTLeavesAShortXGem() {
         val board = patterned(*greens(3 to 1, 3 to 3, 4 to 2, 5 to 2, 2 to 2))
         val result = resolveSwap(board, Pos(2, 2), Pos(3, 2), Rng(1L))
 
-        assertEquals(listOf(Step.Create(Pos(3, 2), Piece(Gem.GREEN, Special.X_FULL))), creates(result.steps))
+        assertEquals(listOf(Step.Create(Pos(3, 2), Piece(Gem.GREEN, Special.X_SHORT))), creates(result.steps))
     }
 
     @Test
@@ -80,25 +79,47 @@ class ResolveCreationTest {
         val board = patterned(*greens(3 to 1, 3 to 2, 4 to 3, 4 to 1))
         val result = resolveSwap(board, Pos(4, 3), Pos(3, 3), Rng(1L))
 
-        assertEquals(listOf(Step.Create(Pos(3, 3), Piece(Gem.GREEN, Special.LINE_ROW))), creates(result.steps).take(1))
+        val made = creates(firstClear(result.steps))
+        assertEquals(listOf(Step.Create(Pos(3, 3), Piece(Gem.GREEN, Special.LINE_ROW))), made)
         val clear = result.steps.filterIsInstance<Step.Clear>().first()
         assertEquals(cells(3 to 1, 3 to 2, 3 to 3, 4 to 1), clear.cells)
         assertEquals(POINTS_RUN_OF_4, clear.points)
     }
 
     @Test
-    fun aShortTLeavesAShortXGem() {
+    fun aGemHangingOffTheMiddleStaysAPlainMatchAndStaysOnTheBoard() {
         val board = patterned(*greens(3 to 1, 3 to 2, 4 to 3, 4 to 2))
         val result = resolveSwap(board, Pos(4, 3), Pos(3, 3), Rng(1L))
 
-        assertEquals(listOf(Step.Create(Pos(3, 3), Piece(Gem.GREEN, Special.X_SHORT))), creates(result.steps).take(1))
+        assertEquals(emptyList(), creates(firstClear(result.steps)))
         assertEquals(
-            cells(3 to 1, 3 to 2, 3 to 3, 4 to 2),
+            cells(3 to 1, 3 to 2, 3 to 3),
             result.steps
                 .filterIsInstance<Step.Clear>()
                 .first()
                 .cells,
         )
+    }
+
+    @Test
+    fun aLongTLeavesAFullXGemEvenWithARunOfFive() {
+        val board = patterned(*greens(3 to 0, 3 to 1, 3 to 3, 3 to 4, 4 to 2, 5 to 2, 2 to 2))
+        val result = resolveSwap(board, Pos(2, 2), Pos(3, 2), Rng(1L))
+
+        val made = creates(firstClear(result.steps))
+        assertEquals(listOf(Step.Create(Pos(3, 2), Piece(Gem.GREEN, Special.X_FULL))), made)
+    }
+
+    @Test
+    fun anyFireInAClearStopsEveryGroupOfThatClearFromMakingASpecial() {
+        // The swap makes a run of five and a run of three that holds an old blast, which fires.
+        val board =
+            patterned(*greens(3 to 0, 3 to 1, 3 to 3, 3 to 4, 4 to 2))
+                .with(Pos(4, 0), Piece(Gem.YELLOW, Special.BLAST))
+        val result = resolveSwap(board, Pos(4, 2), Pos(3, 2), Rng(1L))
+
+        assertTrue(result.steps.any { it is Step.Activate })
+        assertEquals(emptyList(), creates(firstClear(result.steps)))
     }
 
     @Test

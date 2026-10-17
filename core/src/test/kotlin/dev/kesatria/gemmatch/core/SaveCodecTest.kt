@@ -284,4 +284,30 @@ class SaveCodecTest {
     private companion object {
         const val CELL_CHARS = BOARD_SIZE * BOARD_SIZE * 2
     }
+
+    @Test
+    fun everySpecialHasItsOwnSaveLetterAndRoundTrips() {
+        assertEquals(Special.entries.size + 1, letters.size, "one letter per special, plus the plain gem")
+        assertEquals(letters.size, letters.values.toSet().size, "letters are unique")
+        for (special in Special.entries) {
+            val piece = Piece(if (special == Special.COLOUR) null else Gem.GREEN, special)
+            val text = gm2(randomStableBoard(11L).with(Pos(0, 0), piece))
+
+            assertEquals(text, assertNotNull(Game.decode(text), "$special").encode(), "$special")
+        }
+    }
+
+    @Test
+    fun aBoardWithASpecialInsideASameColourRunOfThreeIsNotLoaded() {
+        // Deliberate: loading needs a settled board, and a special now counts in a run of its colour.
+        val base = randomStableBoard(11L)
+        val gem = checkNotNull(base[Pos(0, 0)]?.gem)
+        val board =
+            base
+                .with(Pos(0, 0), Piece(gem))
+                .with(Pos(0, 1), Piece(gem, Special.BLAST))
+                .with(Pos(0, 2), Piece(gem))
+
+        assertNull(Game.decode(gm2(board)))
+    }
 }

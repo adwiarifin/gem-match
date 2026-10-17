@@ -56,16 +56,16 @@ class CreationTest {
     }
 
     @Test
-    fun aLongTMakesAFullXGem() {
-        assertEquals(Special.X_FULL, classifyShape("RRR", ".R.", ".R."))
-        assertEquals(Special.X_FULL, classifyShape(".R.", ".R.", "RRR"))
-        assertEquals(Special.X_FULL, classifyShape("R..", "RRR", "R.."))
-        assertEquals(Special.X_FULL, classifyShape("..R", "RRR", "..R"))
+    fun aShortTMakesAShortXGem() {
+        assertEquals(Special.X_SHORT, classifyShape("RRR", ".R.", ".R."))
+        assertEquals(Special.X_SHORT, classifyShape(".R.", ".R.", "RRR"))
+        assertEquals(Special.X_SHORT, classifyShape("R..", "RRR", "R.."))
+        assertEquals(Special.X_SHORT, classifyShape("..R", "RRR", "..R"))
     }
 
     @Test
-    fun aPlusMakesAFullXGem() {
-        assertEquals(Special.X_FULL, classifyShape(".R.", "RRR", ".R."))
+    fun aThreeByThreePlusMakesAShortXGem() {
+        assertEquals(Special.X_SHORT, classifyShape(".R.", "RRR", ".R."))
     }
 
     @Test
@@ -79,9 +79,17 @@ class CreationTest {
     }
 
     @Test
-    fun aRunOfFiveBeatsEveryShape() {
-        assertEquals(Special.COLOUR, classifyShape("RRRRR", "..R..", "..R.."))
-        assertEquals(Special.COLOUR, classifyShape("RRRRR", "R....", "R...."))
+    fun aLongTMakesAFullXGemEvenWithARunOfFive() {
+        assertEquals(Special.X_FULL, classifyShape("RRRRR", "..R..", "..R.."))
+        assertEquals(Special.X_FULL, classifyShape("RRRR", ".R..", ".R.."))
+        assertEquals(Special.X_FULL, classifyShape("..R..", "RRRRR", "..R.."))
+        assertEquals(Special.X_FULL, classifyShape("..R", "..R", "RRR", "..R", "..R"))
+    }
+
+    @Test
+    fun anLWithALongArmIsStillACrossGem() {
+        assertEquals(Special.CROSS, classifyShape("RRRRR", "R....", "R...."))
+        assertEquals(Special.CROSS, classifyShape("RRR", "R..", "R..", "R..", "R.."))
     }
 
     @Test
@@ -91,7 +99,7 @@ class CreationTest {
 
     @Test
     fun threeRunsWithOneCrossingInsideARunAreAT() {
-        assertEquals(Special.X_FULL, classifyShape("RRR", ".RR", ".RR"))
+        assertEquals(Special.X_SHORT, classifyShape("RRR", ".RR", ".RR"))
     }
 
     private fun anchoredAt(vararg rows: String): List<Step.Create> {
@@ -109,7 +117,7 @@ class CreationTest {
     @Test
     fun withNoSwappedCellAShapeMakesItsSpecialAtTheCrossing() {
         assertEquals(listOf(Step.Create(Pos(0, 0), Piece(Gem.RED, Special.CROSS))), anchoredAt("RRR", "R..", "R.."))
-        assertEquals(listOf(Step.Create(Pos(0, 1), Piece(Gem.RED, Special.X_FULL))), anchoredAt("RRR", ".R.", ".R."))
+        assertEquals(listOf(Step.Create(Pos(0, 1), Piece(Gem.RED, Special.X_SHORT))), anchoredAt("RRR", ".R.", ".R."))
     }
 
     @Test
@@ -132,24 +140,22 @@ class CreationTest {
     }
 
     @Test
-    fun aGemHangingOffTheMiddleOfARunOfThreeMakesAShortXGem() {
-        assertEquals(Special.X_SHORT, classifyShape("RRR", ".R."))
-        assertEquals(Special.X_SHORT, classifyShape(".R.", "RRR"))
-        assertEquals(Special.X_SHORT, classifyShape("R.", "RR", "R."))
-        assertEquals(Special.X_SHORT, classifyShape(".R", "RR", ".R"))
+    fun aGemHangingOffTheMiddleOfARunOfThreeIsLeftBehindAndTheRunIsPlain() {
+        assertEquals(null, classifyShape("RRR", ".R."))
+        assertEquals(null, classifyShape(".R.", "RRR"))
+        assertEquals(null, classifyShape("R.", "RR", "R."))
+        assertEquals(null, classifyShape(".R", "RR", ".R"))
     }
 
     @Test
-    fun aShortLOrShortTClearsFourGemsAndPlacesTheGemAtTheJoint() {
+    fun aShortLClearsFourGemsAndPlacesTheGemAtTheJoint() {
         val short = findMatchGroups(boardOf("RRR", "R..")).single()
         val middle = findMatchGroups(boardOf("RRR", ".R.")).single()
 
         assertEquals(4, short.cells.size)
-        assertEquals(4, middle.cells.size)
+        assertEquals(3, middle.cells.size)
         val lineGem = createdPieces(listOf(short), emptyList())
-        val shortX = createdPieces(listOf(middle), emptyList())
         assertEquals(listOf(Step.Create(Pos(0, 0), Piece(Gem.RED, Special.LINE_ROW))), lineGem)
-        assertEquals(listOf(Step.Create(Pos(0, 1), Piece(Gem.RED, Special.X_SHORT))), shortX)
     }
 
     @Test
@@ -183,5 +189,31 @@ class CreationTest {
 
         assertEquals(2, groups.size)
         assertEquals(1, groups.count { it.hanging == Pos(1, 2) })
+    }
+
+    @Test
+    fun whenBothSwappedCellsBelongToTheGroupTheDraggedOneWins() {
+        val groups = findMatchGroups(boardOf("RRRR"))
+
+        val first = createdPieces(groups, listOf(Pos(0, 1), Pos(0, 2))).single()
+        val second = createdPieces(groups, listOf(Pos(0, 2), Pos(0, 1))).single()
+
+        assertEquals(Pos(0, 1), first.pos)
+        assertEquals(Pos(0, 2), second.pos)
+    }
+
+    @Test
+    fun aSwappedCellThatIsTheHangingGemGetsTheSpecial() {
+        val groups = findMatchGroups(boardOf("RRR", "R.."))
+
+        val made = createdPieces(groups, listOf(Pos(1, 0), Pos(2, 0))).single()
+
+        assertEquals(Step.Create(Pos(1, 0), Piece(Gem.RED, Special.LINE_ROW)), made)
+    }
+
+    @Test
+    fun threeRunsMeetingOnlyAtTheirEndsAreACrossGemAndOneInteriorCrossingMakesAFullX() {
+        assertEquals(Special.CROSS, classifyShape("RRR..", "..R..", "..RRR"))
+        assertEquals(Special.X_FULL, classifyShape("RRR..", "..R..", "RRRRR"))
     }
 }

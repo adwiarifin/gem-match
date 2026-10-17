@@ -52,29 +52,23 @@ fun firings(
 ): List<Step.Activate> {
     val fired = swap?.let { initialActivations(board, it.first, it.second).toMutableList() } ?: mutableListOf()
     val seen = fired.mapTo(mutableSetOf()) { it.origin }
-    for (pos in matched.sortedWith(compareBy({ it.row }, { it.col }))) {
-        val special = board[pos]?.special
-        if (special != null && special != Special.COLOUR && seen.add(pos)) {
-            fired += Step.Activate(pos, special, effectCells(pos, special))
-        }
-    }
-    chain(board, fired, seen)
+    fireNew(board, matched, fired, seen)
+    var next = 0
+    while (next < fired.size) fireNew(board, fired[next++].cells, fired, seen)
     return fired
 }
 
-/** Fires every special that an effect in [fired] covers and that has not fired yet, in the order they are reached. */
-private fun chain(
+/** Fires, in board order, every special among [cells] that has not fired yet. The colour gem has no partner here. */
+private fun fireNew(
     board: Board,
+    cells: Set<Pos>,
     fired: MutableList<Step.Activate>,
     seen: MutableSet<Pos>,
 ) {
-    var next = 0
-    while (next < fired.size) {
-        for (pos in fired[next++].cells.sortedWith(compareBy({ it.row }, { it.col }))) {
-            val special = board[pos]?.special
-            if (special != null && special != Special.COLOUR && seen.add(pos)) {
-                fired += Step.Activate(pos, special, effectCells(pos, special))
-            }
+    for (pos in cells.sortedWith(BOARD_ORDER)) {
+        val special = board[pos]?.special
+        if (special != null && special != Special.COLOUR && seen.add(pos)) {
+            fired += Step.Activate(pos, special, effectCells(pos, special))
         }
     }
 }

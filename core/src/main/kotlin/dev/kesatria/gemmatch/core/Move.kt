@@ -20,7 +20,7 @@ fun isValidSwap(
     return first.isSpecial || second.isSpecial || makesMatch(board, a, b)
 }
 
-/** True if swapping [a] and [b] puts one of them into a run. Specials never join one. */
+/** True if swapping [a] and [b] puts one of them into a run. A special counts as its colour, the colour gem never. */
 private fun makesMatch(
     board: Board,
     a: Pos,

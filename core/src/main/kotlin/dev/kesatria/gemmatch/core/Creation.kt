@@ -1,44 +1,48 @@
 package dev.kesatria.gemmatch.core
 
 /**
- * The special gem a cleared [group] makes, or null for a plain match. Any run of 5 or more is the colour gem. A run
- * of 3 with a hanging gem is a line gem along the run (hanging off an end) or a short X (hanging off the middle). A
- * run of 4 is a blast. An L with both arms of 3 or more is a cross gem. A T or + is a full X.
+ * The special gem a cleared [group] makes, or null for a plain match.
+ * - Two or more crossing runs beat everything else, even a run of 5: an L (both arms 3 or more) is a cross gem, a T
+ *   or + whose runs are all exactly 3 is a short X, and a T or + with any run of 4 or more is a full X.
+ * - A run of 3 with a gem hanging off an end is a line gem along the run.
+ * - A straight run of 5 or more is the colour gem, and a straight run of 4 is a blast.
  */
 fun classify(group: MatchGroup): Special? {
     val longest = group.runs.maxOf { it.length }
     return when {
+        group.isCompound -> compoundSpecial(group, longest)
+        group.hanging != null -> if (group.runs.single().isHorizontal) Special.LINE_ROW else Special.LINE_COL
         longest >= COLOUR_RUN -> Special.COLOUR
-        group.hanging != null -> hangingSpecial(group.runs.single(), group.hanging)
-        !group.isCompound -> if (longest == BLAST_RUN) Special.BLAST else null
-        hasCrossingInsideARun(group) -> Special.X_FULL
-        else -> Special.CROSS
+        longest == BLAST_RUN -> Special.BLAST
+        else -> null
     }
 }
 
 private const val BLAST_RUN = 4
 private const val COLOUR_RUN = 5
 
-private fun hangingSpecial(
-    run: Run,
-    hanging: Pos,
-): Special {
-    val joint = run.cells.first { it.isAdjacentTo(hanging) }
-    return when {
-        joint == run.cells[run.cells.size / 2] -> Special.X_SHORT
-        run.isHorizontal -> Special.LINE_ROW
-        else -> Special.LINE_COL
+private fun compoundSpecial(
+    group: MatchGroup,
+    longest: Int,
+): Special =
+    when {
+        crossings(group).none { it.inside } -> Special.CROSS
+        longest > MIN_MATCH -> Special.X_FULL
+        else -> Special.X_SHORT
     }
-}
 
-/** A crossing that is not the end of both runs makes a T or a +, a full X. */
-private fun hasCrossingInsideARun(group: MatchGroup): Boolean {
+/** A place where a horizontal and a vertical run cross, and whether it is inside at least one of the two runs. */
+private class Crossing(
+    val pos: Pos,
+    val inside: Boolean,
+)
+
+private fun crossings(group: MatchGroup): List<Crossing> {
     val horizontal = group.runs.filter { it.isHorizontal }
     val vertical = group.runs.filter { !it.isHorizontal }
-    return horizontal.any { h ->
-        vertical.any { v ->
-            val crossing = h.cells.firstOrNull { it in v.cells }
-            crossing != null && !(h.endsAt(crossing) && v.endsAt(crossing))
+    return horizontal.flatMap { h ->
+        vertical.mapNotNull { v ->
+            h.cells.firstOrNull { it in v.cells }?.let { Crossing(it, !(h.endsAt(it) && v.endsAt(it))) }
         }
     }
 }
@@ -48,8 +52,8 @@ private fun Run.endsAt(pos: Pos): Boolean = pos == cells.first() || pos == cells
 /**
  * The special pieces a clear earns, one per qualifying group. On the player's own swap each goes on the swapped
  * cell that belongs to the group, the first of [swapped] (the dragged cell comes first). Anywhere else, a cascade
- * match or a group the swap did not touch, it goes at the group's centre: the crossing of an L, T or +, the gem a
- * hanging gem touches, the middle of a straight run.
+ * match or a group the swap did not touch, it goes at the group's centre: the crossing of an L, T or +, the end gem
+ * a hanging gem touches, the middle of a straight run.
  */
 fun createdPieces(
     groups: List<MatchGroup>,
@@ -67,14 +71,6 @@ private fun anchorOf(group: MatchGroup): Pos {
     val run = group.runs.first()
     return when {
         hanging != null -> run.cells.first { it.isAdjacentTo(hanging) }
-        else -> crossingOf(group) ?: run.cells[run.cells.size / 2]
+        else -> crossings(group).firstOrNull()?.pos ?: run.cells[run.cells.size / 2]
     }
-}
-
-private fun crossingOf(group: MatchGroup): Pos? {
-    val horizontal = group.runs.filter { it.isHorizontal }
-    val vertical = group.runs.filter { !it.isHorizontal }
-    return horizontal
-        .flatMap { h -> vertical.map { v -> h.cells.firstOrNull { it in v.cells } } }
-        .firstNotNullOfOrNull { it }
 }

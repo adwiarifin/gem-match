@@ -28,6 +28,18 @@ fun boardOf(vararg rows: String): Board {
     return board
 }
 
+/** The gem for one of the characters R O Y G B P W, as `boardOf` reads them. */
+fun gemOf(char: Char): Gem = requireNotNull(GEM_BY_CHAR[char]) { "unknown gem '$char'" }
+
+/** The red, orange, yellow diagonal has no runs and no moves; only the cells passed in are overwritten. */
+fun patternedBoard(overrides: List<Pair<Pos, Piece>>): Board {
+    val cells = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }
+    val base = cells.fold(Board.empty()) { board, pos -> board.with(pos, Piece(gemOf("ROY"[(pos.row + pos.col) % 3]))) }
+    return overrides.fold(base) { board, (pos, piece) -> board.with(pos, piece) }
+}
+
+fun patterned(vararg overrides: Pair<Pos, Piece>): Board = patternedBoard(overrides.toList())
+
 fun cells(vararg positions: Pair<Int, Int>): Set<Pos> = positions.map { Pos(it.first, it.second) }.toSet()
 
 /** A full board with no runs, filled left to right and top to bottom from [seed]. */

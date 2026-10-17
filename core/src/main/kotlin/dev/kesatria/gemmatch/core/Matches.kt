@@ -11,8 +11,7 @@ data class Run(
 
 /**
  * Runs that share cells (L, T and + shapes), cleared together. A run of exactly three can also take one
- * [hanging] gem of the same colour that touches one of its cells at a right angle: a short L when it touches an
- * end, a short T when it touches the middle.
+ * [hanging] gem of the same colour that touches one of its end cells at a right angle: a short L.
  */
 data class MatchGroup(
     val runs: List<Run>,
@@ -37,28 +36,32 @@ fun findMatchGroups(board: Board): List<MatchGroup> {
     }
 }
 
-/** The one gem that hangs off [run]: same colour, in no run itself, taken by no other group. First in board order. */
+/**
+ * The one gem that hangs off an end of [run]: same colour, touching an end cell at a right angle, in no run itself
+ * and taken by no other group. A gem touching the middle does not count (it would be a plain T of four). If several
+ * qualify, the first in board order.
+ */
 private fun hangingGem(
     board: Board,
     run: Run,
     inRun: Set<Pos>,
     taken: Set<Pos>,
 ): Pos? =
-    run.cells
-        .flatMap { cell ->
-            if (run.isHorizontal) {
-                listOf(Pos(cell.row - 1, cell.col), Pos(cell.row + 1, cell.col))
-            } else {
-                listOf(
-                    Pos(cell.row, cell.col - 1),
-                    Pos(
-                        cell.row,
-                        cell.col + 1,
-                    ),
-                )
-            }
-        }.filter { it.isInBounds() && board[it]?.gem == run.gem && it !in inRun && it !in taken }
-        .minWithOrNull(compareBy({ it.row }, { it.col }))
+    listOf(run.cells.first(), run.cells.last())
+        .flatMap { end -> sidesOf(end, run.isHorizontal) }
+        .filter { it.isInBounds() && board[it]?.gem == run.gem && it !in inRun && it !in taken }
+        .minWithOrNull(BOARD_ORDER)
+
+/** The two cells either side of [cell], at a right angle to a run that is [horizontal] or not. */
+private fun sidesOf(
+    cell: Pos,
+    horizontal: Boolean,
+): List<Pos> =
+    if (horizontal) {
+        listOf(Pos(cell.row - 1, cell.col), Pos(cell.row + 1, cell.col))
+    } else {
+        listOf(Pos(cell.row, cell.col - 1), Pos(cell.row, cell.col + 1))
+    }
 
 private const val HANGING_RUN = 3
 

@@ -10,3 +10,6 @@ data class Pos(
 
     fun isInBounds(): Boolean = row in 0 until BOARD_SIZE && col in 0 until BOARD_SIZE
 }
+
+/** Board order: row by row, left to right. Used wherever the rules need a deterministic order. */
+val BOARD_ORDER: Comparator<Pos> = compareBy({ it.row }, { it.col })

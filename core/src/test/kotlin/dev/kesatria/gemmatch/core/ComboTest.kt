@@ -5,16 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ComboTest {
-    /** The red, orange, yellow diagonal has no runs and no moves; only the cells passed in are overwritten. */
-    private fun patterned(vararg overrides: Pair<Pos, Piece>): Board {
-        val rows =
-            (0 until BOARD_SIZE).map { row ->
-                CharArray(BOARD_SIZE) { col -> "ROY"[(row + col) % 3] }
-            }
-        val base = boardOf(*rows.map { String(it) }.toTypedArray())
-        return overrides.fold(base) { board, (pos, piece) -> board.with(pos, piece) }
-    }
-
     private val colour = Piece(null, Special.COLOUR)
     private val effects = Special.entries.filter { it != Special.COLOUR }
 
@@ -64,6 +54,18 @@ class ComboTest {
 
             assertEquals(listOf(Special.COLOUR) + List(3) { line }, result.map { it.special })
             result.drop(1).forEach { assertEquals(effectCells(it.origin, line), it.cells) }
+        }
+    }
+
+    @Test
+    fun aColourGemWithEitherXConvertsToThatX() {
+        for (x in listOf(Special.X_SHORT, Special.X_FULL)) {
+            val board = patterned(*greens(), Pos(4, 4) to colour, Pos(4, 5) to Piece(Gem.GREEN, x))
+
+            val result = activates(resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(1L)).steps)
+
+            assertEquals(listOf(Special.COLOUR) + List(3) { x }, result.map { it.special }, "$x")
+            result.drop(1).forEach { assertEquals(effectCells(it.origin, x), it.cells, "$x") }
         }
     }
 

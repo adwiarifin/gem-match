@@ -42,15 +42,6 @@ class PairCombosTest {
             Triple(fullX to fullX, 28, 28),
         )
 
-    private fun patterned(vararg overrides: Pair<Pos, Piece>): Board {
-        val rows =
-            (0 until BOARD_SIZE).map { r ->
-                CharArray(BOARD_SIZE) { c -> "ROY"[(r + c) % 3] }
-            }
-        val base = boardOf(*rows.map { String(it) }.toTypedArray())
-        return overrides.fold(base) { board, (pos, piece) -> board.with(pos, piece) }
-    }
-
     private fun cleared(
         first: Special,
         second: Special,
@@ -69,6 +60,10 @@ class PairCombosTest {
 
             assertEquals(horizontal, sideways.cells.size, "${pair.first} + ${pair.second} swapped along a row")
             assertEquals(vertical, upDown.cells.size, "${pair.first} + ${pair.second} swapped along a column")
+            val rowCells = effectCells(Pos(3, 4), pair.first) + effectCells(Pos(3, 3), pair.second)
+            val columnCells = effectCells(Pos(4, 3), pair.first) + effectCells(Pos(3, 3), pair.second)
+            assertEquals(rowCells, sideways.cells, "${pair.first} + ${pair.second} cells along a row")
+            assertEquals(columnCells, upDown.cells, "${pair.first} + ${pair.second} cells along a column")
             assertEquals(horizontal * POINTS_PER_EFFECT_GEM, sideways.points, "${pair.first} + ${pair.second} points")
             assertEquals(vertical * POINTS_PER_EFFECT_GEM, upDown.points, "${pair.first} + ${pair.second} points")
         }

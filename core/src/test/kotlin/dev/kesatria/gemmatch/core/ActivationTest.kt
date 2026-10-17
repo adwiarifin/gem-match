@@ -6,16 +6,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ActivationTest {
-    /** The red, orange, yellow diagonal has no runs and no moves; only the cells passed in are overwritten. */
-    private fun patterned(vararg overrides: Pair<Pos, Piece>): Board {
-        val rows =
-            (0 until BOARD_SIZE).map { row ->
-                CharArray(BOARD_SIZE) { col -> "ROY"[(row + col) % 3] }
-            }
-        val base = boardOf(*rows.map { String(it) }.toTypedArray())
-        return overrides.fold(base) { board, (pos, piece) -> board.with(pos, piece) }
-    }
-
     private fun square(
         rows: IntRange,
         cols: IntRange,
@@ -351,6 +341,21 @@ class ActivationTest {
             val before = replay(start, steps.take(index))
             step.cells.mapNotNull { before[it] }.filter { it.isSpecial && it.special != Special.COLOUR }
         }
+
+    @Test
+    fun matchedSpecialsFireInBoardOrderAfterTheSwapsOwnEffects() {
+        val board =
+            patterned(
+                Pos(4, 4) to Piece(Gem.WHITE, Special.BLAST),
+                Pos(6, 1) to Piece(Gem.GREEN, Special.LINE_ROW),
+                Pos(1, 6) to Piece(Gem.BLUE, Special.LINE_COL),
+            )
+        val swapped = board.swap(Pos(4, 4), Pos(4, 5))
+
+        val fired = firings(swapped, cells(6 to 1, 1 to 6), Pos(4, 4) to Pos(4, 5))
+
+        assertEquals(listOf(Pos(4, 5), Pos(1, 6), Pos(6, 1)), fired.map { it.origin })
+    }
 
     @Test
     fun aSpecialLinedUpByACascadeFiresAtThatDepth() {

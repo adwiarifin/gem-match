@@ -16,7 +16,7 @@ internal fun colourWithSpecial(
     val partner = checkNotNull(swapped[partnerAt])
     val converted = colourCells(swapped, colourAt, partner.gem) ?: return emptyList()
     val special = checkNotNull(partner.special)
-    val fires = converted.filter { it != colourAt }.sortedWith(compareBy({ it.row }, { it.col }))
+    val fires = converted.filter { it != colourAt }.sortedWith(BOARD_ORDER)
     return listOf(Step.Activate(colourAt, Special.COLOUR, converted)) +
         fires.map { Step.Activate(it, special, effectCells(it, special)) }
 }
