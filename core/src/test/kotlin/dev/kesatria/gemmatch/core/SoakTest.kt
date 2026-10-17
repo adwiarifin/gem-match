@@ -23,7 +23,7 @@ class SoakTest {
         onMove: (Game, SwapOutcome.Accepted) -> Unit = { _, _ -> },
     ): Pair<Game, List<List<Step>>> {
         var game = Game.new(seed)
-        val chooser = Rng(seed)
+        val chooser = Rng(seed * CHOOSER_SALT)
         val history = mutableListOf<List<Step>>()
         repeat(MOVES_PER_GAME) { turn ->
             val moves = findValidMoves(game.board)
@@ -51,8 +51,9 @@ class SoakTest {
                 assertTrue(isFull(after.board), label)
                 assertTrue(findRuns(after.board).isEmpty(), label)
                 assertTrue(hasValidMove(after.board), label)
-                assertEquals(after.board, assertNotNull(Game.decode(after.encode()), label).board, label)
-                assertEquals(after.score, assertNotNull(Game.decode(after.encode()), label).score, label)
+                val restored = assertNotNull(Game.decode(after.encode()), label)
+                assertEquals(after.board, restored.board, label)
+                assertEquals(after.score, restored.score, label)
                 assertEquals(after.board, replay(before.board, outcome.steps), label)
                 val total = outcome.steps.filterIsInstance<Step.Clear>().sumOf { it.points }
                 assertEquals(after.score - before.score, total, label)
@@ -65,8 +66,9 @@ class SoakTest {
 
     @Test
     fun aBoardHoldingASpecialNeverReshuffles() {
+        val tally = Tally()
         for (seed in 1L..SEEDS) {
-            play(seed, Tally()) { before, outcome ->
+            play(seed, tally) { before, outcome ->
                 val reshuffled = outcome.steps.indexOfFirst { it is Step.Reshuffle }
                 if (reshuffled >= 0) {
                     val settled = replay(before.board, outcome.steps.take(reshuffled))
@@ -74,6 +76,7 @@ class SoakTest {
                 }
             }
         }
+        assertTrue(tally.reshuffles > 0, "no game reshuffled, so this checked nothing")
     }
 
     @Test
@@ -92,5 +95,6 @@ class SoakTest {
         const val SEEDS = 120L
         const val REPEAT_SEEDS = 30L
         const val MOVES_PER_GAME = 80
+        const val CHOOSER_SALT = 7919L
     }
 }

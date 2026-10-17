@@ -1,6 +1,9 @@
 package dev.kesatria.gemmatch.core
 
-/** The cells a [special] fired from [origin] takes, clipped to the board. Colour: see [activations]. */
+/**
+ * The cells a [special] fired from [origin] takes, clipped to the board. The colour gem needs a partner colour and
+ * the board, so [activations] works it out instead.
+ */
 fun effectCells(
     origin: Pos,
     special: Special,

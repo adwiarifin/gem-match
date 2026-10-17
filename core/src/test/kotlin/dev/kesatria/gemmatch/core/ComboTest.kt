@@ -18,8 +18,6 @@ class ComboTest {
     private val colour = Piece(null, Special.COLOUR)
     private val effects = listOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL, Special.CROSS)
 
-    private fun everyCell() = ALL_CELLS
-
     private fun activates(steps: List<Step>) = steps.filterIsInstance<Step.Activate>()
 
     @Test
@@ -30,9 +28,9 @@ class ComboTest {
 
         val activate = activates(result.steps).single()
         assertEquals(Special.COLOUR, activate.special)
-        assertEquals(everyCell(), activate.cells)
+        assertEquals(ALL_CELLS, activate.cells)
         val clear = result.steps.filterIsInstance<Step.Clear>().first()
-        assertEquals(everyCell(), clear.cells)
+        assertEquals(ALL_CELLS, clear.cells)
         assertEquals(640, clear.points)
         assertEquals(1, clear.depth)
         assertTrue(isFull(result.board))
