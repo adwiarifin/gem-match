@@ -95,7 +95,7 @@ class GameStoreTest {
                 "",
                 "garbage",
                 good.take(good.length / 2),
-                good.replaceFirst("GM1", "GM9"),
+                good.replaceFirst("GM2", "GM9"),
                 good + ";extra",
             )
         for (text in damaged) {

@@ -20,7 +20,15 @@ class SaveCodecTest {
         return game
     }
 
-    private val saved = played(seed = 8L, moves = 5).encode()
+    /** The same game as an old `GM1` save: one gem digit per cell. The malformed-input tests below run on it. */
+    private val saved = gm1(played(seed = 8L, moves = 5))
+
+    private fun gm1(game: Game): String = listOf("GM1", game.score, game.rngState, boardDigits(game)).joinToString(";")
+
+    private fun boardCells(game: Game): String =
+        (0 until BOARD_SIZE).joinToString("") { row ->
+            (0 until BOARD_SIZE).joinToString("") { col -> "${checkNotNull(game.board[Pos(row, col)]?.gem).ordinal}-" }
+        }
 
     private fun boardDigits(game: Game): String =
         (0 until BOARD_SIZE)
@@ -29,7 +37,7 @@ class SaveCodecTest {
 
     @Test
     fun encodedGameStartsWithTheVersionMarker() {
-        assertTrue(saved.startsWith("GM1;"))
+        assertTrue(played(8L, 5).encode().startsWith("GM2;"))
     }
 
     @Test
@@ -87,7 +95,7 @@ class SaveCodecTest {
 
     @Test
     fun wrongVersionReturnsNull() {
-        assertNull(Game.decode(saved.replaceFirst("GM1", "GM2")))
+        assertNull(Game.decode(saved.replaceFirst("GM1", "GM3")))
     }
 
     @Test
@@ -143,7 +151,7 @@ class SaveCodecTest {
     @Test
     fun aSaveAtTheLargestRealisticSizeStillLoads() {
         val game = Game.new(3L)
-        val biggest = game.encode().replace(Regex(";\\d+;-?\\d+;"), ";2147483647;-9223372036854775807;")
+        val biggest = gm1(game).replace(Regex(";\\d+;-?\\d+;"), ";2147483647;-9223372036854775807;")
 
         val loaded = assertNotNull(Game.decode(biggest))
 
@@ -155,6 +163,120 @@ class SaveCodecTest {
     fun boardDigitsMatchTheGameForReadability() {
         val game = played(8L, 5)
 
-        assertTrue(game.encode().endsWith(boardDigits(game)))
+        assertTrue(game.encode().endsWith(boardCells(game)))
+    }
+
+    private val everySpecialBoard =
+        randomStableBoard(5L)
+            .with(Pos(0, 0), Piece(Gem.RED, Special.BLAST))
+            .with(Pos(0, 1), Piece(Gem.ORANGE, Special.LINE_ROW))
+            .with(Pos(0, 2), Piece(Gem.YELLOW, Special.LINE_COL))
+            .with(Pos(0, 3), Piece(Gem.WHITE, Special.CROSS))
+            .with(Pos(0, 4), Piece(null, Special.COLOUR))
+
+    private val letters =
+        mapOf(
+            null to '-',
+            Special.BLAST to 'B',
+            Special.LINE_ROW to 'R',
+            Special.LINE_COL to 'C',
+            Special.CROSS to 'X',
+            Special.COLOUR to 'W',
+        )
+
+    private fun gm2(
+        board: Board,
+        score: Int = 120,
+        rng: Long = 77L,
+    ): String {
+        val cells =
+            (0 until BOARD_SIZE).joinToString("") { row ->
+                (0 until BOARD_SIZE).joinToString("") { col ->
+                    val piece = checkNotNull(board[Pos(row, col)])
+                    "${piece.gem?.ordinal ?: '-'}${letters.getValue(piece.special)}"
+                }
+            }
+        return "GM2;$score;$rng;$cells"
+    }
+
+    @Test
+    fun aBoardHoldingEverySpecialRoundTripsEqual() {
+        val text = gm2(everySpecialBoard)
+
+        val game = assertNotNull(Game.decode(text))
+
+        assertEquals(everySpecialBoard, game.board)
+        assertEquals(120, game.score)
+        assertEquals(77L, game.rngState)
+        assertEquals(text, game.encode())
+    }
+
+    @Test
+    fun aRestoredGameWithSpecialsPlaysTheSameFuture() {
+        val original = assertNotNull(Game.decode(gm2(everySpecialBoard)))
+        val restored = assertNotNull(Game.decode(original.encode()))
+        val move = findMatchMoves(original.board).first()
+
+        val a = original.trySwap(move.from, move.to)
+        val b = restored.trySwap(move.from, move.to)
+
+        assertIs<SwapOutcome.Accepted>(a)
+        assertIs<SwapOutcome.Accepted>(b)
+        assertEquals(a.steps, b.steps)
+        assertEquals(a.game.encode(), b.game.encode())
+    }
+
+    @Test
+    fun aGm1SaveLoadsAndIsWrittenBackAsGm2() {
+        val old = played(seed = 8L, moves = 5)
+
+        val loaded = assertNotNull(Game.decode(gm1(old)))
+
+        assertEquals(old.board, loaded.board)
+        assertEquals(old.score, loaded.score)
+        assertEquals(old.rngState, loaded.rngState)
+        assertTrue(loaded.encode().startsWith("GM2;"))
+        assertEquals(old.encode(), loaded.encode())
+    }
+
+    @Test
+    fun malformedGm2CellsReturnNull() {
+        val valid = gm2(everySpecialBoard)
+        val head = valid.substringBeforeLast(';') + ";"
+        val cells = valid.substringAfterLast(';')
+
+        fun withFirstCell(cell: String) = head + cell + cells.drop(2)
+
+        assertNotNull(Game.decode(withFirstCell("0B")))
+        assertNull(Game.decode(withFirstCell("0Z")), "unknown special letter")
+        assertNull(Game.decode(withFirstCell("-B")), "no gem on a non-colour special")
+        assertNull(Game.decode(withFirstCell("--")), "an empty cell")
+        assertNull(Game.decode(withFirstCell("0W")), "a colour gem with a gem")
+        assertNull(Game.decode(withFirstCell("7-")), "gem digit out of range")
+        assertNull(Game.decode(withFirstCell("x-")), "gem digit not a digit")
+        assertNull(Game.decode(withFirstCell("b-")), "lower case letters are not specials")
+        assertNull(Game.decode(head + cells.dropLast(1)), "one character short")
+        assertNull(Game.decode(head + cells + "0-"), "one cell long")
+        assertNull(Game.decode(head + cells.take(CELL_CHARS - 1)), "truncated")
+    }
+
+    @Test
+    fun everyTruncationOfAGm2SaveReturnsNull() {
+        val text = gm2(everySpecialBoard)
+        for (length in text.indices) {
+            assertNull(Game.decode(text.substring(0, length)), "prefix length $length")
+        }
+    }
+
+    @Test
+    fun theWorstCaseGm2SaveStaysUnderTheReadLimit() {
+        val worst = gm2(everySpecialBoard, score = Int.MAX_VALUE, rng = Long.MIN_VALUE)
+
+        assertNotNull(Game.decode(worst))
+        assertTrue(worst.length < 256, "was ${worst.length}")
+    }
+
+    private companion object {
+        const val CELL_CHARS = BOARD_SIZE * BOARD_SIZE * 2
     }
 }
