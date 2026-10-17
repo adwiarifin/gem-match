@@ -40,6 +40,33 @@ fun patternedBoard(overrides: List<Pair<Pos, Piece>>): Board {
 
 fun patterned(vararg overrides: Pair<Pos, Piece>): Board = patternedBoard(overrides.toList())
 
+private val SAVE_LETTERS =
+    mapOf(
+        Special.BLAST to 'B',
+        Special.LINE_ROW to 'R',
+        Special.LINE_COL to 'C',
+        Special.CROSS to 'X',
+        Special.X_SHORT to 'S',
+        Special.X_FULL to 'F',
+        Special.COLOUR to 'W',
+    )
+
+/** A game on [board], which may hold special pieces, loaded through the real `GM2` reader. */
+fun gameOf(
+    board: Board,
+    score: Int = 0,
+    rng: Long = 1L,
+): Game {
+    val cells =
+        (0 until BOARD_SIZE).joinToString("") { row ->
+            (0 until BOARD_SIZE).joinToString("") { col ->
+                val piece = checkNotNull(board[Pos(row, col)])
+                "${piece.gem?.ordinal ?: '-'}${piece.special?.let { SAVE_LETTERS.getValue(it) } ?: '-'}"
+            }
+        }
+    return checkNotNull(Game.decode("GM2;$score;$rng;$cells")) { "the board is not a playable game" }
+}
+
 fun cells(vararg positions: Pair<Int, Int>): Set<Pos> = positions.map { Pos(it.first, it.second) }.toSet()
 
 /** A full board with no runs, filled left to right and top to bottom from [seed]. */

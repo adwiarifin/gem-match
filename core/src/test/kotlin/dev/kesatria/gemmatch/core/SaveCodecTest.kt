@@ -311,8 +311,10 @@ class SaveCodecTest {
         assertNull(Game.decode(gm2(board)))
     }
 
-    /** Written by the v0.1.2 release code (`git show v0.1.2:...SaveCodec.kt`), pasted here so no helper can mirror a change. */
-    private val releasedGm1 = "GM1;210;92694865759587301;6145022601136334006053121631042355443363401001654464611054132212"
+    /** Written by the v0.1.2 release code, pasted here so that no test helper can mirror a change in the format. */
+    private val releasedGm1 =
+        "GM1;210;92694865759587301;" +
+            "6145022601136334006053121631042355443363401001654464611054132212"
 
     @Test
     fun aRealV012Gm1StringLoadsWithItsExactScoreBoardAndRng() {
@@ -324,7 +326,8 @@ class SaveCodecTest {
         assertEquals(Gem.ORANGE, game.board[Pos(0, 1)]?.gem)
         assertEquals(Gem.YELLOW, game.board[Pos(7, 7)]?.gem)
         assertEquals(Gem.ORANGE, game.board[Pos(7, 6)]?.gem)
-        assertTrue((0 until BOARD_SIZE).all { r -> (0 until BOARD_SIZE).all { c -> game.board[Pos(r, c)]?.isSpecial == false } })
+        val specials = (0 until BOARD_SIZE).flatMap { r -> (0 until BOARD_SIZE).map { c -> game.board[Pos(r, c)] } }
+        assertTrue(specials.none { it?.isSpecial == true })
     }
 
     @Test

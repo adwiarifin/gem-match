@@ -65,6 +65,57 @@ class SoakTest {
     }
 
     @Test
+    fun everyKindOfSpecialSurvivesAGameOfRandomMoves() {
+        for (special in Special.entries) {
+            val piece = Piece(if (special == Special.COLOUR) null else Gem.GREEN, special)
+            var game = gameOf(patterned(Pos(3, 3) to piece, Pos(5, 5) to piece))
+            val chooser = Rng(special.ordinal + 1L)
+            repeat(KIND_MOVES) { turn ->
+                val moves = findValidMoves(game.board)
+                val move = moves[chooser.nextInt(moves.size)]
+
+                val outcome = game.trySwap(move.from, move.to)
+
+                assertIs<SwapOutcome.Accepted>(outcome, "$special turn $turn")
+                assertEquals(outcome.game.board, replay(game.board, outcome.steps), "$special turn $turn")
+                assertTrue(isFull(outcome.game.board), "$special turn $turn")
+                assertTrue(findRuns(outcome.game.board).isEmpty(), "$special turn $turn")
+                assertTrue(hasValidMove(outcome.game.board), "$special turn $turn")
+                val restored = assertNotNull(Game.decode(outcome.game.encode()))
+                assertEquals(outcome.game.board, restored.board, "$special turn $turn")
+                game = outcome.game
+            }
+        }
+    }
+
+    @Test
+    fun aBoardOfNothingButSpecialsStillResolvesAndSettles() {
+        val kinds = Special.entries.filter { it != Special.COLOUR }
+        val everyCell = (0 until BOARD_SIZE).flatMap { r -> (0 until BOARD_SIZE).map { c -> Pos(r, c) } }
+        val allSpecial =
+            patterned(
+                *everyCell
+                    .map {
+                        it to
+                            Piece(
+                                gemOf("ROY"[(it.row + it.col) % 3]),
+                                kinds[(it.row * 3 + it.col) % kinds.size],
+                            )
+                    }.toTypedArray(),
+            )
+        val game = gameOf(allSpecial)
+
+        for (move in findValidMoves(allSpecial).take(40)) {
+            val outcome = game.trySwap(move.from, move.to)
+
+            assertIs<SwapOutcome.Accepted>(outcome, "$move")
+            assertTrue(outcome.steps.size < MAX_STEPS, "$move took ${outcome.steps.size} steps")
+            assertTrue(isFull(outcome.game.board), "$move")
+            assertTrue(findRuns(outcome.game.board).isEmpty(), "$move")
+        }
+    }
+
+    @Test
     fun aBoardHoldingASpecialNeverReshuffles() {
         val tally = Tally()
         for (seed in 1L..SEEDS) {
@@ -95,6 +146,8 @@ class SoakTest {
         const val SEEDS = 120L
         const val REPEAT_SEEDS = 30L
         const val MOVES_PER_GAME = 80
+        const val KIND_MOVES = 40
+        const val MAX_STEPS = 5_000
         const val CHOOSER_SALT = 7919L
     }
 }
