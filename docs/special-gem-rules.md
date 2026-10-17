@@ -32,7 +32,7 @@ A special fires, from the cell it sits on, when:
 2. **it is part of a match** at any cascade depth: it counts in a run of its colour like a plain gem;
 3. **another effect covers it** (a chain). Each special fires once per clear.
 
-Order inside one clear: the swap's own effects, then matched specials in board order, then chained ones in the order they were reached. Every `Activate` of a clear comes before its single `Clear`. A colour gem that is only covered by an effect has no partner: it is cleared and fires nothing. The colour gem never counts in a run.
+Order inside one clear: the swap's own effects, then matched specials in board order, then chained ones in the order they were reached. Every `Activate` of a clear comes before its single `Clear`. A colour gem covered by an effect (a chain) takes every gem of the covering gem's colour, plus itself, and fires once like any special. The colour gem never counts in a run.
 
 ## Combos (two specials swapped together)
 
