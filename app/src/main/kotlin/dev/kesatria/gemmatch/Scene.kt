@@ -2,7 +2,6 @@ package dev.kesatria.gemmatch
 
 import dev.kesatria.gemmatch.core.BOARD_SIZE
 import dev.kesatria.gemmatch.core.Board
-import dev.kesatria.gemmatch.core.Gem
 import dev.kesatria.gemmatch.core.Piece
 import dev.kesatria.gemmatch.core.Pos
 
@@ -12,9 +11,6 @@ class Sprite(
     var row: Float,
     var col: Float,
 ) {
-    /** The gem shape this sprite is drawn with. The colour gem has none; it borrows white until its overlay lands. */
-    val gem: Gem get() = piece.gem ?: Gem.WHITE
-
     var scale = 1f
     var alpha = 1f
 
@@ -31,6 +27,9 @@ class Scene {
 
     /** The sprite the player is holding. It is drawn last so it sits on top of its neighbours. */
     var raised: Sprite? = null
+
+    /** Running time in seconds, advanced by the game loop's frame deltas. It only drives the shimmer. */
+    var clock = 0f
 
     /** A short notice drawn over the board (for example before a reshuffle), or null. */
     var message: String? = null

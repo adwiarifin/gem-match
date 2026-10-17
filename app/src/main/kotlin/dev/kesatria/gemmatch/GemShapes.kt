@@ -24,25 +24,24 @@ object GemShapes {
             color = Color.BLACK
         }
 
-    /** Draws [sprite]'s gem centred at ([cx], [cy]) fitting a circle of [radius] pixels, at the sprite's alpha. */
+    /**
+     * Draws [sprite]'s gem in unit space: the caller has translated to the cell centre and scaled by the radius.
+     * The colour gem has no shape of its own; [SpecialOverlays] draws it.
+     */
     fun draw(
         canvas: Canvas,
         sprite: Sprite,
-        cx: Float,
-        cy: Float,
-        radius: Float,
     ) {
-        val gem = sprite.gem
+        val gem = sprite.piece.gem ?: return
         fill.color = Palette.of(gem)
         fill.alpha = (sprite.alpha * OPAQUE).toInt()
         outline.alpha = (sprite.alpha * OUTLINE_ALPHA).toInt()
-        canvas.save()
-        canvas.translate(cx, cy)
-        canvas.scale(radius, radius)
         canvas.drawPath(paths[gem.ordinal], fill)
         canvas.drawPath(paths[gem.ordinal], outline)
-        canvas.restore()
     }
+
+    /** The silhouette of [gem], for drawing the overlay's sheen over it. */
+    fun pathOf(gem: Gem): Path = paths[gem.ordinal]
 
     private fun buildPath(gem: Gem): Path =
         when (gem) {

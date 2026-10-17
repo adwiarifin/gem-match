@@ -31,7 +31,10 @@ class SpecialPlaybackTest {
     // Green gems at (3,1), (3,2), (3,4) and one below the gap at (4,3): swapping it up makes a run of four.
     private fun fourRunGame() = gameWith(3 to 1, 3 to 2, 3 to 4, 4 to 3)
 
-    private fun accepted(game: Game): SwapOutcome.Accepted = assertIs<SwapOutcome.Accepted>(game.trySwap(Pos(4, 3), Pos(3, 3)))
+    private fun accepted(game: Game): SwapOutcome.Accepted {
+        val outcome = game.trySwap(Pos(4, 3), Pos(3, 3))
+        return assertIs<SwapOutcome.Accepted>(outcome)
+    }
 
     @Test
     fun aCreatedSpecialPopsInOnTheClearedCell() {

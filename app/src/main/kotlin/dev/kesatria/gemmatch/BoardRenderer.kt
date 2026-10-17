@@ -34,8 +34,8 @@ class BoardRenderer {
 
         canvas.save()
         canvas.clipRect(panelRect)
-        scene.forEach { if (it !== scene.raised) drawSprite(canvas, layout, it) }
-        scene.raised?.let { drawSprite(canvas, layout, it) }
+        scene.forEach { if (it !== scene.raised) drawSprite(canvas, layout, it, scene.clock) }
+        scene.raised?.let { drawSprite(canvas, layout, it, scene.clock) }
         canvas.restore()
 
         scene.message?.let { drawNotice(canvas, layout, it, scene.messageAlpha) }
@@ -45,10 +45,17 @@ class BoardRenderer {
         canvas: Canvas,
         layout: BoardLayout,
         sprite: Sprite,
+        clock: Float,
     ) {
         val cx = layout.originX + (sprite.col + sprite.dx + HALF) * layout.cellSize
         val cy = layout.originY + (sprite.row + HALF) * layout.cellSize
-        GemShapes.draw(canvas, sprite, cx, cy, layout.cellSize * GEM_RADIUS * sprite.scale)
+        canvas.save()
+        canvas.translate(cx, cy)
+        val radius = layout.cellSize * GEM_RADIUS * sprite.scale
+        canvas.scale(radius, radius)
+        GemShapes.draw(canvas, sprite)
+        SpecialOverlays.draw(canvas, sprite, clock)
+        canvas.restore()
     }
 
     private fun drawNotice(
