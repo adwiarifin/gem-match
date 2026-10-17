@@ -310,4 +310,42 @@ class SaveCodecTest {
 
         assertNull(Game.decode(gm2(board)))
     }
+
+    /** Written by the v0.1.2 release code (`git show v0.1.2:...SaveCodec.kt`), pasted here so no helper can mirror a change. */
+    private val releasedGm1 = "GM1;210;92694865759587301;6145022601136334006053121631042355443363401001654464611054132212"
+
+    @Test
+    fun aRealV012Gm1StringLoadsWithItsExactScoreBoardAndRng() {
+        val game = assertNotNull(Game.decode(releasedGm1))
+
+        assertEquals(210, game.score)
+        assertEquals(92694865759587301L, game.rngState)
+        assertEquals(Gem.WHITE, game.board[Pos(0, 0)]?.gem)
+        assertEquals(Gem.ORANGE, game.board[Pos(0, 1)]?.gem)
+        assertEquals(Gem.YELLOW, game.board[Pos(7, 7)]?.gem)
+        assertEquals(Gem.ORANGE, game.board[Pos(7, 6)]?.gem)
+        assertTrue((0 until BOARD_SIZE).all { r -> (0 until BOARD_SIZE).all { c -> game.board[Pos(r, c)]?.isSpecial == false } })
+    }
+
+    @Test
+    fun aReleasedGm1GameIsWrittenBackAsGm2AndPlaysOn() {
+        val game = assertNotNull(Game.decode(releasedGm1))
+
+        val rewritten = game.encode()
+
+        assertTrue(rewritten.startsWith("GM2;210;92694865759587301;"), rewritten)
+        val reloaded = assertNotNull(Game.decode(rewritten))
+        assertEquals(game.board, reloaded.board)
+        val move = findValidMoves(game.board).first()
+        assertIs<SwapOutcome.Accepted>(game.trySwap(move.from, move.to))
+    }
+
+    @Test
+    fun aGm2SaveIsAcceptedUpToTheLengthLimitAndRejectedOneCharacterOver() {
+        val text = gm2(everySpecialBoard)
+
+        assertNotNull(Game.decode(text.padEnd(255)))
+        assertNotNull(Game.decode(text.padEnd(256)))
+        assertNull(Game.decode(text.padEnd(257)))
+    }
 }

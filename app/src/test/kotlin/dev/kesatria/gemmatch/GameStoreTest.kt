@@ -199,4 +199,49 @@ class GameStoreTest {
     private companion object {
         const val HUGE_BYTES = 3_000_000_000L
     }
+
+    private val releasedGm1 = "GM1;210;92694865759587301;6145022601136334006053121631042355443363401001654464611054132212"
+
+    @Test
+    fun anOldGm1FileOnDiskLoadsAndIsRewrittenAsGm2() {
+        File(directory, "game.sav").writeText(releasedGm1)
+        val store = store()
+
+        val loaded = assertNotNull(store.loadGame())
+        assertEquals(210, loaded.score)
+        store.saveGame(loaded)
+        store.awaitWrites()
+
+        val onDisk = File(directory, "game.sav").readText()
+        assertTrue(onDisk.startsWith("GM2;210;92694865759587301;"), onDisk)
+        assertEquals(loaded.board, assertNotNull(store().loadGame()).board)
+    }
+
+    @Test
+    fun aGm2FileWithOneBadCellLoadsAsNoGame() {
+        val good = Game.new(9L).encode()
+        val cells = good.substringAfterLast(';')
+        val damaged =
+            listOf(
+                good.replace(cells, "Z-" + cells.drop(2)),
+                good.replace(cells, "0Q" + cells.drop(2)),
+                good.replace(cells, "-B" + cells.drop(2)),
+                good.replace(cells, "0W" + cells.drop(2)),
+            )
+        for (text in damaged) {
+            File(directory, "game.sav").writeText(text)
+
+            assertNull(store().loadGame(), "should reject: \"${text.takeLast(20)}\"")
+        }
+    }
+
+    @Test
+    fun aTruncatedGm2FileLoadsAsNoGame() {
+        val good = Game.new(9L).encode()
+        for (length in listOf(good.length - 1, good.length - 2, good.length - 64, good.length / 2, 4)) {
+            File(directory, "game.sav").writeText(good.take(length))
+
+            assertNull(store().loadGame(), "truncated to $length characters")
+        }
+    }
 }
