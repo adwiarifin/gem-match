@@ -49,8 +49,13 @@ External checks (not judged by this project's own tests): APK size, Android Lint
 |--------|-------|-----------|
 | Release APK size | 53,686 bytes unsigned, 66,989 bytes signed (R8 on, 2026-10-15) | must not grow; the cap is the measured value rounded up to the next MiB |
 | Debug APK size | 1,053,372 bytes (2026-10-15) | must not grow |
-| `core` line coverage | 100% (125 tests, 2026-10-15) | must not fall (tolerance 0.5%) |
+| `core` line coverage | 100% (261 core tests and 104 app unit tests, 2026-10-17) | must not fall (tolerance 0.5%) |
 | Frame time on the owner's Galaxy A52 | During move animations (755 frames, `dumpsys SurfaceFlinger --latency`, 2026-10-15): mean 17.2 ms, p99 23.1 ms, max 55.7 ms, 7 frames over 33 ms. The panel runs at 90 Hz (11.1 ms) and the game loop at 60 Hz, so frames arrive in an uneven 11/22 ms rhythm | no tool-backed check yet. Candidate fix: drive the loop from the display's vsync (post-v1) |
+| Release APK size, with special gems | 63,942 bytes unsigned (R8 on, 2026-10-17); signing adds about 13 KB | must not grow without the owner's say-so; the cap above is unchanged |
+| Debug APK size, with special gems | 1,114,922 bytes (2026-10-17) | must not grow without the owner's say-so; the cap above is unchanged |
+| Frame time on the owner's Galaxy A52, with special gems | `dumpsys SurfaceFlinger --latency` on the SurfaceView layer, 2026-10-17, 7 s windows (about 405 frames, the loop draws continuously): a plain match move mean 16.9 ms, p99 22.7 ms, max 33.4 ms; a colour gem plus blast converting nine gems with two chained specials (run twice) mean 16.9 ms, p99 22.6 and 22.7 ms, max 44.5 and 44.6 ms, one frame over 33 ms | no regression against the 2026-10-15 row; the single 44 ms frame is the release frame, where the move resolves and the timeline is built. No tool-backed check yet |
+
+The first two size rows are the v1 baseline of 2026-10-15. Features since then grew both (still far under the caps), so the "with special gems" rows are the current baseline. Moving the v1 rows themselves needs an owner exception that the floor guard cannot express yet: it reads a raised "must not grow" number as loosening.
 
 Ratchet tolerance: 0.5% on coverage.
 
