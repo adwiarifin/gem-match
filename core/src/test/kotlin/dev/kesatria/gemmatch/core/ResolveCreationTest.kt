@@ -274,7 +274,8 @@ class ResolveCreationTest {
                 val made = steps.drop(index + 1).takeWhile { it is Step.Create }
 
                 assertEquals(expected, made, "seed $seed depth ${step.depth}")
-                if (expected.isNotEmpty() && groups.any { move.from in it.cells || move.to in it.cells }) overTheSwapCell++
+                val coversSwapCell = groups.any { move.from in it.cells || move.to in it.cells }
+                if (expected.isNotEmpty() && coversSwapCell) overTheSwapCell++
             }
         }
         assertTrue(overTheSwapCell > 0, "no cascade group ever covered the swap cell, so this checked nothing")
