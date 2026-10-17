@@ -142,7 +142,7 @@ class SpecialPlaybackTest {
         val ten = ActivateAnimation(List(10) { Step.Activate(origin, Special.BLAST, setOf(origin)) })
 
         assertTrue(ten.seconds > one.seconds)
-        assertTrue(ten.seconds <= one.seconds + ActivateAnimation.CHAIN_SPREAD + 0.0001f, "was ${ten.seconds}")
+        assertTrue(ten.seconds <= 1.2f, "was ${ten.seconds}")
     }
 
     @Test
@@ -169,7 +169,7 @@ class SpecialPlaybackTest {
     }
 
     @Test
-    fun aTapSkipsToTheEndOfTheMove() {
+    fun aTapSkipsToTheEndOfTheMoveAndTheSceneMatchesTheCoreBoard() {
         val game = gameWithCells((4 to 4) to "3B", (3 to 5) to "4R", (5 to 6) to "5X")
         val outcome = swap(game, Pos(4, 4), Pos(4, 5))
         val scene = Scene().also { it.load(game.board) }
@@ -180,7 +180,65 @@ class SpecialPlaybackTest {
 
         assertTrue(timeline.isFinished)
         assertTrue(scene.effects.isEmpty())
+        assertSceneShows(outcome.game.board, scene, "after a skip")
     }
+
+    @Test
+    fun skippingDuringAColourConversionStillEndsOnTheFinalBoard() {
+        val game =
+            gameWithCells((4 to 4) to "-W", (4 to 5) to "3B", (0 to 0) to "3-", (6 to 6) to "3-", (1 to 6) to "3-")
+        val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+        val scene = Scene().also { it.load(game.board) }
+        val timeline = Timeline.forSteps(outcome.steps) { }
+        repeat(30) { if (!timeline.isFinished) timeline.advance(1f / 60, scene) }
+
+        timeline.skip(scene)
+
+        assertSceneShows(outcome.game.board, scene, "after skipping a conversion")
+        assertTrue(scene.effects.isEmpty())
+    }
+
+    @Test
+    fun skippingTwiceOrAFinishedTimelineChangesNothing() {
+        val game = gameWithCells((4 to 4) to "3B")
+        val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+        val scene = Scene().also { it.load(game.board) }
+        val timeline = Timeline.forSteps(outcome.steps) { }
+
+        timeline.skip(scene)
+        timeline.skip(scene)
+        playToEnd(timeline, scene)
+
+        assertTrue(timeline.isFinished)
+        assertSceneShows(outcome.game.board, scene, "after skipping twice")
+    }
+
+    @Test
+    fun everyKindOfSpecialPlaysToTheCoreBoard() {
+        for (special in Special.entries) {
+            val cell = if (special == Special.COLOUR) "-W" else "3${saveLetter(special)}"
+            val game = gameWithCells((4 to 4) to cell)
+            val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+            val scene = Scene().also { it.load(game.board) }
+
+            playToEnd(Timeline.forSteps(outcome.steps) { }, scene)
+
+            assertSceneShows(outcome.game.board, scene, "$special")
+            assertTrue(scene.effects.isEmpty(), "$special leaves no effect behind")
+            assertTrue(outcome.steps.any { it is Step.Activate }, "$special fires when swapped")
+        }
+    }
+
+    private fun saveLetter(special: Special) =
+        when (special) {
+            Special.BLAST -> 'B'
+            Special.LINE_ROW -> 'R'
+            Special.LINE_COL -> 'C'
+            Special.CROSS -> 'X'
+            Special.X_SHORT -> 'S'
+            Special.X_FULL -> 'F'
+            Special.COLOUR -> 'W'
+        }
 
     @Test
     fun aGemTheColourGemConvertsShowsItsNewKindWhenItsEffectStarts() {
