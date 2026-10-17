@@ -76,7 +76,7 @@ private fun fireNew(
     seen: MutableSet<Pos>,
 ) {
     for (pos in cells.sortedWith(BOARD_ORDER)) {
-        val fire = if (pos in seen) null else firing(board, pos, cover)
+        val fire = if (pos in seen) null else firing(board, pos, colourFrom = cover?.origin)
         if (fire != null) {
             seen += pos
             fired += fire
@@ -96,17 +96,7 @@ private fun initialActivations(
         first == second && first in DOUBLED -> listOf(Step.Activate(b, checkNotNull(first), pairCells(first, b)))
         first == Special.COLOUR && second != null -> colourWithSpecial(swapped, a, b)
         second == Special.COLOUR && first != null -> colourWithSpecial(swapped, b, a)
-        else ->
-            listOf(a to b, b to a).mapNotNull { (origin, partner) ->
-                val special = swapped[origin]?.special ?: return@mapNotNull null
-                val cells =
-                    if (special == Special.COLOUR) {
-                        colourCells(swapped, origin, swapped[partner]?.gem) ?: return@mapNotNull null
-                    } else {
-                        effectCells(origin, special)
-                    }
-                Step.Activate(origin, special, cells)
-            }
+        else -> listOf(a to b, b to a).mapNotNull { (origin, partner) -> firing(swapped, origin, colourFrom = partner) }
     }
 }
 
@@ -119,16 +109,19 @@ internal fun colourCells(
     return ALL_CELLS.filterTo(mutableSetOf(origin)) { board[it]?.gem == colour }
 }
 
-/** The effect of the special at [pos], or null if it has none (no special, or a colour gem with no colour to take). */
+/**
+ * The effect of the special at [pos], or null if it has none (no special, or a colour gem with no colour to take).
+ * A colour gem takes the colour of the gem at [colourFrom]: its swap partner, or the gem whose effect covered it.
+ */
 private fun firing(
     board: Board,
     pos: Pos,
-    cover: Step.Activate?,
+    colourFrom: Pos?,
 ): Step.Activate? {
     val special = board[pos]?.special ?: return null
     val take =
         if (special == Special.COLOUR) {
-            colourCells(board, pos, cover?.let { board[it.origin]?.gem })
+            colourCells(board, pos, colourFrom?.let { board[it]?.gem })
         } else {
             effectCells(pos, special)
         }
