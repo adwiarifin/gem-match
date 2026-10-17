@@ -22,7 +22,7 @@ Looks: blast an 8-point burst; line gem a stripe along its row or column; short 
 - **Hanging gem.** A run of exactly 3 takes one gem of the same colour that touches one of its two end cells at a right angle, if that gem is in no run itself and no other group took it. If several qualify, the first in board order (row, then column) is taken. A gem touching the middle is not taken: that shape stays a plain 3-match and the gem stays on the board. A run of 4 or more takes none.
 - **L against T** for two crossing runs: the crossing cell is the end of both runs for an L, and inside at least one run for a T or +. A group of three or more runs is a T if any crossing is inside a run, otherwise an L. A T is short when every run is exactly 3 and long when any run is 4 or more. A run's length includes the corner cell, so the smallest L is 3 by 3.
 - **Where it appears:** on the swapped cell that belongs to the group (the dragged one if both do). With no swapped cell (a cascade match, or a group the swap did not touch): at the gem the hanging gem touches, the crossing of an L, T or +, or the middle of a straight run.
-- **Any depth:** matches in a cascade make specials the same way. A clear in which something fires makes no special at all, not even for a group that fired nothing.
+- **Any depth:** matches in a cascade make specials the same way. A fire in the same clear does not stop a match from making its special: a special swapped into `W W _ W W` fires and the five whites still leave a colour gem (D21).
 - A made special is placed after the Clear and before gravity, so it falls like any gem.
 
 ## Firing
