@@ -52,15 +52,15 @@ Details: `tasks/plan.md` ("Special gems"). Spec: `SPEC.md` "Special Gems". Every
 - [x] T28: Scoring pass (literal expected scores, no double count, sum of `Clear.points` equals score). Verify: `make check-task`
 - [x] T29: Save `GM2` with a `GM1` reader. Done when: SC15 holds, malformed input returns null, worst case under 256 characters. Verify: `make check-task`
 - [x] T30: Game-level soak over many seeds with specials. Done when: invariants hold after every move, no reshuffle with a special on the board. Verify: `make check-task`
-- [ ] Checkpoint G: `make check-full` green, coverage at least 80% (measured 100% must not fall more than 0.5%), owner reviews the core API
+- [x] Checkpoint G: `make check-full` green, coverage at least 80% (measured 100% must not fall more than 0.5%), owner reviews the core API
 
 ## Phase 6: Special gems, app
 
 Each task ends with `make check-task` and a look on the A52.
 
-- [ ] T31: White gem becomes a pentagon. Done when: seven silhouettes distinct in grayscale. Verify: `make check-task`, install and look
-- [ ] T32: Sprites carry `Piece`; created special appears and survives cascades and resume. Done when: rendered board equals core board, SC16 holds. Verify: `make check-task`, play on the A52
-- [ ] T33: Overlays (burst, stripe, cross, colour wheel) and shimmer. Done when: four specials told apart on the A52. Verify: `make check-task`, look on the A52
+- [x] T31: White gem becomes a pentagon. Done when: seven silhouettes distinct in grayscale. Verify: `make check-task`, install and look
+- [x] T32: Sprites carry `Piece`; created special appears and survives cascades and resume. Done when: rendered board equals core board, SC16 holds. Verify: `make check-task`, play on the A52
+- [x] T33: Overlays (burst, stripe, cross, colour wheel) and shimmer. Done when: four specials told apart on the A52. Verify: `make check-task`, look on the A52
 - [ ] Checkpoint H: `make check-full` green, owner sees all four specials on the A52
 - [ ] T34: Effect animations (ring, beam, streaks; chains in order). Done when: SC17 holds, board matches core at the end, input blocked. Verify: `make check-task`, fire each effect on the A52
 - [ ] T35: Idle hint prefers a match move, falls back to a special swap; GM1 save resumes after update. Done when: hint tests pass, install-over resumes. Verify: `make check-task`, install over the old build
