@@ -70,6 +70,17 @@ class ComboTest {
     }
 
     @Test
+    fun convertedGemsFireInBoardOrderAfterTheColourGemAndOnlySameKindPairsAreDoubled() {
+        val board = patterned(*greens(), Pos(4, 4) to colour, Pos(4, 5) to Piece(Gem.GREEN, Special.BLAST))
+
+        val origins = activates(resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(1L)).steps).map { it.origin }
+
+        val converted = origins.drop(1)
+        assertEquals(converted.sortedWith(BOARD_ORDER), converted)
+        assertEquals(setOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL), DOUBLED)
+    }
+
+    @Test
     fun aColourGemWithACrossConvertsToCross() {
         val board = patterned(*greens(), Pos(4, 4) to colour, Pos(4, 5) to Piece(Gem.GREEN, Special.CROSS))
 

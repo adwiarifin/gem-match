@@ -364,6 +364,40 @@ class ActivationTest {
     }
 
     @Test
+    fun twoDifferentSpecialsSwappedTogetherFireTheCellTheDragStartedOnFirst() {
+        val cross = Piece(Gem.WHITE, Special.CROSS)
+        val blast = Piece(Gem.BLUE, Special.BLAST)
+        val board = patterned(Pos(4, 4) to cross, Pos(4, 5) to blast)
+
+        val dragged = firings(board.swap(Pos(4, 4), Pos(4, 5)), emptySet(), Pos(4, 4) to Pos(4, 5))
+        val reversed = firings(board.swap(Pos(4, 5), Pos(4, 4)), emptySet(), Pos(4, 5) to Pos(4, 4))
+
+        // The pieces trade places: the drag starts on a cell that now holds the partner, and that one fires first.
+        val firedAfterDrag = dragged.map { it.special to it.origin }
+        assertEquals(listOf(Special.BLAST to Pos(4, 4), Special.CROSS to Pos(4, 5)), firedAfterDrag)
+        val firedAfterReverse = reversed.map { it.special to it.origin }
+        assertEquals(listOf(Special.CROSS to Pos(4, 5), Special.BLAST to Pos(4, 4)), firedAfterReverse)
+    }
+
+    @Test
+    fun aColourGemCoveredByAnEffectTakesWhicheverColourCoveredIt() {
+        for (colour in listOf(Gem.BLUE, Gem.GREEN)) {
+            val board =
+                patterned(
+                    Pos(4, 4) to Piece(colour, Special.LINE_ROW),
+                    Pos(4, 7) to Piece(null, Special.COLOUR),
+                    Pos(0, 0) to Piece(colour),
+                    Pos(7, 6) to Piece(colour),
+                )
+
+            val fired = firings(board, cells(4 to 4), null)
+
+            assertEquals(listOf(Special.LINE_ROW, Special.COLOUR), fired.map { it.special }, "$colour")
+            assertEquals(cells(0 to 0, 7 to 6, 4 to 4, 4 to 7), fired[1].cells, "$colour")
+        }
+    }
+
+    @Test
     fun twoBlastsThatCoverEachOtherFireOnceEach() {
         val board = patterned(Pos(3, 3) to Piece(Gem.WHITE, Special.BLAST), Pos(3, 4) to Piece(Gem.BLUE, Special.BLAST))
 
