@@ -49,9 +49,9 @@ Details: `tasks/plan.md` ("Special gems"). Spec: `SPEC.md` "Special Gems". Every
 - [x] T26: Chain reactions (each piece once, player's swap only). Done when: chain and loop tests pass, a special beside a cascade match is untouched, all `Activate` steps come before the single `Clear`. Verify: `make check-task`
 - [x] T27: Combos (colour+colour clears board, colour+special converts and fires, other pairs fire both). Done when: SC14 holds in tests, colour gem's `Activate` lists converted cells then one `Activate` per converted piece. Verify: `make check-task`
 - [x] Checkpoint F: activation green (the open questions were decided on 2026-10-17)
-- [ ] T28: Scoring pass (literal expected scores, no double count, sum of `Clear.points` equals score). Verify: `make check-task`
+- [x] T28: Scoring pass (literal expected scores, no double count, sum of `Clear.points` equals score). Verify: `make check-task`
 - [x] T29: Save `GM2` with a `GM1` reader. Done when: SC15 holds, malformed input returns null, worst case under 256 characters. Verify: `make check-task`
-- [ ] T30: Game-level soak over many seeds with specials. Done when: invariants hold after every move, no reshuffle with a special on the board. Verify: `make check-task`
+- [x] T30: Game-level soak over many seeds with specials. Done when: invariants hold after every move, no reshuffle with a special on the board. Verify: `make check-task`
 - [ ] Checkpoint G: `make check-full` green, coverage at least 80% (measured 100% must not fall more than 0.5%), owner reviews the core API
 
 ## Phase 6: Special gems, app
