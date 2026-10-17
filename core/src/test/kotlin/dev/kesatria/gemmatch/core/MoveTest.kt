@@ -217,7 +217,8 @@ class MoveTest {
         for (seed in 1L..SEEDS) {
             val board = randomStableBoard(seed)
 
-            assertEquals(bruteForceMoves(board), findMatchMoves(board).map { setOf(it.from, it.to) }.toSet(), "seed $seed")
+            val found = findMatchMoves(board).map { setOf(it.from, it.to) }.toSet()
+            assertEquals(bruteForceMoves(board), found, "seed $seed")
             assertEquals(findMatchMoves(board), findValidMoves(board), "seed $seed")
         }
     }

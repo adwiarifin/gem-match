@@ -1,6 +1,6 @@
 package dev.kesatria.gemmatch
 
-/** A short beat before the clear of a fired special. The ring, beam and streaks replace it with the effect animations. */
+/** A short beat before the clear of a fired special. The effect animations (ring, beam, streaks) replace it. */
 class ActivateAnimation : Animation {
     override val seconds = BEAT_SECONDS
 

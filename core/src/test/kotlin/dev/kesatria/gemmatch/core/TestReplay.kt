@@ -62,11 +62,19 @@ fun isFull(board: Board): Boolean {
 private fun expectedEffect(
     board: Board,
     step: Step.Activate,
+): Set<Pos> =
+    when {
+        step.special != Special.COLOUR -> effectCells(step.origin, step.special)
+        // Two colour gems clear the board.
+        ALL_CELLS.count { board[it]?.special == Special.COLOUR } >= 2 && step.cells == ALL_CELLS -> ALL_CELLS
+        // Otherwise the colour takes every piece of one gem colour, and itself.
+        else -> colourTake(board, step)
+    }
+
+private fun colourTake(
+    board: Board,
+    step: Step.Activate,
 ): Set<Pos> {
-    if (step.special != Special.COLOUR) return effectCells(step.origin, step.special)
-    val all = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }.toSet()
-    // Two colour gems clear the board. Otherwise the colour takes every piece of one gem colour, and itself.
-    if (all.count { board[it]?.special == Special.COLOUR } >= 2 && step.cells == all) return all
-    val colour = step.cells.firstOrNull { it != step.origin }?.let { board[it]?.gem } ?: return setOf(step.origin)
-    return all.filterTo(mutableSetOf(step.origin)) { board[it]?.gem == colour }
+    val colour = step.cells.firstOrNull { it != step.origin }?.let { board[it]?.gem }
+    return ALL_CELLS.filterTo(mutableSetOf(step.origin)) { colour != null && board[it]?.gem == colour }
 }

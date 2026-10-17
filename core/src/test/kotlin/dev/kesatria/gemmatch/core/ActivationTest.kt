@@ -286,8 +286,8 @@ class ActivationTest {
             val result = resolveSwap(board, Pos(2, 2), Pos(2, 3), Rng(seed))
 
             assertEquals(1, result.steps.count { it is Step.Activate }, "seed $seed")
-            val survivors = (0 until BOARD_SIZE).flatMap { r -> (0 until BOARD_SIZE).map { c -> result.board[Pos(r, c)] } }
-            assertEquals(listOf(corner, other).toSet(), survivors.filter { it?.isSpecial == true }.toSet(), "seed $seed")
+            val survivors = ALL_CELLS.mapNotNull { result.board[it] }.filter { it.isSpecial }.toSet()
+            assertEquals(setOf(corner, other), survivors, "seed $seed")
         }
     }
 
@@ -313,13 +313,20 @@ class ActivationTest {
 
     private fun assertNotNull(game: Game?): Game = checkNotNull(game)
 
+    private val letters =
+        mapOf(
+            Special.BLAST to 'B',
+            Special.LINE_ROW to 'R',
+            Special.LINE_COL to 'C',
+            Special.CROSS to 'X',
+        )
+
     private fun encodeFor(board: Board): String {
         val cells =
             (0 until BOARD_SIZE).joinToString("") { r ->
                 (0 until BOARD_SIZE).joinToString("") { c ->
                     val piece = checkNotNull(board[Pos(r, c)])
-                    val letter = mapOf(Special.BLAST to 'B', Special.LINE_ROW to 'R', Special.LINE_COL to 'C', Special.CROSS to 'X')
-                    "${piece.gem?.ordinal ?: '-'}${piece.special?.let { letter.getValue(it) } ?: '-'}"
+                    "${piece.gem?.ordinal ?: '-'}${piece.special?.let { letters.getValue(it) } ?: '-'}"
                 }
             }
         return "GM2;0;1;$cells"

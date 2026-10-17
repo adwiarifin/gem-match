@@ -18,7 +18,7 @@ class ComboTest {
     private val colour = Piece(null, Special.COLOUR)
     private val effects = listOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL, Special.CROSS)
 
-    private fun everyCell() = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }.toSet()
+    private fun everyCell() = ALL_CELLS
 
     private fun activates(steps: List<Step>) = steps.filterIsInstance<Step.Activate>()
 

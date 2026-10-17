@@ -1,7 +1,7 @@
 package dev.kesatria.gemmatch.core
 
 /** Two colour gems: the one that landed on [origin] takes the whole board. */
-internal fun clearBoard(origin: Pos): Step.Activate = Step.Activate(origin, Special.COLOUR, allCells())
+internal fun clearBoard(origin: Pos): Step.Activate = Step.Activate(origin, Special.COLOUR, ALL_CELLS)
 
 /**
  * A colour gem on [colourAt] swapped with the special on [partnerAt]. The colour gem converts every piece of the
@@ -21,5 +21,5 @@ internal fun colourWithSpecial(
         fires.map { Step.Activate(it, special, effectCells(it, special)) }
 }
 
-internal fun allCells(): Set<Pos> =
+internal val ALL_CELLS: Set<Pos> =
     (0 until BOARD_SIZE).flatMapTo(mutableSetOf()) { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }

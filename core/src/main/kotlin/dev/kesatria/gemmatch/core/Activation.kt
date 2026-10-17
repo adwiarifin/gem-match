@@ -1,6 +1,6 @@
 package dev.kesatria.gemmatch.core
 
-/** The cells a [special] fired from [origin] takes, clipped to the board. The colour gem needs a partner and board, see [activations]. */
+/** The cells a [special] fired from [origin] takes, clipped to the board. Colour: see [activations]. */
 fun effectCells(
     origin: Pos,
     special: Special,
@@ -79,5 +79,5 @@ internal fun colourCells(
     colour: Gem?,
 ): Set<Pos>? {
     if (colour == null) return null
-    return allCells().filterTo(mutableSetOf(origin)) { board[it]?.gem == colour }
+    return ALL_CELLS.filterTo(mutableSetOf(origin)) { board[it]?.gem == colour }
 }
