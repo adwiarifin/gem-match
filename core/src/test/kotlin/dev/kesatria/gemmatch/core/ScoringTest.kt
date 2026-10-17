@@ -95,4 +95,11 @@ class ScoringTest {
         assertEquals(Int.MAX_VALUE, saturatingAdd(Int.MAX_VALUE - 10, 30))
         assertEquals(Int.MAX_VALUE, saturatingAdd(Int.MAX_VALUE, Int.MAX_VALUE))
     }
+
+    @Test
+    fun aRunOfThreeWithAHangingGemScoresLikeARunOfFour() {
+        val groups = findMatchGroups(boardOf("RRR", "R.."))
+
+        assertEquals(POINTS_RUN_OF_4, scoreFor(groups.single()))
+    }
 }

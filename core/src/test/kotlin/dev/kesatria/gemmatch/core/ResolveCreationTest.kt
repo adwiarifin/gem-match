@@ -36,19 +36,19 @@ class ResolveCreationTest {
     }
 
     @Test
-    fun anLLeavesALineGemAlongTheLongerArm() {
+    fun anLLeavesACrossGem() {
         val board = patterned(*greens(3 to 0, 3 to 1, 4 to 0, 5 to 0, 4 to 2))
         val result = resolveSwap(board, Pos(4, 2), Pos(3, 2), Rng(1L))
 
-        assertEquals(listOf(Step.Create(Pos(3, 2), Piece(Gem.GREEN, Special.LINE_ROW))), creates(result.steps))
+        assertEquals(listOf(Step.Create(Pos(3, 2), Piece(Gem.GREEN, Special.CROSS))), creates(result.steps))
     }
 
     @Test
-    fun aTLeavesACrossGem() {
+    fun aLongTLeavesAFullXGem() {
         val board = patterned(*greens(3 to 1, 3 to 3, 4 to 2, 5 to 2, 2 to 2))
         val result = resolveSwap(board, Pos(2, 2), Pos(3, 2), Rng(1L))
 
-        assertEquals(listOf(Step.Create(Pos(3, 2), Piece(Gem.GREEN, Special.CROSS))), creates(result.steps))
+        assertEquals(listOf(Step.Create(Pos(3, 2), Piece(Gem.GREEN, Special.X_FULL))), creates(result.steps))
     }
 
     @Test
@@ -72,6 +72,32 @@ class ResolveCreationTest {
                 Step.Create(Pos(3, 2), Piece(Gem.BLUE, Special.BLAST)),
             ),
             creates(result.steps).toSet(),
+        )
+    }
+
+    @Test
+    fun aShortLLeavesALineGemAndTakesTheHangingGem() {
+        val board = patterned(*greens(3 to 1, 3 to 2, 4 to 3, 4 to 1))
+        val result = resolveSwap(board, Pos(4, 3), Pos(3, 3), Rng(1L))
+
+        assertEquals(listOf(Step.Create(Pos(3, 3), Piece(Gem.GREEN, Special.LINE_ROW))), creates(result.steps).take(1))
+        val clear = result.steps.filterIsInstance<Step.Clear>().first()
+        assertEquals(cells(3 to 1, 3 to 2, 3 to 3, 4 to 1), clear.cells)
+        assertEquals(POINTS_RUN_OF_4, clear.points)
+    }
+
+    @Test
+    fun aShortTLeavesAShortXGem() {
+        val board = patterned(*greens(3 to 1, 3 to 2, 4 to 3, 4 to 2))
+        val result = resolveSwap(board, Pos(4, 3), Pos(3, 3), Rng(1L))
+
+        assertEquals(listOf(Step.Create(Pos(3, 3), Piece(Gem.GREEN, Special.X_SHORT))), creates(result.steps).take(1))
+        assertEquals(
+            cells(3 to 1, 3 to 2, 3 to 3, 4 to 2),
+            result.steps
+                .filterIsInstance<Step.Clear>()
+                .first()
+                .cells,
         )
     }
 

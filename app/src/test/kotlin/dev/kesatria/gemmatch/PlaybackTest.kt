@@ -1,8 +1,15 @@
 package dev.kesatria.gemmatch
 
+import dev.kesatria.gemmatch.core.BOARD_SIZE
+import dev.kesatria.gemmatch.core.Board
 import dev.kesatria.gemmatch.core.Game
+import dev.kesatria.gemmatch.core.Gem
+import dev.kesatria.gemmatch.core.Piece
+import dev.kesatria.gemmatch.core.Pos
+import dev.kesatria.gemmatch.core.Rng
 import dev.kesatria.gemmatch.core.Step
 import dev.kesatria.gemmatch.core.SwapOutcome
+import dev.kesatria.gemmatch.core.ensureMoveExists
 import dev.kesatria.gemmatch.core.findValidMoves
 import kotlin.reflect.KClass
 import kotlin.test.Test
@@ -29,6 +36,7 @@ class PlaybackTest {
                 game = outcome.game
             }
         }
+        seen += playedReshuffle()
         assertEquals(
             setOf(
                 Step.Swap::class,
@@ -42,5 +50,26 @@ class PlaybackTest {
             seen,
             "every kind of step must be played at least once",
         )
+    }
+
+    /**
+     * A board holding a special gem always has a move, so a reshuffle needs a dead board with none. Specials are now
+     * made often enough that random play rarely gets there, so the reshuffle is played from a dead diagonal board.
+     */
+    private fun playedReshuffle(): KClass<out Step> {
+        val diagonal = listOf(Gem.RED, Gem.GREEN, Gem.BLUE)
+        var dead = Board.empty()
+        for (row in 0 until BOARD_SIZE) {
+            for (col in 0 until BOARD_SIZE) {
+                dead = dead.with(Pos(row, col), Piece(diagonal[(row + col) % diagonal.size]))
+            }
+        }
+        val (rearranged, reshuffle) = ensureMoveExists(dead, Rng(5L))
+        val scene = Scene().also { it.load(dead) }
+
+        playToEnd(Timeline.forSteps(listOf(checkNotNull(reshuffle))) { }, scene)
+
+        assertSceneShows(rearranged, scene, "after a reshuffle")
+        return reshuffle::class
     }
 }

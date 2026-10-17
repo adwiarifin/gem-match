@@ -20,8 +20,9 @@ class SaveCodecTest {
         return game
     }
 
-    /** The same game as an old `GM1` save: one gem digit per cell. The malformed-input tests below run on it. */
-    private val saved = gm1(played(seed = 8L, moves = 5))
+    /** A new game (no specials) as an old `GM1` save: one gem digit per cell. The malformed-input tests use it. */
+    private val fresh = Game.new(8L)
+    private val saved = gm1(fresh)
 
     private fun gm1(game: Game): String = listOf("GM1", game.score, game.rngState, boardDigits(game)).joinToString(";")
 
@@ -161,7 +162,7 @@ class SaveCodecTest {
 
     @Test
     fun boardDigitsMatchTheGameForReadability() {
-        val game = played(8L, 5)
+        val game = fresh
 
         assertTrue(game.encode().endsWith(boardCells(game)))
     }
@@ -232,7 +233,7 @@ class SaveCodecTest {
 
     @Test
     fun aGm1SaveLoadsAndIsWrittenBackAsGm2() {
-        val old = played(seed = 8L, moves = 5)
+        val old = fresh
 
         val loaded = assertNotNull(Game.decode(gm1(old)))
 
