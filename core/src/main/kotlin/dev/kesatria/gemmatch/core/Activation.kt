@@ -15,7 +15,7 @@ fun effectCells(
         Special.CROSS -> rowCells(origin.row) + columnCells(origin.col)
         Special.X_SHORT -> diagonalCells(origin, SHORT_X_REACH)
         Special.X_FULL -> diagonalCells(origin, BOARD_SIZE)
-        Special.COLOUR -> emptySet()
+        Special.COLOUR -> error("the colour gem has no fixed cells, they depend on its partner: see colourCells")
     }
 
 private fun blastCells(origin: Pos): Set<Pos> =

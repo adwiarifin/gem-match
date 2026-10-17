@@ -2,6 +2,7 @@ package dev.kesatria.gemmatch.core
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -42,6 +43,11 @@ class ActivationTest {
         assertEquals(15, effectCells(Pos(3, 3), Special.CROSS).size)
         assertEquals(row(0) + column(0), effectCells(Pos(0, 0), Special.CROSS))
         assertEquals(15, effectCells(Pos(0, 0), Special.CROSS).size)
+    }
+
+    @Test
+    fun theColourGemHasNoFixedCellsAndSaysSoInsteadOfClearingNothing() {
+        assertFailsWith<IllegalStateException> { effectCells(Pos(3, 3), Special.COLOUR) }
     }
 
     @Test
