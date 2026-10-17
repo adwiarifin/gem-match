@@ -61,9 +61,9 @@ Each task ends with `make check-task` and a look on the A52.
 - [x] T31: White gem becomes a pentagon. Done when: seven silhouettes distinct in grayscale. Verify: `make check-task`, install and look
 - [x] T32: Sprites carry `Piece`; created special appears and survives cascades and resume. Done when: rendered board equals core board, SC16 holds. Verify: `make check-task`, play on the A52
 - [x] T33: Overlays (burst, stripe, cross, colour wheel) and shimmer. Done when: four specials told apart on the A52. Verify: `make check-task`, look on the A52
-- [ ] Checkpoint H: `make check-full` green, owner sees all four specials on the A52
-- [ ] T34: Effect animations (ring, beam, streaks; chains in order). Done when: SC17 holds, board matches core at the end, input blocked. Verify: `make check-task`, fire each effect on the A52
-- [ ] T35: Idle hint prefers a match move, falls back to a special swap; GM1 save resumes after update. Done when: hint tests pass, install-over resumes. Verify: `make check-task`, install over the old build
+- [x] Checkpoint H: `make check-full` green, owner sees all four specials on the A52
+- [x] T34: Effect animations (ring, beam, streaks; chains in order). Done when: SC17 holds, board matches core at the end, input blocked. Verify: `make check-task`, fire each effect on the A52
+- [x] T35: Idle hint prefers a match move, falls back to a special swap; GM1 save resumes after update. Done when: hint tests pass, install-over resumes. Verify: `make check-task`, install over the old build
 - [ ] Checkpoint I: `make check-full` green, ten-minute owner session (SC16 to 18), tune constants
 - [ ] T36: Docs close-out (SPEC status, CONSTRAINTS measured values, README, decisions). Owner approval, separate docs commit. Verify: `make check-fast`
 
