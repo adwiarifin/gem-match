@@ -249,7 +249,8 @@ class ResolveCreationTest {
                 for (move in findMatchMoves(board).take(6)) {
                     val result = resolveSwap(board, move.from, move.to, Rng(seed))
 
-                    assertEquals(expectedCreates(board, result.steps), creates(result.steps).size, "$special seed $seed $move")
+                    val made = creates(result.steps).size
+                    assertEquals(expectedCreates(board, result.steps), made, "$special seed $seed $move")
                     assertEquals(result.board, replay(board, result.steps), "$special seed $seed $move")
                     checked++
                 }
