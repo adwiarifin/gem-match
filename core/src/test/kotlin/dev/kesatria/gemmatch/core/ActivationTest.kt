@@ -163,6 +163,67 @@ class ActivationTest {
         }
     }
 
+    private fun every(
+        board: Board,
+        gem: Gem,
+    ) = (0 until BOARD_SIZE)
+        .flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }
+        .filter { board[it]?.gem == gem }
+        .toSet()
+
+    @Test
+    fun aColourGemClearsEveryGemOfItsPartnersColourAndItself() {
+        val colour = Piece(null, Special.COLOUR)
+        val board = patterned(Pos(2, 2) to colour)
+        val swapped = board.swap(Pos(2, 2), Pos(2, 3))
+        val partner = checkNotNull(swapped[Pos(2, 2)]?.gem)
+        val expected = every(swapped, partner) + Pos(2, 3)
+
+        val result = resolveSwap(board, Pos(2, 2), Pos(2, 3), Rng(1L))
+
+        val activate = result.steps[1] as Step.Activate
+        assertEquals(Special.COLOUR, activate.special)
+        assertEquals(Pos(2, 3), activate.origin)
+        assertEquals(expected, activate.cells)
+        val clear = result.steps[2] as Step.Clear
+        assertEquals(expected, clear.cells)
+        assertEquals(expected.size * POINTS_PER_EFFECT_GEM, clear.points)
+    }
+
+    @Test
+    fun aColourGemWorksWhenItsPartnerIsTheOnlyGemOfItsColour() {
+        val board = patterned(Pos(2, 2) to Piece(null, Special.COLOUR), Pos(2, 3) to Piece(Gem.WHITE))
+
+        val result = resolveSwap(board, Pos(2, 2), Pos(2, 3), Rng(1L))
+
+        val clear = result.steps.filterIsInstance<Step.Clear>().first()
+        assertEquals(cells(2 to 2, 2 to 3), clear.cells)
+        assertEquals(2 * POINTS_PER_EFFECT_GEM, clear.points)
+    }
+
+    @Test
+    fun aColourGemFormsNoRunEvenBesideGemsOfOneColour() {
+        val board =
+            patterned(
+                Pos(3, 2) to Piece(Gem.WHITE),
+                Pos(3, 4) to Piece(Gem.WHITE),
+                Pos(4, 3) to Piece(null, Special.COLOUR),
+            )
+        val swapped = board.swap(Pos(4, 3), Pos(3, 3))
+        assertTrue(findRuns(swapped).isEmpty())
+        val expected = every(swapped, checkNotNull(swapped[Pos(4, 3)]?.gem)) + Pos(3, 3)
+
+        val result = resolveSwap(board, Pos(4, 3), Pos(3, 3), Rng(1L))
+
+        assertEquals(
+            expected,
+            result.steps
+                .filterIsInstance<Step.Clear>()
+                .first()
+                .cells,
+        )
+    }
+
     private fun assertNotNull(game: Game?): Game = checkNotNull(game)
 
     private fun encodeFor(board: Board): String {

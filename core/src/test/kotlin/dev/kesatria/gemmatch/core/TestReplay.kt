@@ -17,7 +17,7 @@ fun replay(
             }
 
             is Step.Activate -> {
-                check(step.cells == effectCells(step.origin, step.special)) { "Activate cells differ from the effect" }
+                check(step.cells == expectedEffect(board, step)) { "Activate cells differ from the effect" }
                 pending += step.cells
                 board
             }
@@ -56,4 +56,15 @@ fun replay(
 fun isFull(board: Board): Boolean {
     val range = 0 until BOARD_SIZE
     return range.all { row -> range.all { col -> board[Pos(row, col)] != null } }
+}
+
+/** What an Activate should take, worked out from the board it fires on rather than from the resolver. */
+private fun expectedEffect(
+    board: Board,
+    step: Step.Activate,
+): Set<Pos> {
+    if (step.special != Special.COLOUR) return effectCells(step.origin, step.special)
+    val colour = step.cells.firstOrNull { it != step.origin }?.let { board[it]?.gem } ?: return setOf(step.origin)
+    val all = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }
+    return all.filterTo(mutableSetOf(step.origin)) { board[it]?.gem == colour }
 }
