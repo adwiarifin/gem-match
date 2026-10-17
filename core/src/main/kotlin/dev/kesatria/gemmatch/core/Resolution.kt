@@ -29,7 +29,8 @@ fun resolveSwap(
     while (true) {
         val groups = findMatchGroups(current)
         val matched = groups.flatMapTo(mutableSetOf()) { it.cells }
-        val fired = firings(current, matched, if (depth == 1) a to b else null)
+        val swap = if (depth == 1) a to b else null
+        val fired = firings(current, matched, swap)
         if (groups.isEmpty() && fired.isEmpty()) break
 
         steps += fired
@@ -38,9 +39,9 @@ fun resolveSwap(
         val cleared = matched + effectCells
         steps += Step.Clear(cleared, points, depth)
         score += points
-        current = cleared.fold(current) { b, pos -> b.with(pos, null) }
+        current = cleared.fold(current) { remaining, pos -> remaining.with(pos, null) }
 
-        for (create in createdPieces(groups, if (depth == 1) listOf(a, b) else emptyList())) {
+        for (create in createdPieces(groups, swap?.toList().orEmpty())) {
             steps += create
             current = current.with(create.pos, create.piece)
         }
