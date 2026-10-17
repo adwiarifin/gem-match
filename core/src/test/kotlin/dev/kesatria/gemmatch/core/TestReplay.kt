@@ -64,7 +64,9 @@ private fun expectedEffect(
     step: Step.Activate,
 ): Set<Pos> {
     if (step.special != Special.COLOUR) return effectCells(step.origin, step.special)
+    val all = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }.toSet()
+    // Two colour gems clear the board. Otherwise the colour takes every piece of one gem colour, and itself.
+    if (all.count { board[it]?.special == Special.COLOUR } >= 2 && step.cells == all) return all
     val colour = step.cells.firstOrNull { it != step.origin }?.let { board[it]?.gem } ?: return setOf(step.origin)
-    val all = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }
     return all.filterTo(mutableSetOf(step.origin)) { board[it]?.gem == colour }
 }

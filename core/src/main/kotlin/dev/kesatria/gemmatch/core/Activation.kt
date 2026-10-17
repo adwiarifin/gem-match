@@ -52,24 +52,32 @@ private fun initialActivations(
     swapped: Board,
     a: Pos,
     b: Pos,
-): List<Step.Activate> =
-    listOf(a to b, b to a).mapNotNull { (origin, partner) ->
-        val special = swapped[origin]?.special ?: return@mapNotNull null
-        val cells =
-            if (special == Special.COLOUR) {
-                colourCells(swapped, origin, swapped[partner]?.gem) ?: return@mapNotNull null
-            } else {
-                effectCells(origin, special)
+): List<Step.Activate> {
+    val first = swapped[a]?.special
+    val second = swapped[b]?.special
+    return when {
+        first == Special.COLOUR && second == Special.COLOUR -> listOf(clearBoard(b))
+        first == Special.COLOUR && second != null -> colourWithSpecial(swapped, a, b)
+        second == Special.COLOUR && first != null -> colourWithSpecial(swapped, b, a)
+        else ->
+            listOf(a to b, b to a).mapNotNull { (origin, partner) ->
+                val special = swapped[origin]?.special ?: return@mapNotNull null
+                val cells =
+                    if (special == Special.COLOUR) {
+                        colourCells(swapped, origin, swapped[partner]?.gem) ?: return@mapNotNull null
+                    } else {
+                        effectCells(origin, special)
+                    }
+                Step.Activate(origin, special, cells)
             }
-        Step.Activate(origin, special, cells)
     }
+}
 
-private fun colourCells(
+internal fun colourCells(
     board: Board,
     origin: Pos,
     colour: Gem?,
 ): Set<Pos>? {
     if (colour == null) return null
-    val all = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }
-    return all.filterTo(mutableSetOf(origin)) { board[it]?.gem == colour }
+    return allCells().filterTo(mutableSetOf(origin)) { board[it]?.gem == colour }
 }

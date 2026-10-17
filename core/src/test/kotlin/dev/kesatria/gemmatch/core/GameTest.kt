@@ -111,11 +111,7 @@ class GameTest {
             var game = Game.new(seed)
             val chooser = Rng(seed)
             repeat(MOVES_PER_GAME) { turn ->
-                // The colour gem does nothing until T25 and T27; this filter goes then.
-                val moves =
-                    findValidMoves(game.board)
-                        .filter { listOf(it.from, it.to).none { pos -> game.board[pos]?.special == Special.COLOUR } }
-                        .ifEmpty { return@repeat }
+                val moves = findValidMoves(game.board)
                 val move = moves[chooser.nextInt(moves.size)]
 
                 val outcome = game.trySwap(move.from, move.to)
