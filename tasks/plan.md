@@ -247,9 +247,273 @@ T2 and T3 can run in parallel after T1. T4 onward is strictly sequential. T10 ca
 ### Checkpoint D: v1 complete
 - [ ] All SPEC success criteria 1-12 verified. Owner signs off.
 
+## Special gems (second feature, planned 2026-10-17)
+
+Spec: `SPEC.md` ("Special Gems", assumptions 2, 3, 7, 10, 11, success criteria 13-18). Intent: `docs/intent/special-gems.md`. Decisions: `docs/decisions.md` D12-D15. Tasks tracked in `tasks/todo.md`, T19 onward. Commit policy as above: one-line conventional commits, selective staging, docs separate from code, nothing committed until the owner says so.
+
+### Overview
+
+Add four special gems (blast, line, cross, colour) that the player's own match creates and a swap fires. Core first and test-first: types, creation, activation, chains, combos, scoring, save format `GM2` with a `GM1` reader. Then the app: white gem becomes a pentagon, overlays, effect animations, idle hint fallback. Every core task ends green on `make check-task`. Every app task ends with something visible on the A52.
+
+### Architecture decisions
+
+- **`Board` holds `Piece`, not `Gem`** (D12). A special gem is a property of the cell, so it falls, swaps and saves with it. Costly to reverse once GM2 saves exist.
+- **Specials are inert in matches** (D14, owner-confirmed). `findRuns` skips them. A swap that touches one is always legal.
+- **A board that holds a special always has a valid move**, so reshuffle never runs while one is on the board. `isValidSwap` carries that rule, `ensureMoveExists` needs no change.
+- **Creation is a pure function of the player's own match groups** (depth 1 only), kept apart from activation so each is testable alone.
+- **Activation is a pure function** `(board, origin, special, partner) -> cells`, and `resolveSwap` orchestrates it: swap, fire, clear, fall, spawn, cascade at depth 2+. Chains and combos extend the same function, not a second path.
+- **`Step` gains `Activate` and `Create`**; `GemMove` and `Placed` carry `Piece`. Every new step needs animation code, so this is the second costly-to-reverse surface after the board.
+- **Save `GM2`** (D13): two characters per cell, `GM1` still decodes. Encoder emits GM2 only.
+- **Scoring constants stay in `Scoring.kt`** (D15), one new constant `POINTS_PER_EFFECT_GEM = 10`.
+- **App keeps the sprite model.** A `Sprite` gets a `Piece`. Overlays are vector paths drawn over the gem shape in `GemShapes`. Effect animations are new `Timeline` animations driven by `Step.Activate`. No assets, no dependency.
+- **Idle hint** keeps using core move lists, with one new core function for "moves that make a match" so the app does not duplicate rules.
+
+### Dependency graph
+
+```
+T19 Piece/Special, Board holds Piece ── T20 inert in matches + legal special swap
+        │                                      │
+        │                              T21 classify groups ── T22 creation in resolveSwap ── Checkpoint E (SC13)
+        │                                                              │
+        │                              T23 blast/line/cross fire on swap ── T24 colour gem ── T25 chains ── T26 combos ── Checkpoint F (SC14)
+        │                                                                                                      │
+        └── T28 GM2 codec + GM1 reader (needs only T19; can run beside T21-T26)                        T27 scoring pass
+                                                                                                               │
+                                                                      T29 game-level soak ── Checkpoint G (core done, SC15)
+                                                                                                               │
+T30 pentagon (independent, any time) ── T31 sprites carry Piece, Create playback ── T32 overlays + shimmer ── Checkpoint H
+                                                                                                               │
+                                                                      T33 effect animations ── T34 idle hint fallback + resume check ── Checkpoint I (SC16-18)
+                                                                                                               │
+                                                                                                   T35 docs close-out
+```
+
+T28 may run in parallel with T21-T26 (it needs only the `Piece` type). T30 may run any time. Everything else is sequential.
+
+### Risks and mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Board-holds-Piece refactor (T19) touches many core files and the app | High | Do it first, behaviour unchanged, all existing tests stay green and keep their assertions (floor guard forbids removing them). If T19 grows past about 8 files, split it: Board/Matches/Move first, then Step/Resolution/Save. |
+| `Resolution.kt` becomes tangled with creation, activation, chains and combos | High | Pure helpers in `Creation.kt` and `Activation.kt`; `resolveSwap` only sequences. Add tests per layer before wiring. |
+| detekt/ktlint size and complexity limits on `Timeline.kt` (343 lines) and `Resolution.kt` | Medium | New animations go in a new file. No suppressions allowed (floor). |
+| Under-specified combo and chain edge cases (see Open questions) | Medium | Pin each as a named test when decided, and record the answer in SPEC. |
+| GM2 save over the 256-character read limit | Low | Worst case is about 170 characters. A test asserts the worst case. |
+| Older app version reads a GM2 save | Medium | It decodes null and starts a new game. Android blocks downgrades on release builds, so roll forward only. Recorded in D13. |
+| Effects unreadable on a 6.5" screen | Medium | Checkpoint H and I are owner-eyes on the A52 (SC17). |
+| APK grows past 1 MiB | Low | Today about 67 KB signed. Measure at Checkpoint I. |
+
+### Open questions (decide before the task that needs them)
+
+1. **T24:** is the colour gem itself consumed when it fires? Assumed yes.
+2. **T26:** colour + special converts every gem of the special's colour. Do the converted gems keep a line gem's direction? Assumed yes, copied from the partner.
+3. **T27:** does a fired special gem itself score 10 like any other cleared gem? Assumed yes.
+4. **T22:** the L/T rule in spec rule 5 for groups of three or more runs is taken as written.
+5. `SPEC.md` still says "draft, waiting for approval" on the Special Gems section. The owner has approved it; update the status line when committing docs.
+
+### Phase 5: Special gems, core (test-first)
+
+Every core task: write the failing tests first (red), then the code (green), then tidy. Verify with `make check-task` (compile, ktlint, boundary, floor guard, gitleaks, core and app tests, 80% coverage). Existing tests are migrated, never weakened or deleted.
+
+#### T19: `Piece`, `Special`, and `Board` holds `Piece`
+**Description:** Add `Special` (BLAST, LINE_ROW, LINE_COL, CROSS, COLOUR) and `Piece(gem: Gem?, special: Special?)`, where `gem` is null only for COLOUR (enforced in `init`). `Board` stores `Piece?`. `GemMove` and `Placed` carry `Piece`. No special gem exists yet, so behaviour is identical. The app adapts minimally to compile.
+**Acceptance:**
+- [ ] `Piece(null, BLAST)` and `Piece(RED, COLOUR)` are rejected; `Piece(null, COLOUR)` and every plain gem are accepted.
+- [ ] Every pre-existing core and app test passes with its assertions intact.
+- [ ] Gravity, swap and refill move a piece as a unit (test with a hand-built special).
+**Verify:** `make check-task`
+**Files:** `Piece.kt`, `Special.kt`, `Board.kt`, `Step.kt`, `Matches.kt`, `Resolution.kt`, `Reshuffle.kt`, `SaveCodec.kt`, `TestBoards.kt`, `Scene.kt` (+ tests).
+**Scope:** Large (split as noted in Risks if needed). **Depends on:** none.
+
+#### T20: Specials are inert in matches, and a special swap is always legal
+**Description:** `findRuns` ignores special pieces. `isValidSwap` accepts any adjacent, occupied swap that forms a run or touches a special. Add `findMatchMoves` (swaps that form a run) for the hint; `findValidMoves` and `hasValidMove` include special swaps.
+**Acceptance:**
+- [ ] Three same-colour pieces in a row, one special, form no run.
+- [ ] A swap touching a special is valid with no match; a swap of two plain gems still needs a match.
+- [ ] A board holding a special has a valid move even when no plain match exists.
+- [ ] `findMatchMoves` never returns a swap that only works through a special.
+**Verify:** `make check-task`
+**Files:** `Matches.kt`, `Move.kt`, `MatchesTest.kt`, `MoveTest.kt`.
+**Scope:** Small. **Depends on:** T19.
+
+#### T21: Classify match groups
+**Description:** Pure function from a `MatchGroup` to the special it makes: run of 4 blast, 5 or more colour, L line (direction from the longer arm, equal arms row), T or + cross. Priority colour, cross, line, blast. L against T per spec rule 5, including groups of three or more runs.
+**Acceptance:**
+- [ ] Table-driven tests for 4, 5, 6, L (both arm orders, equal arms), T, +, and a 3-run group.
+- [ ] A plain run of 3 makes nothing.
+- [ ] A group that qualifies for several kinds returns the highest priority.
+**Verify:** `make check-task`
+**Files:** `Creation.kt`, `CreationTest.kt`.
+**Scope:** Small. **Depends on:** T20.
+
+#### T22: Creation inside `resolveSwap`
+**Description:** After the player's own match (depth 1) clears, place at most one special per group at the swapped cell that belongs to the group (the dragged one if both do). Add `Step.Create(pos, piece)` after the `Clear`. Later cascade matches create nothing. Spawned gems are always plain.
+**Acceptance:**
+- [ ] A swap forming a run of 4, a run of 5, an L and a T each leave exactly one special of the right kind at the right cell (SC13).
+- [ ] A swap forming two groups can leave two specials.
+- [ ] A match at cascade depth 2 or more makes no special.
+- [ ] `TestReplay` rebuilds the final board from the steps, including `Create`.
+- [ ] Gem count stays 64 on every resolved board.
+**Verify:** `make check-task`
+**Files:** `Resolution.kt`, `Step.kt`, `TestReplay.kt`, `CascadeTest.kt`.
+**Scope:** Medium. **Depends on:** T21.
+
+#### Checkpoint E: Creation
+- [ ] `make check-task` green. SC13 covered by tests.
+- [ ] Owner review of `Piece` and `Step` shape before activation builds on them.
+
+#### T23: Blast, line and cross fire on swap
+**Description:** Pure `effectCells` for blast (3x3), line (row or column), cross (both), clipped to the board. `resolveSwap` swaps first, fires the special from the cell it moved to, emits `Step.Activate(origin, special, cells)`, then one `Clear` that also holds any normal match the swap formed. Cascades continue at depth 2 and up. A fired swap creates no special. Effect gems score `POINTS_PER_EFFECT_GEM` times depth.
+**Acceptance:**
+- [ ] Each effect clears exactly its cells, including at edges and corners.
+- [ ] A swap with a special and no match is accepted; the same swap is rejected for two plain gems.
+- [ ] A normal match formed by the same swap clears in the same `Clear` step.
+- [ ] Cascade after the effect runs at depth 2.
+**Verify:** `make check-task`
+**Files:** `Activation.kt`, `Resolution.kt`, `Step.kt`, `Scoring.kt`, `ActivationTest.kt`.
+**Scope:** Medium. **Depends on:** T22.
+
+#### T24: Colour gem
+**Description:** A swapped colour gem clears every piece of the partner's colour (plus itself). A colour gem swapped with a plain gem matches nothing else.
+**Acceptance:**
+- [ ] Clears every gem of the partner's colour and the colour gem itself.
+- [ ] Partner colour count of zero or one still works.
+- [ ] The colour gem forms no run, even beside gems of any colour.
+**Verify:** `make check-task`
+**Files:** `Activation.kt`, `ActivationTest.kt`.
+**Scope:** Small. **Depends on:** T23.
+
+#### T25: Chain reactions
+**Description:** If an effect covers another special, that piece fires too, from where it sits. Each piece fires once per move. Only the player's own swap starts a chain; nothing at depth 2 or more fires a special. One `Activate` step per fired piece, in a deterministic order.
+**Acceptance:**
+- [ ] A blast covering a line gem fires the line gem; a loop between two specials fires each once.
+- [ ] A cascade whose clear covers a special does not fire it (the piece survives or is cleared only by an effect).
+- [ ] Order of `Activate` steps is stable for the same input.
+**Verify:** `make check-task`
+**Files:** `Activation.kt`, `Resolution.kt`, `ActivationTest.kt`.
+**Scope:** Medium. **Depends on:** T24.
+
+#### T26: Combos
+**Description:** Colour + colour clears the board. Colour + another special converts every piece of that special's colour into that special, then fires them all (chains apply). Any other pair fires both effects at once.
+**Acceptance:**
+- [ ] Colour + colour clears all 64 cells.
+- [ ] Colour + each of blast, line, cross converts the right pieces and fires them.
+- [ ] Each remaining pair fires both effects, from their own cells.
+**Verify:** `make check-task`
+**Files:** `Activation.kt`, `Combo.kt`, `ComboTest.kt`.
+**Scope:** Medium. **Depends on:** T25.
+
+#### Checkpoint F: Activation
+- [ ] `make check-task` green. SC14 covered by tests.
+- [ ] Owner confirms the open questions on colour consumption and converted line direction.
+
+#### T27: Scoring pass
+**Description:** Pin the scoring rules across creation, chains and combos. Constants live in `Scoring.kt`. Every effect-cleared gem scores `POINTS_PER_EFFECT_GEM` once, times depth; creating a special adds nothing; the total never wraps (existing saturating add).
+**Acceptance:**
+- [ ] Literal expected scores for a blast, a colour + colour (640 at depth 1), and a chain, so a changed constant fails a test.
+- [ ] A cell cleared by both a run and an effect scores once.
+- [ ] Sum of `Clear.points` equals the score added to the game, across many seeds.
+**Verify:** `make check-task`
+**Files:** `Scoring.kt`, `ScoringTest.kt`, `CascadeTest.kt`.
+**Scope:** Small. **Depends on:** T26.
+
+#### T28: Save format `GM2` with a `GM1` reader
+**Description:** `GM2;<score>;<rng>;<64 two-character cells>`: gem digit or `-`, then `-`, `B`, `R`, `C`, `X` or `W`. The encoder emits GM2 only; the decoder reads GM1 and GM2. Anything malformed returns null.
+**Acceptance:**
+- [ ] A game with every special on the board round-trips equal and plays the same future (SC15).
+- [ ] A GM1 string from the current release loads, and re-encodes as GM2.
+- [ ] Truncated, wrong length, unknown special letter, `-` gem on a non-colour, colour gem with a digit, and garbage all return null.
+- [ ] Worst-case save stays under the 256-character read limit.
+**Verify:** `make check-task`
+**Files:** `SaveCodec.kt`, `SaveCodecTest.kt`.
+**Scope:** Small. **Depends on:** T19 (parallel with T21-T27).
+
+#### T29: Game-level soak
+**Description:** Property-style checks over many seeds with specials in play: random legal moves, including special swaps, on seeded games.
+**Acceptance:**
+- [ ] After every move: 64 pieces, no runs, at least one valid move, encode/decode equals the game.
+- [ ] A board holding a special never emits `Reshuffle`.
+- [ ] Same seed and moves give identical steps and score.
+**Verify:** `make check-task`
+**Files:** `GameTest.kt`, `SoakTest.kt`.
+**Scope:** Small. **Depends on:** T27, T28.
+
+#### Checkpoint G: Core complete
+- [ ] `make check-task` green, core coverage at least 80% and not below 100% minus tolerance (ratchet in `CONSTRAINTS.md`).
+- [ ] SC13, 14, 15 covered. Owner review of the final core API before the UI.
+
+### Phase 6: Special gems, app
+
+App tasks end with `make check-task` and an on-device check on the A52 (build and install with the project's usual flow). `app` unit tests cover the Android-free classes (`Timeline`, `Scene`, `IdleHint`).
+
+#### T30: White gem becomes a pentagon
+**Description:** Replace the white plus in `GemShapes` with a regular pentagon, freeing the plus for the cross overlay.
+**Acceptance:**
+- [ ] The seven gem silhouettes are distinct in grayscale.
+- [ ] No other visual or timing change.
+**Verify:** `make check-task`; install on the A52 and look at a board.
+**Files:** `GemShapes.kt`.
+**Scope:** XS. **Depends on:** none.
+
+#### T31: Sprites carry `Piece`; a created special appears and stays
+**Description:** `Sprite` and `Scene` hold a `Piece`. `Timeline` plays `Step.Create` as a pop-in, and `Fall` and `Spawn` move pieces as units. A special is drawn as its plain gem for now.
+**Acceptance:**
+- [ ] After a 4-run the special appears at the right cell and the rendered board equals the core board when the timeline ends.
+- [ ] The special survives cascades, pause and resume unchanged (SC16, with GM2 save from T28).
+**Verify:** `make check-task`; play on the A52 until a special appears, background and reopen.
+**Files:** `Scene.kt`, `Timeline.kt` (or a new `CreateAnimation.kt`), `GameSession.kt`, `SceneTest.kt`, `TimelineTest.kt`.
+**Scope:** Medium. **Depends on:** T22, T28.
+
+#### T32: Overlays and shimmer
+**Description:** Draw a white vector overlay with a dark outline on special pieces: blast 8-point burst, line stripe (horizontal for row, vertical for column), cross plus-shaped stripes, colour a wheel of the seven gem colours with a white edge. Add a slow shimmer.
+**Acceptance:**
+- [ ] The four specials are told apart by overlay alone, and by their base gem colour where they have one.
+- [ ] Shimmer is visible but does not hide the overlay.
+- [ ] Frame feel on the A52 unchanged.
+**Verify:** `make check-task`; look at all four on the A52.
+**Files:** `GemShapes.kt`, `Palette.kt`, `BoardRenderer.kt`.
+**Scope:** Medium. **Depends on:** T31, T30.
+
+#### Checkpoint H: Specials visible
+- [ ] Owner sees all four specials on the A52 and can tell them apart.
+
+#### T33: Effect animations
+**Description:** `Timeline` plays `Step.Activate` before its `Clear`: ring flash over the 3x3 for blast, beam along the row or column for line (both for cross), quick streaks from the colour gem to each taken gem. Chains play in step order. Input blocked while playing.
+**Acceptance:**
+- [ ] You can tell what fired, from where, and which gems it took (SC17).
+- [ ] Rendered board equals the core board when the timeline ends, after a chain and after colour + colour.
+- [ ] Touches during effects are ignored.
+**Verify:** `make check-task`; fire each effect, a chain and a combo on the A52.
+**Files:** `Effects.kt` (new), `Timeline.kt`, `BoardRenderer.kt`, `TimelineTest.kt`.
+**Scope:** Medium. **Depends on:** T32, T26.
+
+#### T34: Idle hint fallback and resume check
+**Description:** `IdleHint` picks a move from `findMatchMoves`; only when there is none does it point at a special swap from `findValidMoves`. Confirm a GM1 save from the installed release resumes after the update.
+**Acceptance:**
+- [ ] With a plain match available, the hint is a match move even if a special exists.
+- [ ] With only special swaps left, the hint points at one.
+- [ ] Installing over the current release resumes the GM1 board and score.
+**Verify:** `make check-task`; install over the old build on the A52.
+**Files:** `IdleHint.kt`, `IdleHintTest.kt`.
+**Scope:** Small. **Depends on:** T20, T33.
+
+#### Checkpoint I: Special gems complete
+- [ ] `make check-full` green (APK size, permissions, detekt, Lint, osv-scanner).
+- [ ] Owner plays about ten minutes on the A52: SC16, 17, 18 verified.
+- [ ] Tune `POINTS_PER_EFFECT_GEM` and other constants by feel, via the constants only.
+
+#### T35: Docs close-out
+**Description:** Update `SPEC.md` status line, `CONSTRAINTS.md` measured table (coverage, size), `README.md` features, and `docs/decisions.md` with anything decided during build. Docs commit, separate from code, owner approval first.
+**Acceptance:**
+- [ ] Spec status says approved; measured values match the last `make check-full`.
+- [ ] Every decision made during build has a why, impact and rollback.
+**Verify:** `make check-fast`
+**Files:** `SPEC.md`, `CONSTRAINTS.md`, `README.md`, `docs/decisions.md`.
+**Scope:** Small. **Depends on:** Checkpoint I.
+
 ## Post-v1 candidates (not planned)
 
-Sound, "best single move" record, special gems, Compose or ready-made-lib UI as a second perspective, KMP port. Each is a separate spec.
+Sound, "best single move" record, Compose or ready-made-lib UI as a second perspective, KMP port. Each is a separate spec.
 
 ## Decisions (owner-approved)
 
