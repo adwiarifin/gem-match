@@ -39,11 +39,11 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 Details: `tasks/plan.md` ("Special gems"). Spec: `SPEC.md` "Special Gems". Every task: tests first, then verify with `make check-task`.
 
 - [x] T19: `Piece`, `Special`, `Board` stores `Piece` (shims keep other files compiling). Done when: invalid `Piece` rejected, board round-trips pieces, all old tests green with assertions intact. Verify: `make check-task`
-- [ ] T20: Call sites, step payloads and app adapters use `Piece`; shims removed. Done when: `Board.get` returns `Piece?`, a hand-built special moves as a unit through gravity, swap and refill, all old tests green. Verify: `make check-task`
+- [x] T20: Call sites, step payloads and app adapters use `Piece`; shims removed. Done when: `Board.get` returns `Piece?`, a hand-built special moves as a unit through gravity, swap and refill, all old tests green. Verify: `make check-task`
 - [x] T21: Specials inert in matches; a special swap is always legal; `findMatchMoves`. Done when: no run through a special, special swap valid without a match, board with a special always has a move. Verify: `make check-task`
 - [x] T22: Classify groups (4 blast, 5+ colour, L line with direction, T/+ cross, priority). Done when: table tests cover every shape and priority. Verify: `make check-task`
 - [x] T23: Creation in `resolveSwap` (depth 1 only, `Step.Create`). Done when: SC13 holds in tests, cascade matches make none, gem count stays 64, step order is Clear, Create, Fall, Spawn. Verify: `make check-task`
-- [ ] Checkpoint E: creation green, owner reviews `Piece` and `Step` shape
+- [x] Checkpoint E: creation green, owner reviews `Piece` and `Step` shape
 - [x] T24: Blast, line, cross fire on swap (`Step.Activate`, 10 per effect gem). Done when: exact cells incl. edges, same-`Clear` normal match, cascade at depth 2. Verify: `make check-task`
 - [x] T25: Colour gem fires on its partner's colour. Done when: all of that colour and itself clear, forms no run. Verify: `make check-task`
 - [x] T26: Chain reactions (each piece once, player's swap only). Done when: chain and loop tests pass, a special beside a cascade match is untouched, all `Activate` steps come before the single `Clear`. Verify: `make check-task`
