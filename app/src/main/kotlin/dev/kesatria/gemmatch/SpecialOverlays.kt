@@ -17,6 +17,7 @@ import kotlin.math.sin
  * and a slow shimmer. Blast is an eight-point burst, a line gem a stripe along its row or column, a cross gem a
  * plus, and the colour gem a wheel of the seven gem colours with a white edge.
  */
+
 object SpecialOverlays {
     private val burst = spikes()
     private val stripeRow = stripe(horizontal = true)
@@ -24,6 +25,7 @@ object SpecialOverlays {
     private val plus = plus(PLUS_ARM, PLUS_REACH, 0f)
     private val xShort = plus(X_SHORT_ARM, X_SHORT_REACH, DIAGONAL_DEGREES)
     private val xFull = plus(PLUS_ARM, X_FULL_REACH, DIAGONAL_DEGREES)
+    private val ring = strokePaint(RING_WIDTH, Color.WHITE)
     private val wheel = Array(Gem.entries.size) { wedge(it) }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val overlayFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
@@ -73,8 +75,21 @@ object SpecialOverlays {
         overlayFill.color = mark
         overlayFill.alpha = (alpha * (OVERLAY_BASE + OVERLAY_GLOW * glow) * OPAQUE).toInt()
         outline.alpha = (alpha * OUTLINE_ALPHA).toInt()
+        if (special == Special.X_FULL) drawRing(canvas, alpha)
         canvas.drawPath(path, overlayFill)
         canvas.drawPath(path, outline)
+    }
+
+    /** The full X wears a ring, so it reads as the larger sibling of the short X even at a glance. */
+    private fun drawRing(
+        canvas: Canvas,
+        alpha: Float,
+    ) {
+        ring.alpha = (alpha * OPAQUE).toInt()
+        outline.alpha = (alpha * OUTLINE_ALPHA).toInt()
+        canvas.drawCircle(0f, 0f, RING_RADIUS, ring)
+        canvas.drawCircle(0f, 0f, RING_RADIUS + RING_WIDTH / 2, outline)
+        canvas.drawCircle(0f, 0f, RING_RADIUS - RING_WIDTH / 2, outline)
     }
 
     private fun drawWheel(
@@ -174,15 +189,19 @@ object SpecialOverlays {
     private const val X_SHORT_REACH = 0.55f
     private const val X_FULL_REACH = 0.88f
     private const val DIAGONAL_DEGREES = 45f
+    private const val RING_RADIUS = 0.88f
+    private const val RING_WIDTH = 0.1f
     private const val WHEEL_RADIUS = 0.85f
     private const val RIM_WIDTH = 0.12f
     private const val OUTLINE_WIDTH = 0.07f
     private const val FULL_TURN_DEGREES = 360f
     private const val QUARTER_TURN_DEGREES = 90f
-    private const val SHIMMER_SECONDS = 2.4f
     private const val SHEEN_ALPHA = 90
     private const val OVERLAY_BASE = 0.75f
     private const val OVERLAY_GLOW = 0.25f
     private const val OUTLINE_ALPHA = 200
     private const val OPAQUE = 255
 }
+
+/** How long the shimmer takes to go from bright to dim and back. The scene clock wraps at a whole number of these. */
+internal const val SHIMMER_SECONDS = 2.4f

@@ -167,13 +167,16 @@ class IdleHintTest {
 
     @Test
     fun aMatchIsHintedEvenWhenASpecialGemIsOnTheBoard() {
+        var checked = 0
         for (seed in 1L..30L) {
             val withSpecial = randomBoardWithAMove(seed).with(Pos(0, 0), Piece(Gem.WHITE, Special.BLAST))
             val matchMoves = findMatchMoves(withSpecial).map { setOf(it.from, it.to) }
             if (matchMoves.isEmpty()) continue
 
             assertTrue(pulsingOn(withSpecial) in matchMoves, "seed $seed")
+            checked++
         }
+        assertTrue(checked > 0, "no seed had a match move beside the special")
     }
 
     @Test

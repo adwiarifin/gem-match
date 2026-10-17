@@ -7,7 +7,6 @@ import android.graphics.RectF
 import dev.kesatria.gemmatch.core.BOARD_SIZE
 import dev.kesatria.gemmatch.core.BoardLayout
 import dev.kesatria.gemmatch.core.Pos
-import dev.kesatria.gemmatch.core.SHORT_X_REACH
 import dev.kesatria.gemmatch.core.Special
 import kotlin.math.abs
 import kotlin.math.max
@@ -57,8 +56,7 @@ class EffectRenderer {
                     drawBeam(canvas, layout, effect, horizontal = true)
                     drawBeam(canvas, layout, effect, horizontal = false)
                 }
-                Special.X_SHORT -> drawDiagonals(canvas, layout, effect, SHORT_X_REACH.toFloat())
-                Special.X_FULL -> drawDiagonals(canvas, layout, effect, BOARD_SIZE.toFloat())
+                Special.X_SHORT, Special.X_FULL -> drawDiagonals(canvas, layout, effect)
                 Special.COLOUR -> drawStreaks(canvas, layout, effect)
             }
         }
@@ -114,16 +112,15 @@ class EffectRenderer {
         canvas.drawRoundRect(rect, half, half, beam)
     }
 
-    /** Two beams turned 45 degrees, each growing out of the origin to [reachCells] cells along its diagonal. */
+    /** Two beams turned 45 degrees, each growing out of the origin to the farthest cell the effect takes. */
     private fun drawDiagonals(
         canvas: Canvas,
         layout: BoardLayout,
         effect: Effect,
-        reachCells: Float,
     ) {
         val cx = centreX(layout, effect.origin)
         val cy = centreY(layout, effect.origin)
-        val reach = layout.cellSize * reachCells * DIAGONAL_STRETCH * effect.progress
+        val reach = layout.cellSize * effect.reach * DIAGONAL_STRETCH * effect.progress
         val half = layout.cellSize * BEAM_HALF
         beam.alpha = (BEAM_ALPHA * (1f - effect.progress * BEAM_FADE)).toInt()
         for (degrees in DIAGONAL_TURNS) {

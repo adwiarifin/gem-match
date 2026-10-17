@@ -286,6 +286,9 @@ class Timeline(
 
     val isFinished: Boolean get() = index >= animations.size
 
+    /** Plays everything that is left at once, so a tap during playback jumps to the end of the move. */
+    fun skip(scene: Scene) = advance(SKIP_SECONDS, scene)
+
     fun advance(
         seconds: Float,
         scene: Scene,
@@ -309,24 +312,37 @@ class Timeline(
     }
 
     companion object {
+        private const val SKIP_SECONDS = 3_600f
+
         /** One animation per core step, in order. [onCleared] hears the points of each clear as it finishes. */
         fun forSteps(
             steps: List<Step>,
             onCleared: (Int) -> Unit,
         ): Timeline {
-            val firstActivate = steps.indexOfFirst { it is Step.Activate }
-            return Timeline(steps.mapIndexed { index, step -> animationFor(step, index != firstActivate, onCleared) })
+            val animations = mutableListOf<Animation>()
+            var index = 0
+            while (index < steps.size) {
+                val step = steps[index]
+                if (step is Step.Activate) {
+                    val chain = steps.drop(index).takeWhile { it is Step.Activate }.filterIsInstance<Step.Activate>()
+                    animations += ActivateAnimation(chain)
+                    index += chain.size
+                } else {
+                    animations += animationFor(step, onCleared)
+                    index++
+                }
+            }
+            return Timeline(animations)
         }
 
         private fun animationFor(
             step: Step,
-            chained: Boolean,
             onCleared: (Int) -> Unit,
         ): Animation =
             when (step) {
                 is Step.Swap -> SwapAnimation(step.a, step.b)
                 is Step.Clear -> ClearAnimation(step.cells, step.points, onCleared)
-                is Step.Activate -> ActivateAnimation(step, first = !chained)
+                is Step.Activate -> ActivateAnimation(listOf(step))
                 is Step.Create -> CreateAnimation(step.pos, step.piece)
                 is Step.Fall -> FallAnimation(step.moves)
                 is Step.Spawn -> SpawnAnimation(step.gems)

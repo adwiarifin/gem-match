@@ -23,7 +23,8 @@ class Sprite(
  * while the real game state is already resolved. Only the game-loop thread touches it.
  */
 class Scene {
-    private val slots = arrayOfNulls<Sprite>(BOARD_SIZE * BOARD_SIZE)
+    @PublishedApi
+    internal val slots = arrayOfNulls<Sprite>(BOARD_SIZE * BOARD_SIZE)
 
     /** The sprite the player is holding. It is drawn last so it sits on top of its neighbours. */
     var raised: Sprite? = null
@@ -79,12 +80,12 @@ class Scene {
         slots[indexOf(b)] = held
     }
 
-    fun forEach(action: (Sprite) -> Unit) {
+    inline fun forEach(action: (Sprite) -> Unit) {
         for (sprite in slots) if (sprite != null) action(sprite)
     }
 
     private fun indexOf(pos: Pos): Int = pos.row * BOARD_SIZE + pos.col
 }
 
-/** A multiple of the shimmer period, so wrapping the clock never shows as a jump. */
-private const val CLOCK_WRAP_SECONDS = 2400f
+/** A whole number of shimmer periods, so wrapping the clock never shows as a jump. */
+internal const val CLOCK_WRAP_SECONDS = SHIMMER_SECONDS * 1000f

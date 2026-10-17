@@ -114,27 +114,96 @@ class SpecialPlaybackTest {
     }
 
     @Test
-    fun chainedEffectsPlayInStepOrderAndLaterOnesAreQuicker() {
+    fun chainedEffectsStartInStepOrderAndOverlap() {
         val game = gameWithCells((4 to 4) to "3B", (3 to 5) to "4R", (5 to 6) to "5X")
         val outcome = swap(game, Pos(4, 4), Pos(4, 5))
         val fired = outcome.steps.filterIsInstance<Step.Activate>()
         val scene = Scene().also { it.load(game.board) }
         val timeline = Timeline.forSteps(outcome.steps) { }
 
-        val origins = mutableListOf<Pos>()
+        val started = mutableListOf<Effect>()
+        var most = 0
         while (!timeline.isFinished) {
             timeline.advance(1f / 60, scene)
-            scene.effects
-                .firstOrNull()
-                ?.origin
-                ?.let { if (origins.lastOrNull() != it) origins += it }
+            scene.effects.filter { it !in started }.forEach { started += it }
+            most = maxOf(most, scene.effects.size)
         }
 
-        assertEquals(fired.map { it.origin }, origins)
+        assertEquals(fired.map { it.origin }, started.map { it.origin })
         assertTrue(fired.size >= 3)
-        val animations = fired.mapIndexed { index, step -> ActivateAnimation(step, first = index == 0) }
-        assertTrue(animations[1].seconds < animations[0].seconds)
+        assertTrue(most > 1, "chained effects overlap")
         assertSceneShows(outcome.game.board, scene, "after the chain")
+    }
+
+    @Test
+    fun aLongChainTakesLittleLongerThanItsFirstEffect() {
+        val origin = Pos(4, 4)
+        val one = ActivateAnimation(listOf(Step.Activate(origin, Special.BLAST, setOf(origin))))
+        val ten = ActivateAnimation(List(10) { Step.Activate(origin, Special.BLAST, setOf(origin)) })
+
+        assertTrue(ten.seconds > one.seconds)
+        assertTrue(ten.seconds <= one.seconds + ActivateAnimation.CHAIN_SPREAD + 0.0001f, "was ${ten.seconds}")
+    }
+
+    @Test
+    fun anActivateRunInOneClearIsOneAnimationAndTheNextClearStartsFresh() {
+        val a = Pos(1, 1)
+        val steps =
+            listOf(
+                Step.Activate(a, Special.BLAST, setOf(a)),
+                Step.Activate(a, Special.BLAST, setOf(a)),
+                Step.Clear(setOf(a), 10, 1),
+                Step.Activate(a, Special.BLAST, setOf(a)),
+                Step.Clear(setOf(a), 10, 2),
+            )
+
+        val timeline = Timeline.forSteps(steps) { }
+        val scene = Scene()
+        var effectsAtOnce = 0
+        while (!timeline.isFinished) {
+            timeline.advance(1f / 60, scene)
+            effectsAtOnce = maxOf(effectsAtOnce, scene.effects.size)
+        }
+
+        assertEquals(2, effectsAtOnce)
+    }
+
+    @Test
+    fun aTapSkipsToTheEndOfTheMove() {
+        val game = gameWithCells((4 to 4) to "3B", (3 to 5) to "4R", (5 to 6) to "5X")
+        val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+        val scene = Scene().also { it.load(game.board) }
+        val timeline = Timeline.forSteps(outcome.steps) { }
+        timeline.advance(0.1f, scene)
+
+        timeline.skip(scene)
+
+        assertTrue(timeline.isFinished)
+        assertTrue(scene.effects.isEmpty())
+    }
+
+    @Test
+    fun aGemTheColourGemConvertsShowsItsNewKindWhenItsEffectStarts() {
+        val game = gameWithCells((4 to 4) to "-W", (4 to 5) to "3B", (0 to 0) to "3-", (6 to 6) to "3-")
+        val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+        val scene = Scene().also { it.load(game.board) }
+        val timeline = Timeline.forSteps(outcome.steps) { }
+        assertEquals(null, scene[Pos(0, 0)]?.piece?.special)
+
+        var converted = false
+        while (!timeline.isFinished) {
+            timeline.advance(1f / 60, scene)
+            if (scene[Pos(0, 0)]?.piece?.special == Special.BLAST) converted = true
+        }
+
+        assertTrue(converted)
+    }
+
+    @Test
+    fun theClockWrapIsAWholeNumberOfShimmerPeriods() {
+        val periods = CLOCK_WRAP_SECONDS / SHIMMER_SECONDS
+
+        assertNear(Math.round(periods).toFloat(), periods, "periods per wrap")
     }
 
     @Test
