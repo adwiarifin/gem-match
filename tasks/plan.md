@@ -251,6 +251,15 @@ T2 and T3 can run in parallel after T1. T4 onward is strictly sequential. T10 ca
 
 Spec: `SPEC.md` ("Special Gems", assumptions 2, 3, 7, 10, 11, success criteria 13-18). Intent: `docs/intent/special-gems.md`. Decisions: `docs/decisions.md` D12-D15. Tasks tracked in `tasks/todo.md`, T19 onward. Commit policy as above: one-line conventional commits, selective staging, docs separate from code, nothing committed until the owner says so.
 
+### Revision after the owner's playtest (2026-10-17)
+
+The rules below were built as planned, then changed after the owner played them. Where this section and the text below disagree, this section wins. `docs/special-gem-rules.md` is the current rule page.
+
+- Specials join matches, fire when matched, and matches make specials at any cascade depth (D16, supersedes D14 and the "inert" and "depth 1 only" lines below).
+- Shape table: a run of 3 with a hanging gem is a line gem (off an end) or a short X (off the middle); an L with both arms of 3 or more is the cross gem; a long T or + is a full X (D17). Two new kinds, `X_SHORT` and `X_FULL`.
+- A run of 3 with a hanging gem scores 60. A pair table is pinned in `PairCombosTest`.
+- Tasks T19 to T35 are done as listed. The changes above went in as separate commits after Checkpoint I's first install; T36 (docs close-out) is still open.
+
 ### Overview
 
 Add four special gems (blast, line, cross, colour) that the player's own match creates and a swap fires. Core first and test-first: types, creation, activation, chains, combos, scoring, save format `GM2` with a `GM1` reader. Then the app: white gem becomes a pentagon, overlays, effect animations, idle hint fallback. Every core task ends green on `make check-task`. Every app task ends with something visible on the A52.
@@ -258,9 +267,9 @@ Add four special gems (blast, line, cross, colour) that the player's own match c
 ### Architecture decisions
 
 - **`Board` holds `Piece`, not `Gem`** (D12). A special gem is a property of the cell, so it falls, swaps and saves with it. Costly to reverse once GM2 saves exist.
-- **Specials are inert in matches** (D14, owner-confirmed). `findRuns` skips them. A swap that touches one is always legal.
+- **Specials are inert in matches** (D14, owner-confirmed; superseded by D16, see the revision above). `findRuns` skips them. A swap that touches one is always legal.
 - **A board that holds a special always has a valid move**, so reshuffle never runs while one is on the board. `isValidSwap` carries that rule, `ensureMoveExists` needs no change.
-- **Creation is a pure function of the player's own match groups** (depth 1 only), kept apart from activation so each is testable alone.
+- **Creation is a pure function of the match groups** (originally depth 1 only; any depth since D16), kept apart from activation so each is testable alone.
 - **Activation is a pure function** `(board, origin, special, partner) -> cells`, and `resolveSwap` orchestrates it: swap, fire, clear, fall, spawn, cascade at depth 2+. Chains and combos extend the same function, not a second path.
 - **`Step` gains `Activate` and `Create`**; `GemMove` and `Placed` carry `Piece`. Every new step needs animation code, so this is the second costly-to-reverse surface after the board.
 - **Save `GM2`** (D13): two characters per cell, `GM1` still decodes. Encoder emits GM2 only.
