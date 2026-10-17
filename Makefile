@@ -10,11 +10,13 @@ check-fast:
 	scripts/test-check-permissions.sh
 	scripts/test-sign-ci.sh
 	scripts/test-floor-guard.sh
+	scripts/test-check-test-count.sh
 	gitleaks detect --redact --no-banner
 
 # Task end: aim under 2 minutes, ceiling 5.
 check-task: check-fast
 	./gradlew :core:test :core:koverVerify :app:testDebugUnitTest
+	scripts/check-test-count.sh
 
 # Review and CI: no time limit.
 check-full: check-task

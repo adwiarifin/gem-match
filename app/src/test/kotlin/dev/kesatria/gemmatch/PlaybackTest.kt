@@ -20,6 +20,15 @@ class PlaybackTest {
     @Test
     fun theSceneEndsOnTheResolvedBoardAfterEveryMoveOfManyGames() {
         val seen = mutableSetOf<KClass<out Step>>()
+        val addedBySpecials = mutableSetOf<KClass<out Step>>()
+        val original =
+            setOf(
+                Step.Swap::class,
+                Step.Clear::class,
+                Step.Fall::class,
+                Step.Spawn::class,
+                Step.Reshuffle::class,
+            )
         for (seed in 1L..40L) {
             var game = Game.new(seed)
             val scene = Scene().also { it.load(game.board) }
@@ -32,27 +41,19 @@ class PlaybackTest {
 
                 assertSceneShows(outcome.game.board, scene, "seed $seed move $turn")
                 assertEquals(outcome.game.score - game.score, awarded, "seed $seed move $turn: points heard")
-                outcome.steps.forEach { seen += it::class }
+                outcome.steps.forEach { if (it::class in original) seen += it::class else addedBySpecials += it::class }
                 game = outcome.game
             }
         }
         seen += playedReshuffle()
-        val original =
-            setOf(
-                Step.Swap::class,
-                Step.Clear::class,
-                Step.Fall::class,
-                Step.Spawn::class,
-                Step.Reshuffle::class,
-            )
         assertEquals(
             setOf(Step.Swap::class, Step.Clear::class, Step.Fall::class, Step.Spawn::class, Step.Reshuffle::class),
-            seen.filter { it in original }.toSet(),
+            seen,
             "every kind of step must be played at least once",
         )
         assertEquals(
             setOf(Step.Activate::class, Step.Create::class),
-            seen.filter { it !in original }.toSet(),
+            addedBySpecials,
             "and so must the steps that special gems add",
         )
     }

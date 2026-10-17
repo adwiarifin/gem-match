@@ -86,7 +86,7 @@ def untracked_diff():
     parts = []
     for name in filter(None, names):
         result = subprocess.run(
-            ["git", "diff", "--no-index", "--unified=0", "/dev/null", name],
+            ["git", "diff", "--no-index", "--unified=0", "--text", "/dev/null", name],
             capture_output=True,
             text=True,
         )
@@ -99,7 +99,13 @@ def untracked_diff():
 
 LOOKBACK = 12
 NEUTERED = re.compile(r"\|\|\s*true\b|&&\s*false\b|\bif\s*\(\s*false\s*\)|\bwhile\s*\(\s*false\s*\)")
-WRAPPER_OR_CHAIN = r"(?:[\w.]+\({o}\)|{o}(?:(?:\?\.|\.)\w+(?:\(\))?)+)"
+# The only wrapper and member chain the project retypes assertions with (`Gem.RED` to `Piece(Gem.RED)`, `board[p]` to
+# `board[p]?.gem`). Anything else around an argument can change what is checked, so it needs a human.
+KEPT_WRAPPER = r"Piece\({o}\)"
+KEPT_CHAIN = r"{o}(?:(?:\?\.|\.)(?:gem|special|piece|ordinal|isSpecial))+"
+HIDES_DIFF = re.compile(r"(^|\s)(-diff|!diff|diff=|binary|-text)(\s|$)")
+IDENTIFIER = re.compile(r"[A-Za-z_]\w*")
+NUMBER_LITERAL = re.compile(r"[\d_.]+[LlFfDd]?")
 
 
 def strip_comment(text):
@@ -202,20 +208,34 @@ def assertion_owner(lines, number):
 
 
 def kept(old_arg, new_arg):
-    """True if the new argument is the old one as it was, or only wrapped (`Gem.RED` to `Piece(Gem.RED)`) or followed
-    by a member chain (`board[p]` to `board[p]?.gem`). Anything else drops what the old argument checked."""
+    """True if the new argument is the old one as it was, or wrapped or followed by a member the project retypes with
+    (see KEPT_WRAPPER and KEPT_CHAIN). Anything else drops or changes what the old argument checked."""
     old, new = squash(old_arg), squash(new_arg)
     if new == old:
         return True
-    return bool(re.fullmatch(WRAPPER_OR_CHAIN.format(o=re.escape(old)), new))
+    escaped = re.escape(old)
+    return bool(re.fullmatch(KEPT_WRAPPER.format(o=escaped), new) or re.fullmatch(KEPT_CHAIN.format(o=escaped), new))
+
+
+def re_aimed(old_arg, new_arg):
+    """True if a changed argument is plausibly the same check aimed at a new expectation: two number literals, or
+    two expressions that share a name (`Special.LINE_ROW` to `Special.CROSS`). An argument that merely wraps the old
+    one in something else is not."""
+    old, new = squash(old_arg), squash(new_arg)
+    if old in new:
+        return False
+    if NUMBER_LITERAL.fullmatch(old) and NUMBER_LITERAL.fullmatch(new):
+        return True
+    return bool(set(IDENTIFIER.findall(old_arg)) & set(IDENTIFIER.findall(new_arg)))
 
 
 def same_assertion(removed, added):
     """True if `added` can stand in for `removed`: a retyped or re-aimed assertion, not a different or emptied one.
 
-    Same function and message, the same number of arguments, at least one non-string argument kept (see `kept`), no
-    argument repeated that was not repeated before (`assertEquals(x, x)`), and nothing that always passes
-    (`|| true`, `if (false)`). Both sides are whole calls, joined across lines.
+    Same function and message, the same number of arguments, at least one non-string argument kept (see `kept`) and
+    every other one either kept or re-aimed (see `re_aimed`), no argument repeated that was not repeated before
+    (`assertEquals(x, x)`), and nothing that always passes (`|| true`, `if (false)`). Both sides are whole calls,
+    joined across lines.
     """
     if assertion_signature(removed) != assertion_signature(added):
         return False
@@ -230,7 +250,10 @@ def same_assertion(removed, added):
     plain_old = [squash(a) for a in old if not a.startswith(('"', "'"))]
     if len(set(plain_new)) < len(plain_new) and len(set(plain_old)) == len(plain_old):
         return False
-    return any(not o.startswith(('"', "'")) and kept(o, n) for o, n in zip(old, new))
+    pairs = [(o, n) for o, n in zip(old, new) if not o.startswith(('"', "'"))]
+    if not any(kept(o, n) for o, n in pairs):
+        return False
+    return all(kept(o, n) or re_aimed(o, n) for o, n in pairs)
 
 
 def read_new(file):
@@ -320,7 +343,7 @@ def main():
         return 2
     os.chdir(top)
 
-    diff = git("diff", "--unified=0", "--no-renames", base, "--") + "\n" + untracked_diff()
+    diff = git("diff", "--unified=0", "--no-renames", "--text", base, "--") + "\n" + untracked_diff()
     added, removed, deleted, added_at, removed_at = parse_diff(diff)
 
     findings = []
@@ -338,6 +361,8 @@ def main():
                 flag("test-made-easier", file, text)
         if file.endswith("CONSTRAINTS.md") and EXCEPTION_ROW.match(text.strip()):
             flag("new-exception", file, text)
+        if file.endswith(".gitattributes") and HIDES_DIFF.search(text):
+            flag("hidden-diff", file, text)
 
     for file in deleted:
         if TEST_FILES.search(file):
@@ -362,6 +387,16 @@ def main():
         markers_added = sum(1 for f, _, t in added_at if f == file and re.match(r"\s*@Test\b", t))
         if markers_removed > markers_added:
             flag("test-removed", file, f"{markers_removed - markers_added} @Test marker(s) removed")
+
+    # The test-count floor may be raised, never lowered or dropped.
+    floor_line = re.compile(r"^\s*(\w+)\s+(\d+)\s*$")
+    for file, text in removed:
+        old = floor_line.match(text)
+        if file.endswith("test-count-floor.txt") and old:
+            now = [floor_line.match(t) for f, t in added if f == file]
+            match = next((m for m in now if m and m.group(1) == old.group(1)), None)
+            if match is None or int(match.group(2)) < int(old.group(2)):
+                flag("test-floor-lowered", file, text)
 
     removed_rules = [(f, t) for f, t in removed if f.endswith("CONSTRAINTS.md") and rule_key(t)]
     added_rules = [(f, t) for f, t in added if f.endswith("CONSTRAINTS.md") and rule_key(t)]
