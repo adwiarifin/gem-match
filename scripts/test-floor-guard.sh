@@ -26,6 +26,11 @@ class FooTest {
         assertEquals(expected, compute(input), "the result")
         assertTrue(board.isFull())
         assertNull(Game.decode(text))
+        assertEquals(
+            actualValue,
+            expectedValue,
+            "the multi-line result",
+        )
     }
 }
 KT
@@ -61,6 +66,22 @@ check "an unrelated new assertion cannot cancel a deleted one" 1 's/assertTrue(b
 check "an argument dropped from an assertion is flagged" 1 's/assertEquals(expected, compute(input), "the result")/assertEquals(compute(input), "the result")/'
 # The marker is written in two pieces so this file never trips the guard it tests.
 check "a new suppression is flagged" 1 "s/^class FooTest {/@Supp""ress(\"x\") class FooTest {/"
+
+# Ways a test can be neutered while keeping an assertion-shaped line. Each must be flagged.
+check "an assertion that compares a value to itself is flagged" 1 's/assertEquals(expected, compute(input), "the result")/assertEquals(expected, expected, "the result")/'
+check "an always-true assertion is flagged" 1 's/assertTrue(board.isFull())/assertTrue(board.isFull() || true)/'
+check "a commented-out assertion is flagged" 1 's/^        assertTrue(board.isFull())/        \/\/ assertTrue(board.isFull())/'
+check "an assertion behind if (false) is flagged" 1 's/assertTrue(board.isFull())/if (false) assertTrue(board.isFull())/'
+check "a multi-line assertion with an argument swapped is flagged" 1 's/^            actualValue,/            expectedValue,/'
+check "a multi-line assertion that only moves is allowed" 0 's/^            "the multi-line result",/            "the multi-line result"/'
+check "a removed test marker is flagged" 1 '/@Test/d'
+
+# A test file moved out of the test tree has no removed lines, so it needs its own check.
+reset
+mkdir -p "$work/docs"
+git -C "$work" mv "$test_file" docs/Foo.txt
+(cd "$work" && python3 "$guard" >/dev/null 2>&1)
+if [ $? -eq 1 ]; then echo "ok   a test file moved out of the test tree is flagged"; else echo "FAIL a test file moved out of the test tree is flagged"; failures=$((failures + 1)); fi
 
 if [ "$failures" -gt 0 ]; then
     echo "floor-guard self-test: $failures failed"

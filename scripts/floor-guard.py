@@ -41,16 +41,27 @@ def git(*args):
     return result.stdout
 
 
+HUNK = re.compile(r"^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+
+
 def parse_diff(diff):
-    """Return (added, removed, deleted_files); added/removed are (file, text) pairs."""
-    added, removed, deleted = [], [], []
+    """Return (added, removed, deleted_files, added_at, removed_at).
+
+    added and removed are (file, text) pairs. added_at and removed_at are (file, line number, text) triples: the line
+    number is in the new file for an added line and in the base file for a removed one, both counted from 1.
+    """
+    added, removed, deleted, added_at, removed_at = [], [], [], [], []
     file = old_file = ""
     in_header = False
+    old_no = new_no = 0
     for line in diff.split("\n"):
         if line.startswith("diff "):
             in_header = True
         elif line.startswith("@@"):
             in_header = False
+            hunk = HUNK.match(line)
+            if hunk:
+                old_no, new_no = int(hunk.group(1)), int(hunk.group(2))
         elif in_header:
             if line.startswith("--- "):
                 old_file = re.sub(r"^[ab]/", "", line[4:])
@@ -61,9 +72,13 @@ def parse_diff(diff):
                     deleted.append(file)
         elif line.startswith("+"):
             added.append((file, line[1:]))
+            added_at.append((file, new_no, line[1:]))
+            new_no += 1
         elif line.startswith("-"):
             removed.append((file, line[1:]))
-    return added, removed, deleted
+            removed_at.append((file, old_no, line[1:]))
+            old_no += 1
+    return added, removed, deleted, added_at, removed_at
 
 
 def untracked_diff():
@@ -82,15 +97,40 @@ def untracked_diff():
     return "\n".join(parts)
 
 
-def assertion_signature(text):
-    """What kind of check a line is: the assertion function and its message, ignoring the arguments."""
-    call = ASSERTIONS.search(text)
-    message = re.findall(r'"[^"]*"\s*\)?\s*$', text.strip())
-    return (call.group(1), message[0].rstrip(") \t") if message else "")
+LOOKBACK = 12
+NEUTERED = re.compile(r"\|\|\s*true\b|&&\s*false\b|\bif\s*\(\s*false\s*\)|\bwhile\s*\(\s*false\s*\)")
+WRAPPER_OR_CHAIN = r"(?:[\w.]+\({o}\)|{o}(?:(?:\?\.|\.)\w+(?:\(\))?)+)"
+
+
+def strip_comment(text):
+    """The line without its // comment (outside strings) and without any /* ... */ on it."""
+    out, quote, i = "", None, 0
+    while i < len(text):
+        char = text[i]
+        if quote:
+            out += char
+            if char == "\\" and i + 1 < len(text):
+                out += text[i + 1]
+                i += 1
+            elif char == quote:
+                quote = None
+        elif char in "\"'":
+            quote = char
+            out += char
+        elif text.startswith("//", i):
+            break
+        else:
+            out += char
+        i += 1
+    return re.sub(r"/\*.*?\*/", "", out)
+
+
+def is_assertion(line):
+    return bool(ASSERTIONS.search(strip_comment(line)))
 
 
 def call_arguments(text):
-    """The top-level arguments of the first assertion call on the line, or None if the call does not close on it."""
+    """The top-level arguments of the first assertion call in the text, or None if the call does not close in it."""
     start = ASSERTIONS.search(text).end()
     args, current, depth, quote, i = [], "", 0, None, start
     while i < len(text):
@@ -111,7 +151,7 @@ def call_arguments(text):
         elif char in ")]}":
             if depth == 0 and char == ")":
                 args.append(current.strip())
-                return args
+                return [a for a in args[:-1]] + ([args[-1]] if args[-1] else [])
             depth -= 1
             current += char
         elif char == "," and depth == 0:
@@ -127,21 +167,89 @@ def squash(text):
     return re.sub(r"\s+", "", text)
 
 
+def assertion_signature(text):
+    """The assertion function and its message (a string literal last argument), ignoring the other arguments."""
+    function = ASSERTIONS.search(text).group(1)
+    args = call_arguments(text)
+    message = args[-1] if args and args[-1].startswith('"') else ""
+    return (function, message)
+
+
+def joined_call(lines, index):
+    """The assertion starting at lines[index] joined into one string, and how many lines it spans."""
+    text = ""
+    for count in range(1, LOOKBACK + 1):
+        if index + count > len(lines):
+            break
+        text += " " + strip_comment(lines[index + count - 1]).strip()
+        if call_arguments(text.strip()) is not None:
+            return text.strip(), count
+    return strip_comment(lines[index]).strip(), 1
+
+
+def assertion_owner(lines, number):
+    """The index of the assertion that the changed line number (from 1) belongs to, or None."""
+    index = number - 1
+    if index >= len(lines):
+        return None
+    if is_assertion(lines[index]):
+        return index
+    for start in range(index - 1, max(index - LOOKBACK, 0) - 1, -1):
+        if is_assertion(lines[start]):
+            _, span = joined_call(lines, start)
+            return start if start + span > index else None
+    return None
+
+
+def kept(old_arg, new_arg):
+    """True if the new argument is the old one as it was, or only wrapped (`Gem.RED` to `Piece(Gem.RED)`) or followed
+    by a member chain (`board[p]` to `board[p]?.gem`). Anything else drops what the old argument checked."""
+    old, new = squash(old_arg), squash(new_arg)
+    if new == old:
+        return True
+    return bool(re.fullmatch(WRAPPER_OR_CHAIN.format(o=re.escape(old)), new))
+
+
 def same_assertion(removed, added):
     """True if `added` can stand in for `removed`: a retyped or re-aimed assertion, not a different or emptied one.
 
-    Same function and message, the same number of arguments, and at least one non-string argument kept as it was (or
-    only wrapped, as `Gem.RED` becomes `Piece(Gem.RED)`). A line whose call does not close on it, such as a bare
-    `assertEquals(` that continues below, can only match an identical line.
+    Same function and message, the same number of arguments, at least one non-string argument kept (see `kept`), no
+    argument repeated that was not repeated before (`assertEquals(x, x)`), and nothing that always passes
+    (`|| true`, `if (false)`). Both sides are whole calls, joined across lines.
     """
     if assertion_signature(removed) != assertion_signature(added):
+        return False
+    if NEUTERED.search(added) and not NEUTERED.search(removed):
         return False
     old, new = call_arguments(removed), call_arguments(added)
     if old is None or new is None:
         return squash(removed) == squash(added)
     if len(old) != len(new):
         return False
-    return any(not o.startswith(('"', "'")) and squash(o) in squash(n) for o, n in zip(old, new))
+    plain_new = [squash(a) for a in new if not a.startswith(('"', "'"))]
+    plain_old = [squash(a) for a in old if not a.startswith(('"', "'"))]
+    if len(set(plain_new)) < len(plain_new) and len(set(plain_old)) == len(plain_old):
+        return False
+    return any(not o.startswith(('"', "'")) and kept(o, n) for o, n in zip(old, new))
+
+
+def read_new(file):
+    try:
+        with open(file, encoding="utf-8") as handle:
+            return handle.read().split("\n")
+    except OSError:
+        return []
+
+
+def read_old(base, file):
+    result = subprocess.run(["git", "show", f"{base}:{file}"], capture_output=True, text=True)
+    return result.stdout.split("\n") if result.returncode == 0 else []
+
+
+def changed_assertions(changes, lines):
+    """The whole assertion calls that the changed lines belong to, once each."""
+    owners = sorted({o for _, number, _ in changes if (o := assertion_owner(lines, number)) is not None})
+    return [joined_call(lines, o)[0] for o in owners]
 
 
 def rule_key(text):
@@ -212,8 +320,8 @@ def main():
         return 2
     os.chdir(top)
 
-    diff = git("diff", "--unified=0", base, "--") + "\n" + untracked_diff()
-    added, removed, deleted = parse_diff(diff)
+    diff = git("diff", "--unified=0", "--no-renames", base, "--") + "\n" + untracked_diff()
+    added, removed, deleted, added_at, removed_at = parse_diff(diff)
 
     findings = []
 
@@ -235,20 +343,25 @@ def main():
         if TEST_FILES.search(file):
             flag("test-deleted", file, "file deleted")
     # A removed assertion is forgiven only when the same file adds one that can stand in for it, one for one
-    # (see same_assertion). That lets a type migration retype assertions, and still catches a deleted,
-    # emptied or swapped-for-something-trivial one.
-    stand_ins = {}
-    for file, text in added:
-        if TEST_FILES.search(file) and ASSERTIONS.search(text):
-            stand_ins.setdefault(file, []).append(text)
-    for file, text in removed:
-        if TEST_FILES.search(file) and file not in deleted and ASSERTIONS.search(text):
-            candidates = stand_ins.get(file, [])
-            match = next((i for i, added_text in enumerate(candidates) if same_assertion(text, added_text)), None)
+    # (see same_assertion). That lets a type migration retype assertions, and still catches a deleted, emptied,
+    # commented-out, neutered or swapped-for-something-trivial one.
+    for file in sorted({f for f, _, _ in removed_at} | {f for f, _, _ in added_at}):
+        if not TEST_FILES.search(file) or file in deleted:
+            continue
+        old_lines = read_old(base, file)
+        new_lines = read_new(file)
+        gone = changed_assertions([c for c in removed_at if c[0] == file], old_lines)
+        stand_ins = changed_assertions([c for c in added_at if c[0] == file], new_lines)
+        for text in gone:
+            match = next((i for i, cand in enumerate(stand_ins) if same_assertion(text, cand)), None)
             if match is None:
                 flag("assertion-removed", file, text)
             else:
-                candidates.pop(match)
+                stand_ins.pop(match)
+        markers_removed = sum(1 for f, _, t in removed_at if f == file and re.match(r"\s*@Test\b", t))
+        markers_added = sum(1 for f, _, t in added_at if f == file and re.match(r"\s*@Test\b", t))
+        if markers_removed > markers_added:
+            flag("test-removed", file, f"{markers_removed - markers_added} @Test marker(s) removed")
 
     removed_rules = [(f, t) for f, t in removed if f.endswith("CONSTRAINTS.md") and rule_key(t)]
     added_rules = [(f, t) for f, t in added if f.endswith("CONSTRAINTS.md") and rule_key(t)]
