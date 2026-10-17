@@ -275,4 +275,24 @@ class GameSessionTest {
         assertEquals(expected.encode(), saved("game.sav"))
         assertFalse(saved("best.txt").isNullOrBlank())
     }
+
+    @Test
+    fun onlyAnAcceptedMoveOrANewGameCanBeSkipped() {
+        val game = Game.new(33L)
+        val scene = Scene().also { it.load(game.board) }
+        val session = sessionOf(game)
+        assertFalse(session.isMovePlaying, "nothing is playing at rest")
+
+        session.play(invalidMove(game))
+        assertFalse(session.isMovePlaying, "a rejected swap swings back and forth and is not skipped")
+
+        val move = findValidMoves(game.board).first()
+        session.play(move)
+        assertTrue(session.isMovePlaying, "an accepted move is skippable while it plays")
+        session.finish(scene)
+        assertFalse(session.isMovePlaying, "and not once it has finished")
+
+        session.newGame(scene)
+        assertTrue(session.isMovePlaying, "a new game's clear and refill is skippable")
+    }
 }

@@ -118,14 +118,14 @@ class GameController(
 
     /**
      * Touching a gem picks it up. A touch on the New Game button picks up nothing. A touch while an animation plays
-     * skips to its end and picks up nothing; the next touch plays.
+     * skips to its end and picks up nothing; the next touch plays. A spring-back or a rejected swap is not skipped.
      */
     private fun beginTouch(
         event: TouchEvent,
         layout: BoardLayout,
     ) {
         buttonPressed = hud.isOnNewGameButton(layout, event.x, event.y)
-        if (!buttonPressed) timeline?.skip(scene)
+        if (!buttonPressed && session.isMovePlaying) timeline?.skip(scene)
         val canPlay = !buttonPressed && timeline == null
         drag.begin(if (canPlay) Point(event.x, event.y) else null, layout)
     }

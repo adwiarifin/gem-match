@@ -35,6 +35,9 @@ class GameSession(
 
     val board: Board get() = game.board
 
+    /** True while an accepted move or a new game animates. A rejected swap or a spring-back is not one. */
+    val isMovePlaying: Boolean get() = pending != null
+
     /** Tries [move]. Returns the animation to play: the steps of an accepted move, or a swap and back. */
     fun play(move: Move): Timeline =
         when (val outcome = game.trySwap(move.from, move.to)) {
