@@ -34,3 +34,19 @@ private fun lineFor(group: MatchGroup): Special {
 }
 
 private fun Run.endsAt(pos: Pos): Boolean = pos == cells.first() || pos == cells.last()
+
+/**
+ * The special pieces the player's own swap earns, one per qualifying group. Each goes on the swapped cell
+ * that belongs to the group; if both do, on the one the player dragged ([dragged]).
+ */
+fun createdPieces(
+    groups: List<MatchGroup>,
+    dragged: Pos,
+    other: Pos,
+): List<Step.Create> =
+    groups.mapNotNull { group ->
+        val special = classify(group) ?: return@mapNotNull null
+        val pos = listOf(dragged, other).firstOrNull { it in group.cells } ?: return@mapNotNull null
+        val piece = if (special == Special.COLOUR) Piece(null, special) else Piece(group.runs.first().gem, special)
+        Step.Create(pos, piece)
+    }

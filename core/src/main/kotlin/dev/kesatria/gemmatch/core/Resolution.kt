@@ -8,6 +8,7 @@ data class Resolution(
 
 /**
  * Plays a valid swap to a stable board: clear, fall, spawn, repeat until no matches remain.
+ * [a] is the cell the player dragged. Only the player's own match (depth 1) can make special pieces.
  * Consumes [rng] in place (one gem per spawn); pass a copy if the caller must keep its own.
  */
 fun resolveSwap(
@@ -32,6 +33,13 @@ fun resolveSwap(
         steps += Step.Clear(cleared, points, depth)
         score += points
         current = cleared.fold(current) { b, pos -> b.with(pos, null) }
+
+        if (depth == 1) {
+            for (create in createdPieces(groups, a, b)) {
+                steps += create
+                current = current.with(create.pos, create.piece)
+            }
+        }
 
         val (afterFall, fall) = applyGravity(current)
         if (fall.moves.isNotEmpty()) steps += fall

@@ -22,6 +22,10 @@ fun replay(
                 step.cells.fold(board) { b, pos -> b.with(pos, null) }
             }
 
+            is Step.Create -> {
+                board.with(step.pos, step.piece)
+            }
+
             is Step.Fall -> {
                 val vacated = step.moves.fold(board) { b, move -> b.with(move.from, null) }
                 step.moves.fold(vacated) { b, move -> b.with(move.to, move.piece) }

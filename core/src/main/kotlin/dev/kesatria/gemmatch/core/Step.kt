@@ -26,6 +26,12 @@ sealed interface Step {
         val depth: Int,
     ) : Step
 
+    /** A special piece made by the player's match, placed on a cell that the preceding [Clear] emptied. */
+    data class Create(
+        val pos: Pos,
+        val piece: Piece,
+    ) : Step
+
     data class Fall(
         val moves: List<GemMove>,
     ) : Step

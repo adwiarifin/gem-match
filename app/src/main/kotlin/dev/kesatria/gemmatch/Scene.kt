@@ -12,8 +12,8 @@ class Sprite(
     var row: Float,
     var col: Float,
 ) {
-    /** The plain gem this sprite shows. The colour gem has none and gets its own drawing with the overlays. */
-    val gem: Gem get() = checkNotNull(piece.gem) { "no drawing for $piece yet" }
+    /** The gem shape this sprite is drawn with. The colour gem has none; it borrows white until its overlay lands. */
+    val gem: Gem get() = piece.gem ?: Gem.WHITE
 
     var scale = 1f
     var alpha = 1f

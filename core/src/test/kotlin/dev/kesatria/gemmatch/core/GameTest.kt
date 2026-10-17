@@ -111,7 +111,8 @@ class GameTest {
             var game = Game.new(seed)
             val chooser = Rng(seed)
             repeat(MOVES_PER_GAME) { turn ->
-                val moves = findValidMoves(game.board)
+                // Special swaps do nothing until activation lands (T24); they join this play in the T30 soak.
+                val moves = findMatchMoves(game.board).ifEmpty { return@repeat }
                 val move = moves[chooser.nextInt(moves.size)]
 
                 val outcome = game.trySwap(move.from, move.to)
