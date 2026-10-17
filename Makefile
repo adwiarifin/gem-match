@@ -9,6 +9,7 @@ check-fast:
 	scripts/floor-guard.py
 	scripts/test-check-permissions.sh
 	scripts/test-sign-ci.sh
+	scripts/test-floor-guard.sh
 	gitleaks detect --redact --no-banner
 
 # Task end: aim under 2 minutes, ceiling 5.

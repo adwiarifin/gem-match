@@ -83,14 +83,65 @@ def untracked_diff():
 
 
 def assertion_signature(text):
-    """What kind of check a line is: the assertion function and its message, ignoring the arguments.
-
-    Retyping an assertion (a Gem becomes a Piece) keeps its signature. Deleting it, or swapping it for a
-    different kind of check, does not.
-    """
+    """What kind of check a line is: the assertion function and its message, ignoring the arguments."""
     call = ASSERTIONS.search(text)
     message = re.findall(r'"[^"]*"\s*\)?\s*$', text.strip())
     return (call.group(1), message[0].rstrip(") \t") if message else "")
+
+
+def call_arguments(text):
+    """The top-level arguments of the first assertion call on the line, or None if the call does not close on it."""
+    start = ASSERTIONS.search(text).end()
+    args, current, depth, quote, i = [], "", 0, None, start
+    while i < len(text):
+        char = text[i]
+        if quote:
+            current += char
+            if char == "\\" and i + 1 < len(text):
+                current += text[i + 1]
+                i += 1
+            elif char == quote:
+                quote = None
+        elif char in "\"'":
+            quote = char
+            current += char
+        elif char in "([{":
+            depth += 1
+            current += char
+        elif char in ")]}":
+            if depth == 0 and char == ")":
+                args.append(current.strip())
+                return args
+            depth -= 1
+            current += char
+        elif char == "," and depth == 0:
+            args.append(current.strip())
+            current = ""
+        else:
+            current += char
+        i += 1
+    return None
+
+
+def squash(text):
+    return re.sub(r"\s+", "", text)
+
+
+def same_assertion(removed, added):
+    """True if `added` can stand in for `removed`: a retyped or re-aimed assertion, not a different or emptied one.
+
+    Same function and message, the same number of arguments, and at least one non-string argument kept as it was (or
+    only wrapped, as `Gem.RED` becomes `Piece(Gem.RED)`). A line whose call does not close on it, such as a bare
+    `assertEquals(` that continues below, can only match an identical line.
+    """
+    if assertion_signature(removed) != assertion_signature(added):
+        return False
+    old, new = call_arguments(removed), call_arguments(added)
+    if old is None or new is None:
+        return squash(removed) == squash(added)
+    if len(old) != len(new):
+        return False
+    return any(not o.startswith(('"', "'")) and squash(o) in squash(n) for o, n in zip(old, new))
 
 
 def rule_key(text):
@@ -183,20 +234,21 @@ def main():
     for file in deleted:
         if TEST_FILES.search(file):
             flag("test-deleted", file, "file deleted")
-    # A removed assertion is forgiven only when the same file adds one of the same kind in its place,
-    # one for one. That lets a type migration retype assertions, and still catches a deleted one.
-    replacements = {}
+    # A removed assertion is forgiven only when the same file adds one that can stand in for it, one for one
+    # (see same_assertion). That lets a type migration retype assertions, and still catches a deleted,
+    # emptied or swapped-for-something-trivial one.
+    stand_ins = {}
     for file, text in added:
         if TEST_FILES.search(file) and ASSERTIONS.search(text):
-            key = (file, assertion_signature(text))
-            replacements[key] = replacements.get(key, 0) + 1
+            stand_ins.setdefault(file, []).append(text)
     for file, text in removed:
         if TEST_FILES.search(file) and file not in deleted and ASSERTIONS.search(text):
-            key = (file, assertion_signature(text))
-            if replacements.get(key, 0) > 0:
-                replacements[key] -= 1
-            else:
+            candidates = stand_ins.get(file, [])
+            match = next((i for i, added_text in enumerate(candidates) if same_assertion(text, added_text)), None)
+            if match is None:
                 flag("assertion-removed", file, text)
+            else:
+                candidates.pop(match)
 
     removed_rules = [(f, t) for f, t in removed if f.endswith("CONSTRAINTS.md") and rule_key(t)]
     added_rules = [(f, t) for f, t in added if f.endswith("CONSTRAINTS.md") and rule_key(t)]

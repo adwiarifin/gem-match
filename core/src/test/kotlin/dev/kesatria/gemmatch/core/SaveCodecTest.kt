@@ -24,20 +24,23 @@ class SaveCodecTest {
     private val fresh = Game.new(8L)
     private val saved = gm1(fresh)
 
-    private fun gm1(game: Game): String = listOf("GM1", game.score, game.rngState, boardDigits(game)).joinToString(";")
+    private fun gm1(game: Game): String = listOf("GM1", game.score, game.rngState, gm1Digits(game)).joinToString(";")
 
-    private fun boardCells(game: Game): String =
-        (0 until BOARD_SIZE).joinToString("") { row ->
-            (0 until BOARD_SIZE).joinToString("") { col -> "${checkNotNull(game.board[Pos(row, col)]?.gem).ordinal}-" }
-        }
-
-    private fun boardDigits(game: Game): String =
+    /** The board as an old `GM1` save writes it: one gem digit per cell. */
+    private fun gm1Digits(game: Game): String =
         (0 until BOARD_SIZE)
             .flatMap { row -> (0 until BOARD_SIZE).map { col -> checkNotNull(game.board[Pos(row, col)]?.gem).ordinal } }
             .joinToString("")
 
+    /** The board as the save writes it now: each gem digit followed by `-`, as the game has no specials yet. */
+    private fun boardDigits(game: Game): String =
+        (0 until BOARD_SIZE).joinToString("") { row ->
+            (0 until BOARD_SIZE).joinToString("") { col -> "${checkNotNull(game.board[Pos(row, col)]?.gem).ordinal}-" }
+        }
+
     @Test
     fun encodedGameStartsWithTheVersionMarker() {
+        assertTrue(saved.startsWith("GM1;"))
         assertTrue(played(8L, 5).encode().startsWith("GM2;"))
     }
 
@@ -96,6 +99,7 @@ class SaveCodecTest {
 
     @Test
     fun wrongVersionReturnsNull() {
+        assertNull(Game.decode(saved.replaceFirst("GM1", "GM2")))
         assertNull(Game.decode(saved.replaceFirst("GM1", "GM3")))
     }
 
@@ -164,7 +168,7 @@ class SaveCodecTest {
     fun boardDigitsMatchTheGameForReadability() {
         val game = fresh
 
-        assertTrue(game.encode().endsWith(boardCells(game)))
+        assertTrue(game.encode().endsWith(boardDigits(game)))
     }
 
     private val everySpecialBoard =
