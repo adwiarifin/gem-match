@@ -8,8 +8,9 @@ data class Resolution(
 
 /**
  * Plays a valid swap to a stable board: clear, fall, spawn, repeat until no matches remain.
- * [a] is the cell the player dragged. A special fires when the swap moves it, or when it is part of a match at any
- * depth, and any clear that fires nothing earns specials for its qualifying groups.
+ * [a] is the cell the player dragged. A special fires when the swap moves it, when it is part of a match at any
+ * depth, or when another effect reaches it. Every qualifying match group earns a special, whether or not anything
+ * fired in the same clear.
  * Consumes [rng] in place (one gem per spawn); pass a copy if the caller must keep its own.
  */
 fun resolveSwap(
@@ -39,11 +40,9 @@ fun resolveSwap(
         score += points
         current = cleared.fold(current) { b, pos -> b.with(pos, null) }
 
-        if (fired.isEmpty()) {
-            for (create in createdPieces(groups, if (depth == 1) listOf(a, b) else emptyList())) {
-                steps += create
-                current = current.with(create.pos, create.piece)
-            }
+        for (create in createdPieces(groups, if (depth == 1) listOf(a, b) else emptyList())) {
+            steps += create
+            current = current.with(create.pos, create.piece)
         }
 
         val (afterFall, fall) = applyGravity(current)

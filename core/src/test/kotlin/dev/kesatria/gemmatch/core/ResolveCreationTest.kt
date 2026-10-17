@@ -111,15 +111,77 @@ class ResolveCreationTest {
     }
 
     @Test
-    fun anyFireInAClearStopsEveryGroupOfThatClearFromMakingASpecial() {
-        // The swap makes a run of five and a run of three that holds an old blast, which fires.
+    fun aFireInAClearDoesNotStopTheMatchesOfThatClearFromMakingSpecials() {
+        // The swap makes a run of five and a run of three that holds an old blast, which fires. The yellow gem at
+        // (5, 0) hangs off the end of the second run, so that group is a short L and makes a line gem too.
         val board =
             patterned(*greens(3 to 0, 3 to 1, 3 to 3, 3 to 4, 4 to 2))
                 .with(Pos(4, 0), Piece(Gem.YELLOW, Special.BLAST))
         val result = resolveSwap(board, Pos(4, 2), Pos(3, 2), Rng(1L))
 
         assertTrue(result.steps.any { it is Step.Activate })
-        assertEquals(emptyList(), creates(firstClear(result.steps)))
+        val expected =
+            listOf(
+                Step.Create(Pos(3, 2), Piece(null, Special.COLOUR)),
+                Step.Create(Pos(4, 2), Piece(Gem.YELLOW, Special.LINE_ROW)),
+            )
+        assertEquals(expected, creates(firstClear(result.steps)))
+    }
+
+    private fun whites(vararg cells: Pair<Int, Int>): Array<Pair<Pos, Piece>> =
+        cells.map { (row, col) -> Pos(row, col) to Piece(Gem.WHITE) }.toTypedArray()
+
+    private fun madeBySwappingIn(
+        special: Special,
+        from: Pos,
+        to: Pos,
+        vararg others: Pair<Int, Int>,
+    ): Pair<List<Step.Create>, List<Step.Activate>> {
+        val piece = Piece(if (special == Special.COLOUR) null else Gem.WHITE, special)
+        val board = patterned(*whites(*others), from to piece)
+        val steps = resolveSwap(board, from, to, Rng(1L)).steps
+        return creates(firstClear(steps)) to steps.takeWhile { it !is Step.Fall }.filterIsInstance<Step.Activate>()
+    }
+
+    @Test
+    fun aSpecialSwappedIntoARunOfFiveStillMakesAColourGem() {
+        // The owner's case: white, white, column white, white, white.
+        for (special in Special.entries.filter { it != Special.COLOUR }) {
+            val (made, fired) = madeBySwappingIn(special, Pos(4, 2), Pos(3, 2), 3 to 0, 3 to 1, 3 to 3, 3 to 4)
+
+            assertEquals(listOf(Step.Create(Pos(3, 2), Piece(null, Special.COLOUR))), made, "$special")
+            assertTrue(fired.isNotEmpty(), "$special still fires")
+        }
+    }
+
+    @Test
+    fun aSpecialSwappedIntoARunOfFourStillMakesABlast() {
+        for (special in Special.entries.filter { it != Special.COLOUR }) {
+            val (made, fired) = madeBySwappingIn(special, Pos(4, 3), Pos(3, 3), 3 to 1, 3 to 2, 3 to 4)
+
+            assertEquals(listOf(Step.Create(Pos(3, 3), Piece(Gem.WHITE, Special.BLAST))), made, "$special")
+            assertTrue(fired.isNotEmpty(), "$special still fires")
+        }
+    }
+
+    @Test
+    fun aSpecialSwappedIntoTheCornerOfAnLStillMakesACrossGem() {
+        for (special in Special.entries.filter { it != Special.COLOUR }) {
+            val (made, fired) = madeBySwappingIn(special, Pos(2, 2), Pos(3, 2), 3 to 0, 3 to 1, 4 to 2, 5 to 2)
+
+            assertEquals(listOf(Step.Create(Pos(3, 2), Piece(Gem.WHITE, Special.CROSS))), made, "$special")
+            assertTrue(fired.isNotEmpty(), "$special still fires")
+        }
+    }
+
+    @Test
+    fun aSpecialSwappedIntoAShortTStillMakesAShortX() {
+        for (special in Special.entries.filter { it != Special.COLOUR }) {
+            val (made, fired) = madeBySwappingIn(special, Pos(2, 2), Pos(3, 2), 3 to 1, 3 to 3, 4 to 2, 5 to 2)
+
+            assertEquals(listOf(Step.Create(Pos(3, 2), Piece(Gem.WHITE, Special.X_SHORT))), made, "$special")
+            assertTrue(fired.isNotEmpty(), "$special still fires")
+        }
     }
 
     @Test
@@ -174,23 +236,37 @@ class ResolveCreationTest {
         assertTrue(cascadeMade > 0, "no cascade ever made a special")
     }
 
-    /** Counts qualifying groups on the board each Clear is applied to, skipping any Clear that follows an Activate. */
+    @Test
+    fun withAnyKindOfSpecialOnTheBoardEveryMatchGroupStillMakesItsSpecial() {
+        var checked = 0
+        for (special in Special.entries.filter { it != Special.COLOUR }) {
+            for (seed in 1L..SPECIAL_SEEDS) {
+                val base = randomStableBoard(seed)
+                val cell = Pos((seed % BOARD_SIZE).toInt(), (seed / 2 % BOARD_SIZE).toInt())
+                val board = base.with(cell, Piece(base[cell]?.gem, special))
+                if (findRuns(board).isNotEmpty()) continue
+
+                for (move in findMatchMoves(board).take(6)) {
+                    val result = resolveSwap(board, move.from, move.to, Rng(seed))
+
+                    assertEquals(expectedCreates(board, result.steps), creates(result.steps).size, "$special seed $seed $move")
+                    assertEquals(result.board, replay(board, result.steps), "$special seed $seed $move")
+                    checked++
+                }
+            }
+        }
+        assertTrue(checked > SPECIAL_SEEDS, "too few moves were checked: $checked")
+    }
+
+    /** Counts the qualifying groups on the board each Clear is applied to. A fire in the same clear does not matter. */
     private fun expectedCreates(
         start: Board,
         steps: List<Step>,
     ): Int {
         var board = start
-        var fired = false
         var total = 0
         steps.forEachIndexed { index, step ->
-            when (step) {
-                is Step.Activate -> fired = true
-                is Step.Clear -> {
-                    if (!fired) total += findMatchGroups(board).count { classify(it) != null }
-                    fired = false
-                }
-                else -> Unit
-            }
+            if (step is Step.Clear) total += findMatchGroups(board).count { classify(it) != null }
             board = replay(start, steps.take(index + 1))
         }
         return total
@@ -198,5 +274,6 @@ class ResolveCreationTest {
 
     private companion object {
         const val SEEDS = 300L
+        const val SPECIAL_SEEDS = 120L
     }
 }
