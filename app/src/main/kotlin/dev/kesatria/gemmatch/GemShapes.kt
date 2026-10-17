@@ -53,7 +53,7 @@ object GemShapes {
             Gem.BLUE ->
                 polygon(sides = 3, radius = TRIANGLE_RADIUS, startAngle = -HALF_TURN / 2, centreY = TRIANGLE_DROP)
             Gem.PURPLE -> star()
-            Gem.WHITE -> cross()
+            Gem.WHITE -> polygon(sides = 5, radius = PENTAGON_RADIUS, startAngle = -HALF_TURN / 2)
         }
 
     private fun roundedSquare(): Path =
@@ -91,25 +91,6 @@ object GemShapes {
             close()
         }
 
-    private fun cross(): Path =
-        Path().apply {
-            val arm = CROSS_ARM
-            val reach = CROSS_REACH
-            moveTo(-arm, -reach)
-            lineTo(arm, -reach)
-            lineTo(arm, -arm)
-            lineTo(reach, -arm)
-            lineTo(reach, arm)
-            lineTo(arm, arm)
-            lineTo(arm, reach)
-            lineTo(-arm, reach)
-            lineTo(-arm, arm)
-            lineTo(-reach, arm)
-            lineTo(-reach, -arm)
-            lineTo(-arm, -arm)
-            close()
-        }
-
     private const val HALF_TURN = PI
     private const val CIRCLE_RADIUS = 0.9f
     private const val DIAMOND_RADIUS = 1.0f
@@ -121,8 +102,7 @@ object GemShapes {
     private const val STAR_POINTS = 5
     private const val STAR_OUTER = 1.05f
     private const val STAR_INNER = 0.5f
-    private const val CROSS_ARM = 0.34f
-    private const val CROSS_REACH = 0.95f
+    private const val PENTAGON_RADIUS = 1.0f
     private const val OUTLINE_WIDTH = 0.07f
     private const val OUTLINE_ALPHA = 90
     private const val OPAQUE = 255
