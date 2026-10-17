@@ -11,6 +11,7 @@ import dev.kesatria.gemmatch.core.BoardLayout
 class BoardRenderer {
     private val background = Paint().apply { color = Palette.BACKGROUND }
     private val panel = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Palette.PANEL }
+    private val effectRenderer = EffectRenderer()
     private val panelRect = RectF()
     private val noticeRect = RectF()
     private val noticeFill = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -36,6 +37,7 @@ class BoardRenderer {
         canvas.clipRect(panelRect)
         scene.forEach { if (it !== scene.raised) drawSprite(canvas, layout, it, scene.clock) }
         scene.raised?.let { drawSprite(canvas, layout, it, scene.clock) }
+        effectRenderer.draw(canvas, layout, scene.effects)
         canvas.restore()
 
         scene.message?.let { drawNotice(canvas, layout, it, scene.messageAlpha) }

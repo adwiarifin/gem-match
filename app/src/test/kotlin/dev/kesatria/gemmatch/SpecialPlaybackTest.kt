@@ -79,4 +79,98 @@ class SpecialPlaybackTest {
         val resumedScene = Scene().also { it.load(resumed.board) }
         assertSceneShows(outcome.game.board, resumedScene, "after save and resume")
     }
+
+    /** The same diagonal board with the two-character [overrides] written over it, for example `3B` or `-W`. */
+    private fun gameWithCells(vararg overrides: Pair<Pair<Int, Int>, String>): Game {
+        val changed = overrides.toMap()
+        val cells =
+            (0 until BOARD_SIZE).joinToString("") { row ->
+                (0 until BOARD_SIZE).joinToString("") { col -> changed[row to col] ?: "${(row + col) % 3}-" }
+            }
+        return assertNotNull(Game.decode("GM2;0;1;$cells"))
+    }
+
+    private fun swap(
+        game: Game,
+        from: Pos,
+        to: Pos,
+    ) = assertIs<SwapOutcome.Accepted>(game.trySwap(from, to))
+
+    @Test
+    fun anEffectShowsWhilePlayingAndIsGoneAtTheEnd() {
+        val game = gameWithCells((4 to 4) to "3B")
+        val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+        val scene = Scene().also { it.load(game.board) }
+        val timeline = Timeline.forSteps(outcome.steps) { }
+
+        var seen = 0
+        while (!timeline.isFinished) {
+            timeline.advance(1f / 60, scene)
+            seen = maxOf(seen, scene.effects.size)
+        }
+
+        assertEquals(1, seen)
+        assertTrue(scene.effects.isEmpty())
+    }
+
+    @Test
+    fun chainedEffectsPlayInStepOrderAndLaterOnesAreQuicker() {
+        val game = gameWithCells((4 to 4) to "3B", (3 to 5) to "4R", (5 to 6) to "5X")
+        val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+        val fired = outcome.steps.filterIsInstance<Step.Activate>()
+        val scene = Scene().also { it.load(game.board) }
+        val timeline = Timeline.forSteps(outcome.steps) { }
+
+        val origins = mutableListOf<Pos>()
+        while (!timeline.isFinished) {
+            timeline.advance(1f / 60, scene)
+            scene.effects
+                .firstOrNull()
+                ?.origin
+                ?.let { if (origins.lastOrNull() != it) origins += it }
+        }
+
+        assertEquals(fired.map { it.origin }, origins)
+        assertTrue(fired.size >= 3)
+        val animations = fired.mapIndexed { index, step -> ActivateAnimation(step, first = index == 0) }
+        assertTrue(animations[1].seconds < animations[0].seconds)
+        assertSceneShows(outcome.game.board, scene, "after the chain")
+    }
+
+    @Test
+    fun colourWithColourEndsOnTheCoreBoard() {
+        val game = gameWithCells((4 to 4) to "-W", (4 to 5) to "-W")
+        val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+        val scene = Scene().also { it.load(game.board) }
+
+        playToEnd(Timeline.forSteps(outcome.steps) { }, scene)
+
+        assertSceneShows(outcome.game.board, scene, "after colour and colour")
+        assertTrue(scene.effects.isEmpty())
+    }
+
+    @Test
+    fun colourWithASpecialEndsOnTheCoreBoard() {
+        val game = gameWithCells((4 to 4) to "-W", (4 to 5) to "3B", (0 to 0) to "3-", (6 to 6) to "3-")
+        val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+        val scene = Scene().also { it.load(game.board) }
+
+        playToEnd(Timeline.forSteps(outcome.steps) { }, scene)
+
+        assertSceneShows(outcome.game.board, scene, "after colour and blast")
+    }
+
+    @Test
+    fun aNewGameDropsAnyEffectStillPlaying() {
+        val game = gameWithCells((4 to 4) to "3B")
+        val outcome = swap(game, Pos(4, 4), Pos(4, 5))
+        val scene = Scene().also { it.load(game.board) }
+        val timeline = Timeline.forSteps(outcome.steps) { }
+        timeline.advance(0.2f, scene)
+        assertTrue(scene.effects.isNotEmpty())
+
+        scene.load(game.board)
+
+        assertTrue(scene.effects.isEmpty())
+    }
 }

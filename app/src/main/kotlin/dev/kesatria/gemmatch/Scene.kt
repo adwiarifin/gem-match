@@ -36,6 +36,9 @@ class Scene {
         clock = (clock + seconds) % CLOCK_WRAP_SECONDS
     }
 
+    /** The special effects playing right now, drawn over the gems. Empty at rest. */
+    val effects = mutableListOf<Effect>()
+
     /** A short notice drawn over the board (for example before a reshuffle), or null. */
     var message: String? = null
     var messageAlpha = 1f
@@ -44,6 +47,7 @@ class Scene {
     fun load(board: Board) {
         raised = null
         message = null
+        effects.clear()
         for (row in 0 until BOARD_SIZE) {
             for (col in 0 until BOARD_SIZE) {
                 slots[indexOf(Pos(row, col))] = board[Pos(row, col)]?.let { Sprite(it, row.toFloat(), col.toFloat()) }

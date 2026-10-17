@@ -313,7 +313,18 @@ class Timeline(
         fun forSteps(
             steps: List<Step>,
             onCleared: (Int) -> Unit,
-        ): Timeline = Timeline(steps.map { animationFor(it, onCleared) })
+        ): Timeline {
+            var fired = false
+            return Timeline(
+                steps.map { step ->
+                    if (step is Step.Activate) {
+                        ActivateAnimation(step, first = !fired).also { fired = true }
+                    } else {
+                        animationFor(step, onCleared)
+                    }
+                },
+            )
+        }
 
         private fun animationFor(
             step: Step,
@@ -322,7 +333,7 @@ class Timeline(
             when (step) {
                 is Step.Swap -> SwapAnimation(step.a, step.b)
                 is Step.Clear -> ClearAnimation(step.cells, step.points, onCleared)
-                is Step.Activate -> ActivateAnimation()
+                is Step.Activate -> ActivateAnimation(step)
                 is Step.Create -> CreateAnimation(step.pos, step.piece)
                 is Step.Fall -> FallAnimation(step.moves)
                 is Step.Spawn -> SpawnAnimation(step.gems)
