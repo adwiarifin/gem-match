@@ -74,22 +74,22 @@ Note on T36: the `CONSTRAINTS.md` "Measured, not yet enforced" rows are out of d
 Left open on purpose. None blocks the first release. Items marked "owner" need an action only the owner can do.
 
 Release steps:
-- [ ] Merge release PR #1, approve the `sign` job, check the published APK's certificate against `RELEASE_CERT_SHA256` (owner)
-- [ ] Remove `release-as` from `release-please-config.json` right after the first release
-- [ ] Install the CI-signed APK over the old build on the A52 and check the game resumes the saved board (owner plugs in the phone)
+- [x] Merge release PR #1, approve the `sign` job, check the published APK's certificate against `RELEASE_CERT_SHA256` (owner). Done: #1 merged 2026-10-16 and v0.1.0 to v0.1.2 are published; the v0.1.2 APK verifies, its SHA-256 file matches, signer `CN=Adwi Arifin, O=Kesatria Dev`, certificate SHA-256 `b8b8af6e4ba9e5faf7d34cecffdd9bc3c6ed4bf9e125ed42555131a2d7bb5a81` (compare it with your `RELEASE_CERT_SHA256`).
+- [x] Remove `release-as` from `release-please-config.json` right after the first release. Done: it is no longer in the file.
+- [ ] Install the CI-signed APK over the old build on the A52 and check the game resumes the saved board (owner plugs in the phone). Still open: the A52 now holds a debug build of the special gems branch (the signed release was uninstalled on 2026-10-17 with the owner's say-so), so do this with the signed 0.2.0 APK once it is published.
 - [x] Add a tag ruleset on `v*` (restrict updates and deletions) in the repository settings (owner)
 - [x] Back up the keystore and both passwords outside this machine (owner; backed up to cloud storage, location not recorded)
 
 Testing and robustness:
-- [ ] `GameController`, the renderer and the lifecycle wiring have no JVM tests. Either split the controller into a testable core and a thin Android shell, or keep it frozen and record a manual check per release
+- [ ] `GameController`, the renderer and the lifecycle wiring have no JVM tests. Either split the controller into a testable core and a thin Android shell, or keep it frozen and record a manual check per release (Partly, 2026-10-17: the tap-skip decision is now a pure, tested function and `GameSession` is tested with specials; the renderer, overlays and controller wiring are still checked by hand, with no written per-release checklist yet.)
 - [ ] A transient read failure on the save can lead to a new game that overwrites a good save. Rename an unreadable save to `.bad` instead of ignoring it (needs a design call)
 - [ ] `GameStore` catches only `IOException` (a deliberate choice so unexpected errors stay visible; revisit if a crash is ever seen)
-- [ ] Per-frame allocations in the render path. Measure before changing anything
-- [ ] The floor guard's regex checks have known blind spots; `check-fast` and `check-task` do not run detekt or Lint (they run in `check-full` and CI, as `CONSTRAINTS.md` says)
+- [ ] Per-frame allocations in the render path. Measure before changing anything (Partly, 2026-10-17: the effect and overlay drawing allocates nothing per frame and A52 frame time was measured, see `CONSTRAINTS.md`; the base renderer was not profiled.)
+- [ ] The floor guard's regex checks have known blind spots; `check-fast` and `check-task` do not run detekt or Lint (they run in `check-full` and CI, as `CONSTRAINTS.md` says) (Narrowed, 2026-10-17: the guard now reads multi-line calls, rejects neutered and commented-out assertions, moved tests and `-diff` attributes, and a test-count floor catches tests that stop running. A wrapper or lambda it does not know can still change meaning, and `check-fast` and `check-task` still skip detekt and Lint by design.)
 
 Build and supply chain:
 - [x] Gradle dependency verification: `gradle/verification-metadata.xml` is committed and enforced (PR #2). Regenerate it on a clean `GRADLE_USER_HOME` after an upgrade, or CI on a cold cache fails
-- [ ] Pin the build-tools version the signing job uses
+- [ ] Pin the build-tools version the signing job uses (Still open, 2026-10-17: `scripts/sign-ci.sh` picks the newest installed build-tools.)
 
 Product (see also `docs/ideas.md`):
 - [ ] No screen-reader (TalkBack) support
