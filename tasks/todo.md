@@ -64,8 +64,10 @@ Each task ends with `make check-task` and a look on the A52.
 - [x] Checkpoint H: `make check-full` green, owner sees all four specials on the A52
 - [x] T34: Effect animations (ring, beam, streaks; chains in order). Done when: SC17 holds, board matches core at the end, input blocked. Verify: `make check-task`, fire each effect on the A52
 - [x] T35: Idle hint prefers a match move, falls back to a special swap; GM1 save resumes after update. Done when: hint tests pass, install-over resumes. Verify: `make check-task`, install over the old build
-- [ ] Checkpoint I: `make check-full` green, ten-minute owner session (SC16 to 18), tune constants
-- [ ] T36: Docs close-out (SPEC status, CONSTRAINTS measured values, README, decisions). Owner approval, separate docs commit. Verify: `make check-fast`
+- [x] Checkpoint I: `make check-full` green, ten-minute owner session (SC16 to 18), tune constants
+- [x] T36: Docs close-out (SPEC status, README, decisions done; CONSTRAINTS measured values left for the owner, see the note below). Owner approval, separate docs commit. Verify: `make check-fast`
+
+Note on T36: the `CONSTRAINTS.md` "Measured, not yet enforced" rows are out of date (release APK 63,634 bytes unsigned, debug APK 1,114,297 bytes, `core` coverage 99.77%, measured 2026-10-17). `scripts/floor-guard.py` treats raising a "must not grow" number or lowering a "must not fall" number as loosening the bar, so the update needs the owner. All three are still inside their caps and tolerance.
 
 ## Open items after the review and release work (2026-10-16)
 

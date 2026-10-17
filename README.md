@@ -1,8 +1,8 @@
 # Gem Match
 
-An offline match-3 game for Android, in the spirit of Bejeweled. No ads, no accounts, no network, zero permissions. The release APK is about 54 KB unsigned (about 67 KB signed).
+An offline match-3 game for Android, in the spirit of Bejeweled. No ads, no accounts, no network, zero permissions. The release APK is about 64 KB unsigned.
 
-Gems swap by dragging. Match three or more in a row or column, intersecting runs (L, T, +) clear together, gems fall, new ones drop in, and chains score more. The board saves after every move, so killing the app at any moment brings back the same board and score. There is no game over: when no move is left the board reshuffles.
+Gems swap by dragging. Match three or more in a row or column, intersecting runs (L, T, +) clear together, gems fall, new ones drop in, and chains score more. Bigger matches leave special gems behind (blast, line, cross, short X, full X and the colour gem). A special fires when you swap it, when a match uses it, or when another effect reaches it, and effects chain. The rules, the shape table and every pair combination are on one page: [`docs/special-gem-rules.md`](docs/special-gem-rules.md). The board saves after every move, so killing the app at any moment brings back the same board and score. There is no game over: when no move is left the board reshuffles.
 
 This is a hobby project and a portfolio piece, built to show how far framework Android gets without libraries.
 
@@ -10,8 +10,8 @@ This is a hobby project and a portfolio piece, built to show how far framework A
 
 Two modules.
 
-- **`core`** is pure Kotlin with no `android.*`, `java.*` or `javax.*` imports and no Android Gradle plugin, so it is ready for Kotlin Multiplatform. It holds the rules: board, match detection, valid moves, cascades, tiered scoring, reshuffle, swipe geometry and a versioned save format. A move resolves instantly and returns a list of steps (swap, clear, fall, spawn, reshuffle); the game state is immutable and deterministic, driven by its own SplitMix64 random generator whose state is part of the save.
-- **`app`** is the presentation layer: a `SurfaceView` drawn with `Canvas` from scratch, a fixed-timestep game loop, vector gem shapes (seven distinct silhouettes, so gems differ by shape as well as colour), and a timeline that plays the core's steps back as animation. It depends on `core` and nothing else: no AndroidX, no Compose, no bitmap assets.
+- **`core`** is pure Kotlin with no `android.*`, `java.*` or `javax.*` imports and no Android Gradle plugin, so it is ready for Kotlin Multiplatform. It holds the rules: board, match detection, valid moves, cascades, special gems (creation, effects, chains and combos), tiered scoring, reshuffle, swipe geometry and a versioned save format. A move resolves instantly and returns a list of steps (swap, activate, clear, create, fall, spawn, reshuffle); the game state is immutable and deterministic, driven by its own SplitMix64 random generator whose state is part of the save.
+- **`app`** is the presentation layer: a `SurfaceView` drawn with `Canvas` from scratch, a fixed-timestep game loop, vector gem shapes (seven distinct silhouettes, so gems differ by shape as well as colour) with vector overlays for the special gems, and a timeline that plays the core's steps back as animation. It depends on `core` and nothing else: no AndroidX, no Compose, no bitmap assets.
 
 The core never knows about animation or drawing, so a second UI (Compose, a ready-made game library) or another platform can reuse it unchanged.
 
