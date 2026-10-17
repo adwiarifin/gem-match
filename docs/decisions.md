@@ -92,7 +92,7 @@ The owner approved the special gems spec and confirmed that special gems are ine
 
 **D14. Special gems are inert in matches (owner-confirmed).**
 - Why: if a special could be matched away, a cascade could use it up by accident, and the "use it now or save it" choice would be taken out of the player's hands. Inert pieces also keep creation and activation rules simple: a special leaves the board only through the player's own swap or another special's effect.
-- Impact: `findRuns` skips special pieces, so three same-colour pieces in a row that include a special do not clear. The overlay (T32) has to make that readable. A swap touching a special is always legal, so a board holding a special always has a valid move and never reshuffles. The hint prefers a normal match and falls back to a special swap. Specials can pile up on the board if the player keeps saving them.
+- Impact: `findRuns` skips special pieces, so three same-colour pieces in a row that include a special do not clear. The overlay (T33) has to make that readable. A swap touching a special is always legal, so a board holding a special always has a valid move and never reshuffles. The hint prefers a normal match and falls back to a special swap. Specials can pile up on the board if the player keeps saving them.
 - Rollback: one function (`findRuns`) changes, but creation, activation and the hint rules in `SPEC.md` (rules 1, 3, 10) change with it, and so do their tests. No save format impact.
 
 **D15. Scoring constants for special gems.**

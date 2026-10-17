@@ -1,6 +1,6 @@
 # Spec: Gem Match (Bejeweled-style clone, Android)
 
-Status: living document. The base game was approved by the owner and updated 2026-10-15 after the core module (T4-T10) was built. The special gems additions (marked below) are a draft waiting for the owner's approval.
+Status: living document. The base game was approved by the owner and updated 2026-10-15 after the core module (T4-T10) was built. The special gems additions (marked below) were approved by the owner on 2026-10-17.
 Source of intent: `docs/intent/bejeweled-clone.md`, plus one file per later feature (see Features at the end). Quality bar: `CONSTRAINTS.md`.
 
 Scope check (Phase 0): one product with two layers (`core`, `app`). Not decomposed into a capability map, because the layers are not independently shippable. Layer boundaries are specified below.
@@ -39,7 +39,7 @@ Success looks like:
 - Idle means: the board is fully settled and the player has not touched the screen for 8 seconds (tunable constant). Then one valid move pulses as a hint. Any touch clears the hint and resets the timer.
 - Idle time is the sum of foreground frame deltas from the game loop, never wall-clock time. The loop stops when the surface is destroyed (which happens on pause), so time spent backgrounded (home button, phone call, screen off) never counts. On resume the idle timer restarts at 0 and any hint is cleared.
 
-## Special Gems (draft, waiting for approval)
+## Special Gems (approved 2026-10-17)
 
 Intent: `docs/intent/special-gems.md`. Four special gems give more variety in moves, fewer stuck states, and a "use it now or save it" decision.
 
@@ -50,7 +50,7 @@ Intent: `docs/intent/special-gems.md`. Four special gems give more variety in mo
 | L-shape | Line | Clears its row or its column, along the L's longer arm |
 | T-shape or + | Cross | Clears its row and its column |
 
-A special gem stays on the board until the owner swaps it with an orthogonal neighbor. That swap is always legal, even when no match would form. Combos stay small: colour + colour clears the board; colour + another special converts every gem of that other special's colour into that special and fires them all; any other pair fires both effects. No bespoke pair effects.
+A special gem stays on the board until the owner swaps it with an orthogonal neighbor. That swap is always legal, even when no match would form. Combos stay small: colour + colour clears the board; colour + another special converts every gem of that other special's colour into that special and fires them all (converted line gems copy the partner's direction); any other pair fires both effects. No bespoke pair effects.
 
 Rules (the owner decided the table and the combos; the rest are my assumptions, to be confirmed):
 1. **Inert in matches (confirmed by the owner).** Special gems keep their colour but never count toward a run, so a cascade cannot use one up by accident. Another special's effect can still destroy one.
@@ -59,8 +59,8 @@ Rules (the owner decided the table and the combos; the rest are my assumptions, 
 4. **Where it appears.** At the swapped cell that belongs to the group. If both swapped cells belong to the same group, at the cell of the gem the player dragged.
 5. **L against T.** A group of two crossing runs is an L when the crossing cell is the end of both runs, and a T or + when it is inside at least one run. A group of three or more runs counts as a T if any crossing is inside a run, otherwise as an L.
 6. **Line direction.** The longer arm of the L decides: a longer horizontal arm clears the row, a longer vertical arm clears the column. Equal arms clear the row. An arm's length is the length of its run, including the corner cell. Fixed at creation and saved.
-7. **The colour gem has no colour.** It matches nothing, is drawn in a rainbow style, and fires on whichever neighbor it is swapped with.
-8. **Scoring.** Normal run and shape scores stay as in assumption 5. Every gem cleared by an effect scores 10 (`POINTS_PER_EFFECT_GEM`, tunable), times the cascade depth. Making a special gem adds nothing. Starting guesses, to tune by playing.
+7. **The colour gem has no colour.** It matches nothing, is drawn in a rainbow style, fires on whichever neighbor it is swapped with, and is consumed when it fires (it clears together with the gems it takes).
+8. **Scoring.** Normal run and shape scores stay as in assumption 5. Every gem cleared by an effect scores 10 (`POINTS_PER_EFFECT_GEM`, tunable), times the cascade depth. This includes the special gems that fire, and a cell cleared by both a run and an effect scores once. Making a special gem adds nothing. Starting guesses, to tune by playing.
 9. **A swap that fires a special.** The swap happens first, then the special fires from the cell it moved to. Any normal match the swap also formed clears in the same Clear step as the effect. Cascades then continue at depth 2 and up. Step order for a normal creation is Clear, Create, Fall, Spawn: the new special gem is placed before gravity, so it falls like any other gem.
 10. **Stuck states (hint rule confirmed by the owner).** A board holding any special gem always has a valid move, so it never reshuffles. The idle hint prefers a move that makes a normal match, and points at a special swap only when none exists.
 
