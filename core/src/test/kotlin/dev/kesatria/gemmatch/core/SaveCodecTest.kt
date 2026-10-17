@@ -24,7 +24,7 @@ class SaveCodecTest {
 
     private fun boardDigits(game: Game): String =
         (0 until BOARD_SIZE)
-            .flatMap { row -> (0 until BOARD_SIZE).map { col -> checkNotNull(game.board[Pos(row, col)]).ordinal } }
+            .flatMap { row -> (0 until BOARD_SIZE).map { col -> checkNotNull(game.board[Pos(row, col)]?.gem).ordinal } }
             .joinToString("")
 
     @Test

@@ -56,7 +56,7 @@ private fun runsIn(
 
     for (step in 0 until BOARD_SIZE) {
         val pos = if (isHorizontal) Pos(line, step) else Pos(step, line)
-        val here = board[pos]
+        val here = board[pos]?.gem
         if (here != null && here == gem) {
             current += pos
         } else {

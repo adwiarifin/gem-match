@@ -12,7 +12,7 @@ private fun fillWithoutRuns(rng: Rng): Board {
     val positions = (0 until BOARD_SIZE).flatMap { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }
     return positions.fold(Board.empty()) { board, pos ->
         val gem = generateSequence { rng.nextGem() }.first { !completesRun(board, pos, it) }
-        board.with(pos, gem)
+        board.with(pos, Piece(gem))
     }
 }
 
@@ -46,7 +46,7 @@ private fun rearranged(
     val pool = positions.mapNotNull { board[it] }.toMutableList()
     var result = Board.empty()
     for (pos in positions) {
-        val fits = pool.indices.filter { !completesRun(result, pos, pool[it]) }
+        val fits = pool.indices.filter { !completesRun(result, pos, pool[it].gem) }
         if (fits.isEmpty()) return null
         result = result.with(pos, pool.removeAt(fits[rng.nextInt(fits.size)]))
     }
@@ -56,9 +56,10 @@ private fun rearranged(
 private fun completesRun(
     board: Board,
     pos: Pos,
-    gem: Gem,
+    gem: Gem?,
 ): Boolean {
-    val left = board[Pos(pos.row, pos.col - 1)] == gem && board[Pos(pos.row, pos.col - 2)] == gem
-    val above = board[Pos(pos.row - 1, pos.col)] == gem && board[Pos(pos.row - 2, pos.col)] == gem
+    if (gem == null) return false
+    val left = board[Pos(pos.row, pos.col - 1)]?.gem == gem && board[Pos(pos.row, pos.col - 2)]?.gem == gem
+    val above = board[Pos(pos.row - 1, pos.col)]?.gem == gem && board[Pos(pos.row - 2, pos.col)]?.gem == gem
     return left || above
 }

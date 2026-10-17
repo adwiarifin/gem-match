@@ -53,7 +53,7 @@ class TimelineTest {
         timeline.advance(5f, scene)
 
         assertTrue(timeline.isFinished)
-        assertEquals(board[b], sprite(a).gem, "three swaps leave the pair swapped")
+        assertEquals(board[b], sprite(a).piece, "three swaps leave the pair swapped")
     }
 
     @Test
@@ -67,8 +67,8 @@ class TimelineTest {
         assertNear(2.5f, sprite(b).col, "second gem is half way")
 
         timeline.advance(0.2f, scene)
-        assertEquals(gemB, sprite(a).gem)
-        assertEquals(gemA, sprite(b).gem)
+        assertEquals(gemB, sprite(a).piece)
+        assertEquals(gemA, sprite(b).piece)
         assertNear(2f, sprite(a).col, "settled in the first cell")
         assertNear(3f, sprite(b).col, "settled in the second cell")
     }
@@ -95,7 +95,7 @@ class TimelineTest {
 
         timeline.advance(1f, scene)
 
-        assertEquals(gemA, sprite(a).gem)
+        assertEquals(gemA, sprite(a).piece)
         assertNear(2f, sprite(a).col, "held gem back home")
         assertNear(1f, sprite(a).scale, "held gem back to normal size")
         assertNear(3f, sprite(b).col, "neighbour back home")
@@ -140,7 +140,7 @@ class TimelineTest {
         assertTrue(midRow > 1f && midRow < 3f, "falling, now at row $midRow")
 
         timeline.advance(1f, scene)
-        assertEquals(gem, sprite(Pos(3, 0)).gem)
+        assertEquals(gem, sprite(Pos(3, 0)).piece)
         assertNear(3f, sprite(Pos(3, 0)).row, "landed")
         assertNull(scene[Pos(1, 0)])
     }
@@ -166,7 +166,7 @@ class TimelineTest {
         timeline.advance(2f, scene)
         assertNear(0f, sprite(Pos(0, 5)).row, "landed in row 0")
         assertNear(1f, sprite(Pos(1, 5)).row, "landed in row 1")
-        assertEquals(board[Pos(1, 5)], sprite(Pos(1, 5)).gem)
+        assertEquals(board[Pos(1, 5)], sprite(Pos(1, 5)).piece)
     }
 
     @Test

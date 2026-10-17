@@ -24,11 +24,11 @@ fun replay(
 
             is Step.Fall -> {
                 val vacated = step.moves.fold(board) { b, move -> b.with(move.from, null) }
-                step.moves.fold(vacated) { b, move -> b.with(move.to, move.gem) }
+                step.moves.fold(vacated) { b, move -> b.with(move.to, move.piece) }
             }
 
             is Step.Spawn -> {
-                step.gems.fold(board) { b, placed -> b.with(placed.pos, placed.gem) }
+                step.gems.fold(board) { b, placed -> b.with(placed.pos, placed.piece) }
             }
 
             is Step.Reshuffle -> {

@@ -256,7 +256,7 @@ class GameSessionTest {
         timeline.advance(0.11f, scene)
         for (row in 0 until BOARD_SIZE) {
             for (col in 0 until BOARD_SIZE) {
-                assertEquals(fresh.board[Pos(row, col)], scene[Pos(row, col)]?.gem, "new gem at ($row, $col)")
+                assertEquals(fresh.board[Pos(row, col)], scene[Pos(row, col)]?.piece, "new gem at ($row, $col)")
                 assertTrue((scene[Pos(row, col)]?.row ?: 99f) < row.toFloat() + 0.01f, "arriving from above")
             }
         }

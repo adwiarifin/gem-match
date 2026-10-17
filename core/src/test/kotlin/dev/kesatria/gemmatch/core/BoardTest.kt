@@ -22,15 +22,15 @@ class BoardTest {
     fun withPlacesAGemAndLeavesTheOriginalUntouched() {
         val original = Board.empty()
 
-        val changed = original.with(Pos(2, 5), Gem.entries[1])
+        val changed = original.with(Pos(2, 5), Piece(Gem.entries[1]))
 
-        assertEquals(Gem.entries[1], changed[Pos(2, 5)])
+        assertEquals(Piece(Gem.entries[1]), changed[Pos(2, 5)])
         assertNull(original[Pos(2, 5)])
     }
 
     @Test
     fun withNullClearsACell() {
-        val board = Board.empty().with(Pos(0, 0), Gem.entries[0])
+        val board = Board.empty().with(Pos(0, 0), Piece(Gem.entries[0]))
 
         assertNull(board.with(Pos(0, 0), null)[Pos(0, 0)])
     }
@@ -39,17 +39,17 @@ class BoardTest {
     fun swapExchangesTwoCells() {
         val a = Pos(1, 1)
         val b = Pos(1, 2)
-        val board = Board.empty().with(a, Gem.entries[0]).with(b, Gem.entries[1])
+        val board = Board.empty().with(a, Piece(Gem.entries[0])).with(b, Piece(Gem.entries[1]))
 
         val swapped = board.swap(a, b)
 
-        assertEquals(Gem.entries[1], swapped[a])
-        assertEquals(Gem.entries[0], swapped[b])
+        assertEquals(Piece(Gem.entries[1]), swapped[a])
+        assertEquals(Piece(Gem.entries[0]), swapped[b])
     }
 
     @Test
     fun readingOutsideTheBoardGivesNull() {
-        val board = Board.empty().with(Pos(0, 0), Gem.entries[0])
+        val board = Board.empty().with(Pos(0, 0), Piece(Gem.entries[0]))
 
         assertNull(board[Pos(-1, 0)])
         assertNull(board[Pos(0, BOARD_SIZE)])
@@ -58,14 +58,14 @@ class BoardTest {
     @Test
     fun writingOutsideTheBoardIsRejected() {
         assertFailsWith<IllegalArgumentException> {
-            Board.empty().with(Pos(BOARD_SIZE, 0), Gem.entries[0])
+            Board.empty().with(Pos(BOARD_SIZE, 0), Piece(Gem.entries[0]))
         }
     }
 
     @Test
     fun equalBoardsAreEqual() {
-        val a = Board.empty().with(Pos(3, 3), Gem.entries[2])
-        val b = Board.empty().with(Pos(3, 3), Gem.entries[2])
+        val a = Board.empty().with(Pos(3, 3), Piece(Gem.entries[2]))
+        val b = Board.empty().with(Pos(3, 3), Piece(Gem.entries[2]))
 
         assertEquals(a, b)
         assertEquals(a.hashCode(), b.hashCode())
@@ -74,25 +74,25 @@ class BoardTest {
     @Test
     fun pieceRoundTripsThroughTheBoard() {
         val special = Piece(Gem.GREEN, Special.CROSS)
-        val board = Board.empty().withPiece(Pos(4, 4), special)
+        val board = Board.empty().with(Pos(4, 4), special)
 
-        assertEquals(special, board.piece(Pos(4, 4)))
-        assertEquals(Gem.GREEN, board[Pos(4, 4)])
-        assertNull(board.piece(Pos(0, 0)))
-        assertNull(board.piece(Pos(-1, 0)))
+        assertEquals(special, board[Pos(4, 4)])
+        assertEquals(Gem.GREEN, board[Pos(4, 4)]?.gem)
+        assertNull(board[Pos(0, 0)])
+        assertNull(board[Pos(-1, 0)])
     }
 
     @Test
-    fun withPieceNullClearsACell() {
-        val board = Board.empty().withPiece(Pos(1, 1), Piece(null, Special.COLOUR))
+    fun withNullClearsAColourGemCell() {
+        val board = Board.empty().with(Pos(1, 1), Piece(null, Special.COLOUR))
 
-        assertNull(board.withPiece(Pos(1, 1), null).piece(Pos(1, 1)))
+        assertNull(board.with(Pos(1, 1), null)[Pos(1, 1)])
     }
 
     @Test
-    fun withPieceOutsideTheBoardIsRejected() {
+    fun writingAPieceOutsideTheBoardIsRejected() {
         assertFailsWith<IllegalArgumentException> {
-            Board.empty().withPiece(Pos(0, BOARD_SIZE), Piece(Gem.RED))
+            Board.empty().with(Pos(0, BOARD_SIZE), Piece(Gem.RED))
         }
     }
 
@@ -103,19 +103,19 @@ class BoardTest {
         val board =
             Board
                 .empty()
-                .withPiece(a, Piece(Gem.RED, Special.BLAST))
-                .withPiece(b, Piece(null, Special.COLOUR))
+                .with(a, Piece(Gem.RED, Special.BLAST))
+                .with(b, Piece(null, Special.COLOUR))
 
         val swapped = board.swap(a, b)
 
-        assertEquals(Piece(null, Special.COLOUR), swapped.piece(a))
-        assertEquals(Piece(Gem.RED, Special.BLAST), swapped.piece(b))
+        assertEquals(Piece(null, Special.COLOUR), swapped[a])
+        assertEquals(Piece(Gem.RED, Special.BLAST), swapped[b])
     }
 
     @Test
     fun boardsWithDifferentSpecialsAreNotEqual() {
-        val plain = Board.empty().with(Pos(0, 0), Gem.RED)
-        val special = Board.empty().withPiece(Pos(0, 0), Piece(Gem.RED, Special.BLAST))
+        val plain = Board.empty().with(Pos(0, 0), Piece(Gem.RED))
+        val special = Board.empty().with(Pos(0, 0), Piece(Gem.RED, Special.BLAST))
 
         assertNotEquals(plain, special)
     }

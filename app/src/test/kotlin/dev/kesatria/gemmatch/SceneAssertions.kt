@@ -23,7 +23,7 @@ fun assertSceneShows(
         for (col in 0 until BOARD_SIZE) {
             val where = "$context: cell ($row, $col)"
             val sprite = assertNotNull(scene[Pos(row, col)], "$where has no sprite")
-            assertEquals(board[Pos(row, col)], sprite.gem, "$where shows the wrong gem")
+            assertEquals(board[Pos(row, col)], sprite.piece, "$where shows the wrong gem")
             assertNear(row.toFloat(), sprite.row, "$where row")
             assertNear(col.toFloat(), sprite.col, "$where column")
             assertNear(1f, sprite.scale, "$where scale")

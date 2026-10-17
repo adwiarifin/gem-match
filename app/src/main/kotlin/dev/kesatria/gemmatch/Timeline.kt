@@ -184,7 +184,7 @@ class SpawnAnimation(
         entries =
             gems.map { placed ->
                 val start = (placed.pos.row - checkNotNull(perColumn[placed.pos.col])).toFloat()
-                val sprite = Sprite(placed.gem, start, placed.pos.col.toFloat())
+                val sprite = Sprite(placed.piece, start, placed.pos.col.toFloat())
                 scene.place(placed.pos, sprite)
                 Entry(sprite, start, placed.pos.row.toFloat())
             }

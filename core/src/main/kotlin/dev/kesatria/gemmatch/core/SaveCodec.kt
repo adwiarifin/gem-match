@@ -19,7 +19,7 @@ internal fun encodeState(state: SavedState): String {
     val digits =
         (0 until BOARD_SIZE)
             .flatMap { row -> (0 until BOARD_SIZE).map { col -> state.board[Pos(row, col)] } }
-            .joinToString("") { (it?.ordinal ?: -1).toString() }
+            .joinToString("") { (it?.gem?.ordinal ?: -1).toString() }
     return listOf(VERSION, state.score, state.rngState, digits).joinToString(SEPARATOR)
 }
 
@@ -47,6 +47,6 @@ private fun decodeBoard(digits: String): Board? {
             ?.map { char -> if (char in '0'..'9') Gem.entries.getOrNull(char - '0') else null }
             ?.filterNotNull()
     return gems?.takeIf { it.size == digits.length }?.foldIndexed(Board.empty()) { index, board, gem ->
-        board.with(Pos(index / BOARD_SIZE, index % BOARD_SIZE), gem)
+        board.with(Pos(index / BOARD_SIZE, index % BOARD_SIZE), Piece(gem))
     }
 }

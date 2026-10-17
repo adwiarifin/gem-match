@@ -21,7 +21,7 @@ fun boardOf(vararg rows: String): Board {
         text.forEachIndexed { col, char ->
             if (char != '.') {
                 val gem = requireNotNull(GEM_BY_CHAR[char]) { "unknown gem '$char'" }
-                board = board.with(Pos(row, col), gem)
+                board = board.with(Pos(row, col), Piece(gem))
             }
         }
     }
@@ -38,7 +38,7 @@ fun randomStableBoard(seed: Long): Board {
         for (col in 0 until BOARD_SIZE) {
             var gem = rng.nextGem()
             while (completesRun(board, Pos(row, col), gem)) gem = rng.nextGem()
-            board = board.with(Pos(row, col), gem)
+            board = board.with(Pos(row, col), Piece(gem))
         }
     }
     return board
@@ -49,7 +49,7 @@ private fun completesRun(
     pos: Pos,
     gem: Gem,
 ): Boolean {
-    val left = board[Pos(pos.row, pos.col - 1)] == gem && board[Pos(pos.row, pos.col - 2)] == gem
-    val above = board[Pos(pos.row - 1, pos.col)] == gem && board[Pos(pos.row - 2, pos.col)] == gem
+    val left = board[Pos(pos.row, pos.col - 1)]?.gem == gem && board[Pos(pos.row, pos.col - 2)]?.gem == gem
+    val above = board[Pos(pos.row - 1, pos.col)]?.gem == gem && board[Pos(pos.row - 2, pos.col)]?.gem == gem
     return left || above
 }

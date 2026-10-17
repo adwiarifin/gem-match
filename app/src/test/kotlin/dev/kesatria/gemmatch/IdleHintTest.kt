@@ -5,6 +5,7 @@ import dev.kesatria.gemmatch.core.Board
 import dev.kesatria.gemmatch.core.BoardLayout
 import dev.kesatria.gemmatch.core.Game
 import dev.kesatria.gemmatch.core.Gem
+import dev.kesatria.gemmatch.core.Piece
 import dev.kesatria.gemmatch.core.Point
 import dev.kesatria.gemmatch.core.Pos
 import dev.kesatria.gemmatch.core.findValidMoves
@@ -89,7 +90,7 @@ class IdleHintTest {
         var dead = Board.empty()
         val diagonal = listOf(Gem.RED, Gem.GREEN, Gem.BLUE)
         for (row in 0 until BOARD_SIZE) {
-            for (col in 0 until BOARD_SIZE) dead = dead.with(Pos(row, col), diagonal[(row + col) % 3])
+            for (col in 0 until BOARD_SIZE) dead = dead.with(Pos(row, col), Piece(diagonal[(row + col) % 3]))
         }
         assertTrue(findValidMoves(dead).isEmpty(), "the fixture must really be dead")
         val deadScene = Scene().also { it.load(dead) }

@@ -5,12 +5,9 @@ class Board private constructor(
     private val cells: List<Piece?>,
 ) {
     /** The piece at [pos], or null if the cell is empty or outside the board. */
-    fun piece(pos: Pos): Piece? = if (pos.isInBounds()) cells[indexOf(pos)] else null
+    operator fun get(pos: Pos): Piece? = if (pos.isInBounds()) cells[indexOf(pos)] else null
 
-    /** The gem at [pos]. Null for an empty cell, outside the board, or the colour gem. Temporary shim until T20. */
-    operator fun get(pos: Pos): Gem? = piece(pos)?.gem
-
-    fun withPiece(
+    fun with(
         pos: Pos,
         piece: Piece?,
     ): Board {
@@ -20,16 +17,10 @@ class Board private constructor(
         return Board(next)
     }
 
-    /** Temporary shim until T20. */
-    fun with(
-        pos: Pos,
-        gem: Gem?,
-    ): Board = withPiece(pos, gem?.let { Piece(it) })
-
     fun swap(
         a: Pos,
         b: Pos,
-    ): Board = withPiece(a, piece(b)).withPiece(b, piece(a))
+    ): Board = with(a, this[b]).with(b, this[a])
 
     override fun equals(other: Any?): Boolean = other is Board && cells == other.cells
 

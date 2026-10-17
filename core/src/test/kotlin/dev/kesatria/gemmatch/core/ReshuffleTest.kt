@@ -21,7 +21,7 @@ class ReshuffleTest {
 
     private fun gemCounts(board: Board): Map<Gem, Int> =
         (0 until BOARD_SIZE)
-            .flatMap { row -> (0 until BOARD_SIZE).map { col -> board[Pos(row, col)] } }
+            .flatMap { row -> (0 until BOARD_SIZE).map { col -> board[Pos(row, col)]?.gem } }
             .filterNotNull()
             .groupingBy { it }
             .eachCount()

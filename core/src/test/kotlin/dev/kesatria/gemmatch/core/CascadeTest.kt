@@ -49,6 +49,19 @@ class CascadeTest {
     }
 
     @Test
+    fun aSpecialPieceFallsAsAUnit() {
+        val special = Piece(Gem.WHITE, Special.BLAST)
+        val board = oneMoveBoard.with(Pos(5, 0), special)
+
+        val result = resolveSwap(board, swapA, swapB, Rng(1L))
+
+        val fall = result.steps.filterIsInstance<Step.Fall>().first()
+        assertTrue(GemMove(special, Pos(5, 0), Pos(6, 0)) in fall.moves)
+        assertEquals(1, result.board.let { b -> (0 until BOARD_SIZE).count { b[Pos(it, 0)] == special } })
+        assertEquals(result.board, replay(board, result.steps))
+    }
+
+    @Test
     fun stepsDescribeTheWholeTransformationOnManyBoards() {
         var checked = 0
         for (seed in 1L..SEEDS) {

@@ -3,14 +3,18 @@ package dev.kesatria.gemmatch
 import dev.kesatria.gemmatch.core.BOARD_SIZE
 import dev.kesatria.gemmatch.core.Board
 import dev.kesatria.gemmatch.core.Gem
+import dev.kesatria.gemmatch.core.Piece
 import dev.kesatria.gemmatch.core.Pos
 
 /** One gem as drawn: where it is (in cell units, fractional while moving), and how it looks. */
 class Sprite(
-    val gem: Gem,
+    val piece: Piece,
     var row: Float,
     var col: Float,
 ) {
+    /** The plain gem this sprite shows. The colour gem has none and gets its own drawing with the overlays. */
+    val gem: Gem get() = checkNotNull(piece.gem) { "no drawing for $piece yet" }
+
     var scale = 1f
     var alpha = 1f
 

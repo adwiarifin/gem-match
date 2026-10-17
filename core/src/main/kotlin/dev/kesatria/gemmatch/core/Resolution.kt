@@ -43,17 +43,17 @@ fun resolveSwap(
     return Resolution(current, steps, score)
 }
 
-/** Drops every gem to the lowest free row of its column. Moves are listed column by column, lowest gem first. */
+/** Drops every piece to the lowest free row of its column. Moves are listed column by column, lowest gem first. */
 private fun applyGravity(board: Board): Pair<Board, Step.Fall> {
     val moves = mutableListOf<GemMove>()
     var result = board
     for (col in 0 until BOARD_SIZE) {
         var target = BOARD_SIZE - 1
         for (row in BOARD_SIZE - 1 downTo 0) {
-            val gem = board[Pos(row, col)] ?: continue
+            val piece = board[Pos(row, col)] ?: continue
             if (row != target) {
-                moves += GemMove(gem, Pos(row, col), Pos(target, col))
-                result = result.with(Pos(row, col), null).with(Pos(target, col), gem)
+                moves += GemMove(piece, Pos(row, col), Pos(target, col))
+                result = result.with(Pos(row, col), null).with(Pos(target, col), piece)
             }
             target--
         }
@@ -71,9 +71,9 @@ private fun refill(
     for (col in 0 until BOARD_SIZE) {
         for (row in 0 until BOARD_SIZE) {
             if (result[Pos(row, col)] == null) {
-                val gem = rng.nextGem()
-                placed += Placed(gem, Pos(row, col))
-                result = result.with(Pos(row, col), gem)
+                val piece = Piece(rng.nextGem())
+                placed += Placed(piece, Pos(row, col))
+                result = result.with(Pos(row, col), piece)
             }
         }
     }

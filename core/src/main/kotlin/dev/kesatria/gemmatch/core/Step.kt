@@ -1,15 +1,15 @@
 package dev.kesatria.gemmatch.core
 
-/** A gem that dropped from [from] to [to] within one column. */
+/** A piece that dropped from [from] to [to] within one column. */
 data class GemMove(
-    val gem: Gem,
+    val piece: Piece,
     val from: Pos,
     val to: Pos,
 )
 
-/** A new gem entering at [pos]. The renderer starts it above the board, stacked by column. */
+/** A new piece entering at [pos]. The renderer starts it above the board, stacked by column. */
 data class Placed(
-    val gem: Gem,
+    val piece: Piece,
     val pos: Pos,
 )
 
