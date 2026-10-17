@@ -322,6 +322,7 @@ class Timeline(
             when (step) {
                 is Step.Swap -> SwapAnimation(step.a, step.b)
                 is Step.Clear -> ClearAnimation(step.cells, step.points, onCleared)
+                is Step.Activate -> ActivateAnimation()
                 is Step.Create -> CreateAnimation(step.pos, step.piece)
                 is Step.Fall -> FallAnimation(step.moves)
                 is Step.Spawn -> SpawnAnimation(step.gems)

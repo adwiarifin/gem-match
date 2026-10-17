@@ -4,6 +4,7 @@ const val POINTS_RUN_OF_3 = 30
 const val POINTS_RUN_OF_4 = 60
 const val POINTS_RUN_OF_5_OR_MORE = 100
 const val POINTS_SHAPE_BONUS = 50
+const val POINTS_PER_EFFECT_GEM = 10
 
 private const val LENGTH_4 = 4
 private const val LENGTH_5 = 5
@@ -32,3 +33,9 @@ fun scoreGroups(
     groups: List<MatchGroup>,
     depth: Int,
 ): Int = groups.sumOf { scoreFor(it) } * depth
+
+/** Gems cleared by an effect and by no run, [depth] times over. Every fired special counts as one of them. */
+fun scoreEffectGems(
+    count: Int,
+    depth: Int,
+): Int = count * POINTS_PER_EFFECT_GEM * depth

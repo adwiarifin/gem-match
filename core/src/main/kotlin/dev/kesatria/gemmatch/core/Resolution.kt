@@ -24,17 +24,22 @@ fun resolveSwap(
     var score = 0
     var depth = 1
 
+    val fired = activations(current, a, b)
+    steps += fired
+    var effectCells = fired.flatMapTo(mutableSetOf()) { it.cells }
+
     while (true) {
         val groups = findMatchGroups(current)
-        if (groups.isEmpty()) break
+        if (groups.isEmpty() && effectCells.isEmpty()) break
 
-        val points = scoreGroups(groups, depth)
-        val cleared = groups.flatMapTo(mutableSetOf()) { it.cells }
+        val matched = groups.flatMapTo(mutableSetOf()) { it.cells }
+        val points = scoreGroups(groups, depth) + scoreEffectGems((effectCells - matched).size, depth)
+        val cleared = matched + effectCells
         steps += Step.Clear(cleared, points, depth)
         score += points
         current = cleared.fold(current) { b, pos -> b.with(pos, null) }
 
-        if (depth == 1) {
+        if (depth == 1 && fired.isEmpty()) {
             for (create in createdPieces(groups, a, b)) {
                 steps += create
                 current = current.with(create.pos, create.piece)
@@ -46,6 +51,7 @@ fun resolveSwap(
         val (afterSpawn, spawn) = refill(afterFall, rng)
         steps += spawn
         current = afterSpawn
+        effectCells = mutableSetOf()
         depth++
     }
     return Resolution(current, steps, score)

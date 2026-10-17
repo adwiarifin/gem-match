@@ -30,7 +30,15 @@ class PlaybackTest {
             }
         }
         assertEquals(
-            setOf(Step.Swap::class, Step.Clear::class, Step.Create::class, Step.Fall::class, Step.Spawn::class, Step.Reshuffle::class),
+            setOf(
+                Step.Swap::class,
+                Step.Activate::class,
+                Step.Clear::class,
+                Step.Create::class,
+                Step.Fall::class,
+                Step.Spawn::class,
+                Step.Reshuffle::class,
+            ),
             seen,
             "every kind of step must be played at least once",
         )

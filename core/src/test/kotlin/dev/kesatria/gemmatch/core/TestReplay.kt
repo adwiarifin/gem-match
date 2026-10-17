@@ -8,17 +8,28 @@ package dev.kesatria.gemmatch.core
 fun replay(
     start: Board,
     steps: List<Step>,
-): Board =
-    steps.fold(start) { board, step ->
+): Board {
+    val pending = mutableSetOf<Pos>()
+    return steps.fold(start) { board, step ->
         when (step) {
             is Step.Swap -> {
                 board.swap(step.a, step.b)
             }
 
+            is Step.Activate -> {
+                check(step.cells == effectCells(step.origin, step.special)) { "Activate cells differ from the effect" }
+                pending += step.cells
+                board
+            }
+
             is Step.Clear -> {
                 val groups = findMatchGroups(board)
-                check(step.cells == groups.flatMap { it.cells }.toSet()) { "Clear cells differ from matches" }
-                check(step.points == scoreGroups(groups, step.depth)) { "Clear points differ from scoring rules" }
+                val matched = groups.flatMap { it.cells }.toSet()
+                check(step.cells == matched + pending) { "Clear cells differ from matches and effects" }
+                val effectOnly = (pending - matched).size
+                val expected = scoreGroups(groups, step.depth) + effectOnly * POINTS_PER_EFFECT_GEM * step.depth
+                check(step.points == expected) { "Clear points differ from scoring rules" }
+                pending.clear()
                 step.cells.fold(board) { b, pos -> b.with(pos, null) }
             }
 
@@ -40,6 +51,7 @@ fun replay(
             }
         }
     }
+}
 
 fun isFull(board: Board): Boolean {
     val range = 0 until BOARD_SIZE

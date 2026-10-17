@@ -20,6 +20,13 @@ sealed interface Step {
         val b: Pos,
     ) : Step
 
+    /** [special] fired from [origin] and takes [cells]. Every Activate of a move comes before its Clear. */
+    data class Activate(
+        val origin: Pos,
+        val special: Special,
+        val cells: Set<Pos>,
+    ) : Step
+
     data class Clear(
         val cells: Set<Pos>,
         val points: Int,
