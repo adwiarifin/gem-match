@@ -12,6 +12,47 @@ class EffectTest {
 
     private fun fullX(origin: Pos) = Effect(origin, Special.X_FULL, everyCell)
 
+    private fun column(col: Int) = (0 until BOARD_SIZE).map { Pos(it, col) }.toSet()
+
+    private fun row(row: Int) = (0 until BOARD_SIZE).map { Pos(row, it) }.toSet()
+
+    @Test
+    fun aSingleLineBeamsAlongItsOwnRowOrColumn() {
+        assertEquals(listOf(4), Effect(Pos(4, 4), Special.LINE_ROW, row(4)).beamRows)
+        assertEquals(listOf(4), Effect(Pos(4, 4), Special.LINE_COL, column(4)).beamColumns)
+        assertEquals(listOf(0), Effect(Pos(0, 3), Special.LINE_ROW, row(0)).beamRows)
+    }
+
+    @Test
+    fun twoRowLinesBeamAlongThreeRowsAndTwoColumnLinesAlongThreeColumns() {
+        val threeRows = (3..5).flatMap { row(it) }.toSet()
+        val threeColumns = (3..5).flatMap { column(it) }.toSet()
+
+        assertEquals(setOf(3, 4, 5), Effect(Pos(4, 4), Special.LINE_ROW, threeRows).beamRows.toSet())
+        assertEquals(setOf(3, 4, 5), Effect(Pos(4, 4), Special.LINE_COL, threeColumns).beamColumns.toSet())
+    }
+
+    @Test
+    fun aDoubledLineAtTheEdgeBeamsAlongTwoRowsBecauseTheThirdIsOffTheBoard() {
+        val atTheEdge = (0..1).flatMap { row(it) }.toSet()
+
+        assertEquals(setOf(0, 1), Effect(Pos(0, 3), Special.LINE_ROW, atTheEdge).beamRows.toSet())
+    }
+
+    @Test
+    fun aCrossBeamsAlongItsOwnRowAndColumnOnly() {
+        val cross = row(3) + column(3)
+        val effect = Effect(Pos(3, 3), Special.CROSS, cross)
+
+        assertEquals(listOf(3), effect.beamRows)
+        assertEquals(listOf(3), effect.beamColumns)
+    }
+
+    @Test
+    fun anEffectWithNoCellsStillHasAReachOfOne() {
+        assertEquals(1, Effect(Pos(2, 2), Special.BLAST, emptySet()).reach)
+    }
+
     @Test
     fun cellsAreKeptAsBoardIndexes() {
         val effect = Effect(Pos(1, 1), Special.BLAST, setOf(Pos(1, 1), Pos(2, 3)))

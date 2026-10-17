@@ -35,7 +35,7 @@ class GameSession(
 
     val board: Board get() = game.board
 
-    /** True while an accepted move or a new game animates. A rejected swap or a spring-back is not one. */
+    /** True while an accepted move or a new game animates, so a tap may skip it. Not for a rejected swap. */
     val isMovePlaying: Boolean get() = pending != null
 
     /** Tries [move]. Returns the animation to play: the steps of an accepted move, or a swap and back. */

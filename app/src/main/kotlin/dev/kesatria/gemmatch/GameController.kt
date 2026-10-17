@@ -125,7 +125,7 @@ class GameController(
         layout: BoardLayout,
     ) {
         buttonPressed = hud.isOnNewGameButton(layout, event.x, event.y)
-        if (!buttonPressed && session.isMovePlaying) timeline?.skip(scene)
+        if (shouldSkipOnTouch(buttonPressed, session.isMovePlaying)) timeline?.skip(scene)
         val canPlay = !buttonPressed && timeline == null
         drag.begin(if (canPlay) Point(event.x, event.y) else null, layout)
     }
@@ -156,3 +156,12 @@ class GameController(
         private const val ACTION_BACK = -1
     }
 }
+
+/**
+ * Whether a touch that lands while an animation plays should skip to its end: only for an accepted move or a new
+ * game, and never for the New Game button. A rejected swap and a spring-back are left to play out.
+ */
+internal fun shouldSkipOnTouch(
+    onNewGameButton: Boolean,
+    movePlaying: Boolean,
+): Boolean = movePlaying && !onNewGameButton

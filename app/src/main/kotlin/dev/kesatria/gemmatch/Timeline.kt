@@ -324,7 +324,8 @@ class Timeline(
             while (index < steps.size) {
                 val step = steps[index]
                 if (step is Step.Activate) {
-                    val chain = steps.drop(index).takeWhile { it is Step.Activate }.filterIsInstance<Step.Activate>()
+                    val rest = steps.subList(index, steps.size)
+                    val chain = rest.takeWhile { it is Step.Activate }.filterIsInstance<Step.Activate>()
                     animations += ActivateAnimation(chain)
                     index += chain.size
                 } else {
