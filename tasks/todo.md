@@ -38,11 +38,11 @@ Details, acceptance criteria and verification: `tasks/plan.md`. Spec: `SPEC.md`.
 
 Details: `tasks/plan.md` ("Special gems"). Spec: `SPEC.md` "Special Gems". Every task: tests first, then verify with `make check-task`.
 
-- [ ] T19: `Piece`, `Special`, `Board` stores `Piece` (shims keep other files compiling). Done when: invalid `Piece` rejected, board round-trips pieces, all old tests green with assertions intact. Verify: `make check-task`
+- [x] T19: `Piece`, `Special`, `Board` stores `Piece` (shims keep other files compiling). Done when: invalid `Piece` rejected, board round-trips pieces, all old tests green with assertions intact. Verify: `make check-task`
 - [ ] T20: Call sites, step payloads and app adapters use `Piece`; shims removed. Done when: `Board.get` returns `Piece?`, a hand-built special moves as a unit through gravity, swap and refill, all old tests green. Verify: `make check-task`
-- [ ] T21: Specials inert in matches; a special swap is always legal; `findMatchMoves`. Done when: no run through a special, special swap valid without a match, board with a special always has a move. Verify: `make check-task`
-- [ ] T22: Classify groups (4 blast, 5+ colour, L line with direction, T/+ cross, priority). Done when: table tests cover every shape and priority. Verify: `make check-task`
-- [ ] T23: Creation in `resolveSwap` (depth 1 only, `Step.Create`). Done when: SC13 holds in tests, cascade matches make none, gem count stays 64, step order is Clear, Create, Fall, Spawn. Verify: `make check-task`
+- [x] T21: Specials inert in matches; a special swap is always legal; `findMatchMoves`. Done when: no run through a special, special swap valid without a match, board with a special always has a move. Verify: `make check-task`
+- [x] T22: Classify groups (4 blast, 5+ colour, L line with direction, T/+ cross, priority). Done when: table tests cover every shape and priority. Verify: `make check-task`
+- [x] T23: Creation in `resolveSwap` (depth 1 only, `Step.Create`). Done when: SC13 holds in tests, cascade matches make none, gem count stays 64, step order is Clear, Create, Fall, Spawn. Verify: `make check-task`
 - [ ] Checkpoint E: creation green, owner reviews `Piece` and `Step` shape
 - [ ] T24: Blast, line, cross fire on swap (`Step.Activate`, 10 per effect gem). Done when: exact cells incl. edges, same-`Clear` normal match, cascade at depth 2. Verify: `make check-task`
 - [ ] T25: Colour gem fires on its partner's colour. Done when: all of that colour and itself clear, forms no run. Verify: `make check-task`
@@ -50,7 +50,7 @@ Details: `tasks/plan.md` ("Special gems"). Spec: `SPEC.md` "Special Gems". Every
 - [ ] T27: Combos (colour+colour clears board, colour+special converts and fires, other pairs fire both). Done when: SC14 holds in tests, colour gem's `Activate` lists converted cells then one `Activate` per converted piece. Verify: `make check-task`
 - [ ] Checkpoint F: activation green (the open questions were decided on 2026-10-17)
 - [ ] T28: Scoring pass (literal expected scores, no double count, sum of `Clear.points` equals score). Verify: `make check-task`
-- [ ] T29: Save `GM2` with a `GM1` reader. Done when: SC15 holds, malformed input returns null, worst case under 256 characters. Verify: `make check-task`
+- [x] T29: Save `GM2` with a `GM1` reader. Done when: SC15 holds, malformed input returns null, worst case under 256 characters. Verify: `make check-task`
 - [ ] T30: Game-level soak over many seeds with specials. Done when: invariants hold after every move, no reshuffle with a special on the board. Verify: `make check-task`
 - [ ] Checkpoint G: `make check-full` green, coverage at least 80% (measured 100% must not fall more than 0.5%), owner reviews the core API
 
