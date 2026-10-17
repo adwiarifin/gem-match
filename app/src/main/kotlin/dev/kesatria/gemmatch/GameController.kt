@@ -64,7 +64,7 @@ class GameController(
             idleHint.touched()
             if (layout != null) handle(event, layout)
         }
-        scene.clock += seconds
+        scene.advanceClock(seconds)
         timeline?.let { running ->
             running.advance(seconds, scene)
             if (running.isFinished) {

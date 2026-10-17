@@ -30,6 +30,11 @@ class Scene {
 
     /** Running time in seconds, advanced by the game loop's frame deltas. It only drives the shimmer. */
     var clock = 0f
+        private set
+
+    fun advanceClock(seconds: Float) {
+        clock = (clock + seconds) % CLOCK_WRAP_SECONDS
+    }
 
     /** A short notice drawn over the board (for example before a reshuffle), or null. */
     var message: String? = null
@@ -76,3 +81,6 @@ class Scene {
 
     private fun indexOf(pos: Pos): Int = pos.row * BOARD_SIZE + pos.col
 }
+
+/** A multiple of the shimmer period, so wrapping the clock never shows as a jump. */
+private const val CLOCK_WRAP_SECONDS = 2400f

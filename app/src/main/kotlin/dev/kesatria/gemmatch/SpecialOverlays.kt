@@ -60,8 +60,11 @@ object SpecialOverlays {
                 Special.BLAST -> burst
                 Special.LINE_ROW -> stripeRow
                 Special.LINE_COL -> stripeColumn
-                else -> plus
+                Special.CROSS -> plus
+                Special.COLOUR -> return
             }
+        overlayFill.color = if (sprite.piece.gem == Gem.WHITE) DARK_MARK else Color.WHITE
+        sheen.color = if (sprite.piece.gem == Gem.WHITE) DARK_MARK else Color.WHITE
         overlayFill.alpha = (alpha * (OVERLAY_BASE + OVERLAY_GLOW * glow) * OPAQUE).toInt()
         outline.alpha = (alpha * OUTLINE_ALPHA).toInt()
         canvas.drawPath(path, overlayFill)
@@ -72,6 +75,9 @@ object SpecialOverlays {
         canvas: Canvas,
         alpha: Float,
     ) {
+        fill.color = Color.WHITE
+        fill.alpha = (alpha * OPAQUE).toInt()
+        canvas.drawCircle(0f, 0f, WHEEL_RADIUS, fill)
         for (gem in Gem.entries) {
             fill.color = Palette.of(gem)
             fill.alpha = (alpha * OPAQUE).toInt()
@@ -145,6 +151,7 @@ object SpecialOverlays {
         }
 
     private const val MIDDLE = 0.5
+    private const val DARK_MARK = 0xFF37474F.toInt()
     private const val BURST_POINTS = 8
     private const val BURST_OUTER = 0.8f
     private const val BURST_INNER = 0.4f
