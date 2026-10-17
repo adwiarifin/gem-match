@@ -33,21 +33,18 @@ object SpecialOverlays {
     private val outline = strokePaint(OUTLINE_WIDTH, Color.BLACK)
     private val rim = strokePaint(RIM_WIDTH, Color.WHITE)
 
-    /** Draws the overlay of [sprite]'s special, if it has one. [clock] is the scene's running time in seconds. */
+    /** Draws the overlay of [sprite]'s special, if it has one. [glow] is this frame's [shimmerGlow]. */
     fun draw(
         canvas: Canvas,
         sprite: Sprite,
-        clock: Float,
+        glow: Float,
     ) {
         when (val special = sprite.piece.special) {
             null -> Unit
             Special.COLOUR -> drawWheel(canvas, sprite.alpha)
-            else -> drawMark(canvas, sprite, special, shimmer(clock))
+            else -> drawMark(canvas, sprite, special, glow)
         }
     }
-
-    /** 0 to 1 and back, once every [SHIMMER_SECONDS]. */
-    private fun shimmer(clock: Float): Float = (MIDDLE + MIDDLE * sin(2 * PI * clock / SHIMMER_SECONDS)).toFloat()
 
     private fun drawMark(
         canvas: Canvas,
@@ -175,7 +172,6 @@ object SpecialOverlays {
             close()
         }
 
-    private const val MIDDLE = 0.5
     private const val DARK_MARK = 0xFF37474F.toInt()
     private const val BURST_POINTS = 8
     private const val BURST_OUTER = 0.8f
@@ -205,3 +201,11 @@ object SpecialOverlays {
 
 /** How long the shimmer takes to go from bright to dim and back. The scene clock wraps at a whole number of these. */
 internal const val SHIMMER_SECONDS = 2.4f
+
+/** 0 to 1 and back once every [SHIMMER_SECONDS], at [clock] seconds on the scene's clock. Computed once per frame. */
+internal fun shimmerGlow(clock: Float): Float {
+    val wave = sin(2 * PI * clock / SHIMMER_SECONDS)
+    return (SHIMMER_MIDDLE + SHIMMER_MIDDLE * wave).toFloat()
+}
+
+private const val SHIMMER_MIDDLE = 0.5

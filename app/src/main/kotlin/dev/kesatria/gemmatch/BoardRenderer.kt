@@ -35,8 +35,9 @@ class BoardRenderer {
 
         canvas.save()
         canvas.clipRect(panelRect)
-        scene.forEach { if (it !== scene.raised) drawSprite(canvas, layout, it, scene.clock) }
-        scene.raised?.let { drawSprite(canvas, layout, it, scene.clock) }
+        val glow = shimmerGlow(scene.clock)
+        scene.forEach { if (it !== scene.raised) drawSprite(canvas, layout, it, glow) }
+        scene.raised?.let { drawSprite(canvas, layout, it, glow) }
         effectRenderer.draw(canvas, layout, scene.effects)
         canvas.restore()
 
@@ -47,7 +48,7 @@ class BoardRenderer {
         canvas: Canvas,
         layout: BoardLayout,
         sprite: Sprite,
-        clock: Float,
+        glow: Float,
     ) {
         val cx = layout.originX + (sprite.col + sprite.dx + HALF) * layout.cellSize
         val cy = layout.originY + (sprite.row + HALF) * layout.cellSize
@@ -56,7 +57,7 @@ class BoardRenderer {
         val radius = layout.cellSize * GEM_RADIUS * sprite.scale
         canvas.scale(radius, radius)
         GemShapes.draw(canvas, sprite)
-        SpecialOverlays.draw(canvas, sprite, clock)
+        SpecialOverlays.draw(canvas, sprite, glow)
         canvas.restore()
     }
 

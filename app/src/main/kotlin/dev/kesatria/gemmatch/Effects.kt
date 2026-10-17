@@ -35,7 +35,23 @@ class Effect(
 
     /** How far the farthest taken cell is from the origin, in cells (at least 1). */
     val reach: Int = (cells.maxOfOrNull { cheb(it, origin) } ?: 0).coerceAtLeast(1)
+
+    private val taken = cells.toList()
+
+    /** The taken cells as board indexes (row times board size plus column), in the order [flashAt] numbers them. */
+    val cellIndexes: IntArray = IntArray(taken.size) { taken[it].row * BOARD_SIZE + taken[it].col }
+
+    /** How late in the run each taken cell is reached: 0 at the origin, up to [ARRIVAL_SPREAD] at the farthest cell. */
+    private val arrivals = FloatArray(taken.size) { cheb(taken[it], origin).toFloat() / reach * ARRIVAL_SPREAD }
+
+    /** How bright the flash on the cell in [slot] is now: 0 (dark) up to 1, a short swell once it is reached. */
+    fun flashAt(slot: Int): Float {
+        val local = ((progress - arrivals[slot]) / (1f - ARRIVAL_SPREAD)).coerceIn(0f, 1f)
+        return if (local <= 0f) 0f else sin(Math.PI * local).toFloat()
+    }
 }
+
+private const val ARRIVAL_SPREAD = 0.5f
 
 private fun cheb(
     a: Pos,
@@ -45,6 +61,7 @@ private fun cheb(
 /** Draws the effects of a [Scene] over its gems. Owns its paints so nothing is allocated per frame. */
 class EffectRenderer {
     private val rect = RectF()
+    private val flashes = FloatArray(BOARD_SIZE * BOARD_SIZE)
     private val flash = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private val stroke =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -59,8 +76,9 @@ class EffectRenderer {
         layout: BoardLayout,
         effects: List<Effect>,
     ) {
-        for (effect in effects) {
-            drawTaken(canvas, layout, effect)
+        drawTaken(canvas, layout, effects)
+        for (i in effects.indices) {
+            val effect = effects[i]
             when (effect.special) {
                 Special.BLAST -> drawRing(canvas, layout, effect)
                 Special.LINE_ROW -> drawBeams(canvas, layout, effect, horizontal = true)
@@ -75,20 +93,29 @@ class EffectRenderer {
         }
     }
 
-    /** A white flash on every gem the effect takes, reaching the far ones a little later than the near ones. */
+    /**
+     * A white flash on every gem an effect takes, reaching the far ones a little later than the near ones. A cell that
+     * several overlapping effects take is drawn once, at the brightest of them, so a chain costs one shape per cell.
+     */
     private fun drawTaken(
         canvas: Canvas,
         layout: BoardLayout,
-        effect: Effect,
+        effects: List<Effect>,
     ) {
-        for (cell in effect.cells) {
-            val arrives = cheb(cell, effect.origin).toFloat() / effect.reach * ARRIVAL_SPREAD
-            val local = ((effect.progress - arrives) / (1f - ARRIVAL_SPREAD)).coerceIn(0f, 1f)
-            if (local <= 0f) continue
-            flash.alpha = (FLASH_ALPHA * sin(Math.PI * local)).toInt()
-            val size = layout.cellSize
-            val left = layout.originX + cell.col * size
-            val top = layout.originY + cell.row * size
+        flashes.fill(0f)
+        for (i in effects.indices) {
+            val effect = effects[i]
+            for (slot in effect.cellIndexes.indices) {
+                val index = effect.cellIndexes[slot]
+                flashes[index] = max(flashes[index], effect.flashAt(slot))
+            }
+        }
+        val size = layout.cellSize
+        for (index in flashes.indices) {
+            if (flashes[index] <= 0f) continue
+            flash.alpha = (FLASH_ALPHA * flashes[index]).toInt()
+            val left = layout.originX + (index % BOARD_SIZE) * size
+            val top = layout.originY + (index / BOARD_SIZE) * size
             rect.set(left + size * INSET, top + size * INSET, left + size * (1 - INSET), top + size * (1 - INSET))
             canvas.drawRoundRect(rect, size * FLASH_CORNER, size * FLASH_CORNER, flash)
         }
@@ -160,9 +187,9 @@ class EffectRenderer {
         val travelled = (effect.progress / STREAK_TRAVEL).coerceAtMost(1f)
         stroke.strokeWidth = layout.cellSize * STREAK_WIDTH
         stroke.alpha = (OPAQUE * (1f - effect.progress * STREAK_FADE)).toInt()
-        for (cell in effect.cells) {
-            val tx = centreX(layout, cell)
-            val ty = centreY(layout, cell)
+        for (index in effect.cellIndexes) {
+            val tx = layout.originX + (index % BOARD_SIZE + HALF) * layout.cellSize
+            val ty = layout.originY + (index / BOARD_SIZE + HALF) * layout.cellSize
             canvas.drawLine(cx, cy, cx + (tx - cx) * travelled, cy + (ty - cy) * travelled, stroke)
         }
     }
@@ -182,7 +209,6 @@ class EffectRenderer {
         const val DIAGONAL_STRETCH = 1.4142135f
         val DIAGONAL_TURNS = floatArrayOf(45f, -45f)
         const val OPAQUE = 255
-        const val ARRIVAL_SPREAD = 0.5f
         const val FLASH_ALPHA = 170
         const val INSET = 0.08f
         const val FLASH_CORNER = 0.2f
