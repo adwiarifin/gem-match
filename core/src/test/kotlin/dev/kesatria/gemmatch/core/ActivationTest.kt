@@ -388,23 +388,22 @@ class ActivationTest {
     }
 
     @Test
-    fun aChainedColourGemIsClearedButHasNoPartnerSoFiresNothing() {
+    fun aColourGemCoveredByAnEffectTakesTheColourOfTheGemThatCoveredIt() {
         val board =
             patterned(
-                Pos(4, 4) to Piece(Gem.WHITE, Special.BLAST),
+                Pos(4, 4) to Piece(Gem.BLUE, Special.BLAST),
                 Pos(3, 5) to Piece(null, Special.COLOUR),
+                Pos(0, 0) to Piece(Gem.BLUE),
+                Pos(7, 7) to Piece(Gem.BLUE),
             )
 
         val result = resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(1L))
 
-        assertEquals(1, result.steps.count { it is Step.Activate })
-        assertTrue(
-            Pos(3, 5) in
-                result.steps
-                    .filterIsInstance<Step.Clear>()
-                    .first()
-                    .cells,
-        )
+        val fired = result.steps.filterIsInstance<Step.Activate>()
+        assertEquals(listOf(Special.BLAST, Special.COLOUR), fired.map { it.special })
+        assertEquals(cells(0 to 0, 7 to 7, 4 to 5, 3 to 5), fired[1].cells)
+        val clear = result.steps.filterIsInstance<Step.Clear>().first()
+        assertTrue(cells(0 to 0, 7 to 7, 3 to 5).all { it in clear.cells })
     }
 
     private fun assertNotNull(game: Game?): Game = checkNotNull(game)

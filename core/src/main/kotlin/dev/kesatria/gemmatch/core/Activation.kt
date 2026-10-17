@@ -43,7 +43,7 @@ private fun columnCells(col: Int): Set<Pos> = (0 until BOARD_SIZE).mapTo(mutable
  * swap on the board [board] where it has already happened: a special fires from the cell it moved to, both do if
  * both are special, and a colour gem takes every gem of its partner's colour and itself. Then every special that is
  * part of a match in [matched] fires from where it sits. Last, an effect that covers another special fires it too,
- * once. A covered colour gem has no partner, so it is cleared and fires nothing.
+ * once. A colour gem covered by an effect takes the colour of the gem that covered it (see [fireNew]).
  */
 fun firings(
     board: Board,
@@ -52,23 +52,32 @@ fun firings(
 ): List<Step.Activate> {
     val fired = swap?.let { initialActivations(board, it.first, it.second).toMutableList() } ?: mutableListOf()
     val seen = fired.mapTo(mutableSetOf()) { it.origin }
-    fireNew(board, matched, fired, seen)
+    fireNew(board, matched, null, fired, seen)
     var next = 0
-    while (next < fired.size) fireNew(board, fired[next++].cells, fired, seen)
+    while (next < fired.size) {
+        val cover = fired[next++]
+        fireNew(board, cover.cells, cover, fired, seen)
+    }
     return fired
 }
 
-/** Fires, in board order, every special among [cells] that has not fired yet. The colour gem has no partner here. */
+/**
+ * Fires, in board order, every special among [cells] that has not fired yet. A colour gem has no colour of its own,
+ * so it fires only when an effect [cover]s it, and then takes every gem of the covering gem's colour and itself.
+ * Only another colour gem has no colour, and one never covers another: it takes gems of one colour, never a colour gem.
+ */
 private fun fireNew(
     board: Board,
     cells: Set<Pos>,
+    cover: Step.Activate?,
     fired: MutableList<Step.Activate>,
     seen: MutableSet<Pos>,
 ) {
     for (pos in cells.sortedWith(BOARD_ORDER)) {
-        val special = board[pos]?.special
-        if (special != null && special != Special.COLOUR && seen.add(pos)) {
-            fired += Step.Activate(pos, special, effectCells(pos, special))
+        val fire = if (pos in seen) null else firing(board, pos, cover)
+        if (fire != null) {
+            seen += pos
+            fired += fire
         }
     }
 }
@@ -105,4 +114,20 @@ internal fun colourCells(
 ): Set<Pos>? {
     if (colour == null) return null
     return ALL_CELLS.filterTo(mutableSetOf(origin)) { board[it]?.gem == colour }
+}
+
+/** The effect of the special at [pos], or null if it has none (no special, or a colour gem with no colour to take). */
+private fun firing(
+    board: Board,
+    pos: Pos,
+    cover: Step.Activate?,
+): Step.Activate? {
+    val special = board[pos]?.special ?: return null
+    val take =
+        if (special == Special.COLOUR) {
+            colourCells(board, pos, cover?.let { board[it.origin]?.gem })
+        } else {
+            effectCells(pos, special)
+        }
+    return take?.let { Step.Activate(pos, special, it) }
 }
