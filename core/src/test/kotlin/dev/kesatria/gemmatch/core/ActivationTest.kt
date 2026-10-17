@@ -224,6 +224,93 @@ class ActivationTest {
         )
     }
 
+    @Test
+    fun aBlastCoveringALineGemFiresIt() {
+        val board =
+            patterned(
+                Pos(4, 4) to Piece(Gem.WHITE, Special.BLAST),
+                Pos(3, 5) to Piece(Gem.BLUE, Special.LINE_ROW),
+            )
+
+        val result = resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(1L))
+
+        val activates = result.steps.filterIsInstance<Step.Activate>()
+        assertEquals(listOf(Special.BLAST, Special.LINE_ROW), activates.map { it.special })
+        assertEquals(listOf(Pos(4, 5), Pos(3, 5)), activates.map { it.origin })
+        assertEquals(row(3), activates[1].cells)
+        val clear = result.steps.filterIsInstance<Step.Clear>().single { it.depth == 1 }
+        assertEquals(square(3..5, 4..6) + row(3), clear.cells)
+        assertEquals(clear.cells.size * POINTS_PER_EFFECT_GEM, clear.points)
+    }
+
+    @Test
+    fun twoSpecialsCoveringEachOtherEachFireOnce() {
+        val board =
+            patterned(
+                Pos(4, 4) to Piece(Gem.WHITE, Special.BLAST),
+                Pos(3, 5) to Piece(Gem.BLUE, Special.CROSS),
+            )
+
+        val activates = resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(1L)).steps.filterIsInstance<Step.Activate>()
+
+        assertEquals(listOf(Pos(4, 5), Pos(3, 5)), activates.map { it.origin })
+    }
+
+    @Test
+    fun chainsFollowTheOrderTheyWereReachedAndComeBeforeTheSingleClear() {
+        val board =
+            patterned(
+                Pos(4, 4) to Piece(Gem.WHITE, Special.BLAST),
+                Pos(3, 6) to Piece(Gem.BLUE, Special.LINE_COL),
+                Pos(3, 4) to Piece(Gem.GREEN, Special.LINE_ROW),
+                Pos(5, 5) to Piece(Gem.YELLOW, Special.CROSS),
+            )
+
+        val steps = resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(1L)).steps
+
+        val origins = steps.filterIsInstance<Step.Activate>().map { it.origin }
+        assertEquals(listOf(Pos(4, 5), Pos(3, 4), Pos(3, 6), Pos(5, 5)), origins.take(4))
+        val lastActivate = steps.indexOfLast { it is Step.Activate }
+        val firstClear = steps.indexOfFirst { it is Step.Clear }
+        assertTrue(lastActivate < firstClear)
+        assertEquals(steps, resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(1L)).steps)
+    }
+
+    @Test
+    fun specialsOutsideTheEffectAreNeverFiredByTheCascade() {
+        val corner = Piece(Gem.BLUE, Special.CROSS)
+        val other = Piece(Gem.GREEN, Special.LINE_ROW)
+        for (seed in 1L..SEEDS) {
+            val board = patterned(Pos(2, 2) to Piece(Gem.WHITE, Special.BLAST), Pos(7, 0) to corner, Pos(7, 7) to other)
+
+            val result = resolveSwap(board, Pos(2, 2), Pos(2, 3), Rng(seed))
+
+            assertEquals(1, result.steps.count { it is Step.Activate }, "seed $seed")
+            val survivors = (0 until BOARD_SIZE).flatMap { r -> (0 until BOARD_SIZE).map { c -> result.board[Pos(r, c)] } }
+            assertEquals(listOf(corner, other).toSet(), survivors.filter { it?.isSpecial == true }.toSet(), "seed $seed")
+        }
+    }
+
+    @Test
+    fun aChainedColourGemIsClearedButHasNoPartnerSoFiresNothing() {
+        val board =
+            patterned(
+                Pos(4, 4) to Piece(Gem.WHITE, Special.BLAST),
+                Pos(3, 5) to Piece(null, Special.COLOUR),
+            )
+
+        val result = resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(1L))
+
+        assertEquals(1, result.steps.count { it is Step.Activate })
+        assertTrue(
+            Pos(3, 5) in
+                result.steps
+                    .filterIsInstance<Step.Clear>()
+                    .first()
+                    .cells,
+        )
+    }
+
     private fun assertNotNull(game: Game?): Game = checkNotNull(game)
 
     private fun encodeFor(board: Board): String {

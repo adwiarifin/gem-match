@@ -24,11 +24,31 @@ private fun rowCells(row: Int): Set<Pos> = (0 until BOARD_SIZE).mapTo(mutableSet
 private fun columnCells(col: Int): Set<Pos> = (0 until BOARD_SIZE).mapTo(mutableSetOf()) { Pos(it, col) }
 
 /**
- * The effects the swap of [a] and [b] fires, on the board [swapped] where it has already happened. A special
- * fires from the cell it moved to; if both are special both fire, [a] first. A colour gem takes every gem of its
- * partner's colour, and itself. A colour gem whose partner has no colour fires nothing yet.
+ * Everything the swap of [a] and [b] fires, on the board [swapped] where it has already happened, in firing order.
+ * A special fires from the cell it moved to; if both are special both fire, [a] first. A colour gem takes every gem
+ * of its partner's colour, and itself. An effect that covers another special fires it too, once, from where it
+ * sits; a covered colour gem has no partner, so it is cleared and fires nothing.
  */
 fun activations(
+    swapped: Board,
+    a: Pos,
+    b: Pos,
+): List<Step.Activate> {
+    val fired = initialActivations(swapped, a, b).toMutableList()
+    val seen = fired.mapTo(mutableSetOf()) { it.origin }
+    var next = 0
+    while (next < fired.size) {
+        for (pos in fired[next++].cells.sortedWith(compareBy({ it.row }, { it.col }))) {
+            val special = swapped[pos]?.special
+            if (special != null && special != Special.COLOUR && seen.add(pos)) {
+                fired += Step.Activate(pos, special, effectCells(pos, special))
+            }
+        }
+    }
+    return fired
+}
+
+private fun initialActivations(
     swapped: Board,
     a: Pos,
     b: Pos,
