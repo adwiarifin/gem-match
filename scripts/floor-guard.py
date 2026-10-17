@@ -82,6 +82,17 @@ def untracked_diff():
     return "\n".join(parts)
 
 
+def assertion_signature(text):
+    """What kind of check a line is: the assertion function and its message, ignoring the arguments.
+
+    Retyping an assertion (a Gem becomes a Piece) keeps its signature. Deleting it, or swapping it for a
+    different kind of check, does not.
+    """
+    call = ASSERTIONS.search(text)
+    message = re.findall(r'"[^"]*"\s*\)?\s*$', text.strip())
+    return (call.group(1), message[0].rstrip(") \t") if message else "")
+
+
 def rule_key(text):
     stripped = text.strip()
     if stripped.startswith("|"):
@@ -172,9 +183,20 @@ def main():
     for file in deleted:
         if TEST_FILES.search(file):
             flag("test-deleted", file, "file deleted")
+    # A removed assertion is forgiven only when the same file adds one of the same kind in its place,
+    # one for one. That lets a type migration retype assertions, and still catches a deleted one.
+    replacements = {}
+    for file, text in added:
+        if TEST_FILES.search(file) and ASSERTIONS.search(text):
+            key = (file, assertion_signature(text))
+            replacements[key] = replacements.get(key, 0) + 1
     for file, text in removed:
         if TEST_FILES.search(file) and file not in deleted and ASSERTIONS.search(text):
-            flag("assertion-removed", file, text)
+            key = (file, assertion_signature(text))
+            if replacements.get(key, 0) > 0:
+                replacements[key] -= 1
+            else:
+                flag("assertion-removed", file, text)
 
     removed_rules = [(f, t) for f, t in removed if f.endswith("CONSTRAINTS.md") and rule_key(t)]
     added_rules = [(f, t) for f, t in added if f.endswith("CONSTRAINTS.md") and rule_key(t)]
