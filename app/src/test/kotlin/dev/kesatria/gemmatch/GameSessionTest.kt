@@ -295,4 +295,26 @@ class GameSessionTest {
         session.newGame(scene)
         assertTrue(session.isMovePlaying, "a new game's clear and refill is skippable")
     }
+
+    @Test
+    fun aRestoredGameHoldingASpecialPlaysAMoveThroughTheSession() {
+        val cells =
+            (0 until BOARD_SIZE).joinToString("") { row ->
+                (0 until BOARD_SIZE).joinToString("") { col ->
+                    if (row == 4 && col == 4) "3B" else "${(row + col) % 3}-"
+                }
+            }
+        val game = checkNotNull(Game.decode("GM2;0;1;$cells")) { "the save should load" }
+        val scene = Scene().also { it.load(game.board) }
+        val session = sessionOf(game)
+
+        val timeline = session.play(Move(Pos(4, 4), Pos(4, 5)))
+        assertTrue(session.isMovePlaying)
+        playToEnd(timeline, scene)
+        session.finish(scene)
+
+        assertFalse(session.isMovePlaying)
+        assertTrue(session.shownScore > 0, "the blast scored")
+        assertSceneShows(session.board, scene, "after a special swap through the session")
+    }
 }

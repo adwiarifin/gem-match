@@ -259,6 +259,27 @@ class ResolveCreationTest {
         assertTrue(checked > SPECIAL_SEEDS, "too few moves were checked: $checked")
     }
 
+    @Test
+    fun aCascadeMatchOverTheSwapCellMakesItsSpecialAtTheGroupCentreNotTheSwapCell() {
+        var overTheSwapCell = 0
+        for (seed in 1L..CASCADE_SEEDS) {
+            val board = randomStableBoard(seed)
+            val move = findValidMoves(board).firstOrNull() ?: continue
+            val steps = resolveSwap(board, move.from, move.to, Rng(seed)).steps
+
+            steps.forEachIndexed { index, step ->
+                if (step !is Step.Clear || step.depth < 2) return@forEachIndexed
+                val groups = findMatchGroups(replay(board, steps.take(index)))
+                val expected = createdPieces(groups, emptyList())
+                val made = steps.drop(index + 1).takeWhile { it is Step.Create }
+
+                assertEquals(expected, made, "seed $seed depth ${step.depth}")
+                if (expected.isNotEmpty() && groups.any { move.from in it.cells || move.to in it.cells }) overTheSwapCell++
+            }
+        }
+        assertTrue(overTheSwapCell > 0, "no cascade group ever covered the swap cell, so this checked nothing")
+    }
+
     /** Counts the qualifying groups on the board each Clear is applied to. A fire in the same clear does not matter. */
     private fun expectedCreates(
         start: Board,
@@ -276,5 +297,6 @@ class ResolveCreationTest {
     private companion object {
         const val SEEDS = 300L
         const val SPECIAL_SEEDS = 120L
+        const val CASCADE_SEEDS = 1_500L
     }
 }

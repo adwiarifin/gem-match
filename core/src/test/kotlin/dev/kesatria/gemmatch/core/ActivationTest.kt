@@ -364,6 +364,15 @@ class ActivationTest {
     }
 
     @Test
+    fun twoBlastsThatCoverEachOtherFireOnceEach() {
+        val board = patterned(Pos(3, 3) to Piece(Gem.WHITE, Special.BLAST), Pos(3, 4) to Piece(Gem.BLUE, Special.BLAST))
+
+        val fired = firings(board, cells(3 to 3), null)
+
+        assertEquals(listOf(Pos(3, 3), Pos(3, 4)), fired.map { it.origin })
+    }
+
+    @Test
     fun aSpecialLinedUpByACascadeFiresAtThatDepth() {
         var fired = 0
         for (seed in 1L..CASCADE_SEEDS) {

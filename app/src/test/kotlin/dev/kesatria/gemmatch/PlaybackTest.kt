@@ -37,18 +37,23 @@ class PlaybackTest {
             }
         }
         seen += playedReshuffle()
-        assertEquals(
+        val original =
             setOf(
                 Step.Swap::class,
-                Step.Activate::class,
                 Step.Clear::class,
-                Step.Create::class,
                 Step.Fall::class,
                 Step.Spawn::class,
                 Step.Reshuffle::class,
-            ),
-            seen,
+            )
+        assertEquals(
+            setOf(Step.Swap::class, Step.Clear::class, Step.Fall::class, Step.Spawn::class, Step.Reshuffle::class),
+            seen.filter { it in original }.toSet(),
             "every kind of step must be played at least once",
+        )
+        assertEquals(
+            setOf(Step.Activate::class, Step.Create::class),
+            seen.filter { it !in original }.toSet(),
+            "and so must the steps that special gems add",
         )
     }
 

@@ -42,9 +42,9 @@ class ActivateAnimation(
     }
 
     override fun start(scene: Scene) {
-        timed.forEach {
-            it.shown = false
-            it.done = false
+        for (index in timed.indices) {
+            timed[index].shown = false
+            timed[index].done = false
         }
     }
 
@@ -53,7 +53,8 @@ class ActivateAnimation(
         progress: Float,
     ) {
         val now = progress * seconds
-        for (item in timed) {
+        for (index in timed.indices) {
+            val item = timed[index]
             if (item.done || now < item.start) continue
             if (!item.shown) show(scene, item)
             item.effect.progress = ((now - item.start) / item.length).coerceIn(0f, 1f)
@@ -62,7 +63,8 @@ class ActivateAnimation(
     }
 
     override fun finish(scene: Scene) {
-        for (item in timed) {
+        for (index in timed.indices) {
+            val item = timed[index]
             if (!item.shown) show(scene, item)
             if (!item.done) hide(scene, item)
         }

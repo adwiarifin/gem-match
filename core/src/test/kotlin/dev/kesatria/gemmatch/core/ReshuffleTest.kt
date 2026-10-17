@@ -85,4 +85,15 @@ class ReshuffleTest {
     private companion object {
         const val SEEDS = 1000L
     }
+
+    @Test
+    fun aBoardHoldingASpecialCountsAsPlayableSoItIsNeverReshuffled() {
+        val withSpecial = patterned(Pos(3, 3) to Piece(Gem.WHITE, Special.BLAST))
+        assertTrue(findValidMoves(deadBoard).isEmpty(), "the plain board has no move")
+
+        val (kept, reshuffle) = ensureMoveExists(withSpecial, Rng(1L))
+
+        assertNull(reshuffle)
+        assertEquals(withSpecial, kept)
+    }
 }

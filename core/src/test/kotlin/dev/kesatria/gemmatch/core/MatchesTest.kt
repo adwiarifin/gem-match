@@ -200,4 +200,13 @@ class MatchesTest {
 
         assertEquals(2, findRuns(board).size)
     }
+
+    @Test
+    fun withHangingGemsAtBothEndsTheFirstInBoardOrderIsTaken() {
+        val above = findMatchGroups(boardOf(".R...", ".RRR.", "...R.")).single()
+        val mirrored = findMatchGroups(boardOf("...R.", ".RRR.", ".R...")).single()
+
+        assertEquals(Pos(0, 1), above.hanging)
+        assertEquals(Pos(0, 3), mirrored.hanging)
+    }
 }
