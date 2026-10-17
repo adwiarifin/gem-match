@@ -32,3 +32,7 @@ class Board private constructor(
         private fun indexOf(pos: Pos): Int = pos.row * BOARD_SIZE + pos.col
     }
 }
+
+/** Every cell of the board, row by row. */
+internal val ALL_CELLS: Set<Pos> =
+    (0 until BOARD_SIZE).flatMapTo(mutableSetOf()) { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }

@@ -23,9 +23,6 @@ internal fun colourWithSpecial(
         fires.map { Step.Activate(it, special, effectCells(it, special)) }
 }
 
-internal val ALL_CELLS: Set<Pos> =
-    (0 until BOARD_SIZE).flatMapTo(mutableSetOf()) { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }
-
 /** Two of these swapped together make one bigger effect instead of two overlapping ones (D20). */
 internal val DOUBLED = setOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL)
 
