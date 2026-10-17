@@ -8,9 +8,9 @@ import kotlin.math.PI
 import kotlin.math.cos
 
 /**
- * After [HINT_AFTER_SECONDS] of a settled board with no touch, one move pulses: a match if there is one, else a special swap. The timer counts
- * game-loop time only, so it never runs in the background. Anything that happens (a touch, the app coming
- * back) calls [touched], and the next [tick] clears the hint and restarts the timer.
+ * After [HINT_AFTER_SECONDS] of a settled board with no touch, one move pulses: a match if there is one,
+ * else a special swap. The timer counts game-loop time only, so it never runs in the background. Anything that
+ * happens (a touch, the app coming back) calls [touched], and the next [tick] clears the hint and restarts the timer.
  */
 class IdleHint(
     private val scene: Scene,
@@ -70,8 +70,11 @@ class IdleHint(
         }
     }
 
-    /** A move that makes a match if there is one; only when there is none, a swap that fires a special. */
-    private fun pickMove(board: Board): Move? = findMatchMoves(board).randomOrNull() ?: findValidMoves(board).randomOrNull()
+    /** A move that makes a match if there is one; only when there is none, a special swap. */
+    private fun pickMove(board: Board): Move? {
+        val matches = findMatchMoves(board)
+        return matches.randomOrNull() ?: findValidMoves(board).randomOrNull()
+    }
 
     private companion object {
         const val HINT_AFTER_SECONDS = 8f

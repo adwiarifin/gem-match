@@ -19,7 +19,15 @@ class Effect(
     val cells: Set<Pos>,
 ) {
     var progress = 0f
+
+    /** How far the farthest taken cell is from the origin, in cells (at least 1). */
+    val reach: Int = (cells.maxOfOrNull { cheb(it, origin) } ?: 0).coerceAtLeast(1)
 }
+
+private fun cheb(
+    a: Pos,
+    b: Pos,
+) = max(abs(a.row - b.row), abs(a.col - b.col))
 
 /** Draws the effects of a [Scene] over its gems. Owns its paints so nothing is allocated per frame. */
 class EffectRenderer {
@@ -59,9 +67,8 @@ class EffectRenderer {
         layout: BoardLayout,
         effect: Effect,
     ) {
-        val reach = effect.cells.maxOf { distance(it, effect.origin) }.coerceAtLeast(1)
         for (cell in effect.cells) {
-            val arrives = distance(cell, effect.origin).toFloat() / reach * ARRIVAL_SPREAD
+            val arrives = cheb(cell, effect.origin).toFloat() / effect.reach * ARRIVAL_SPREAD
             val local = ((effect.progress - arrives) / (1f - ARRIVAL_SPREAD)).coerceIn(0f, 1f)
             if (local <= 0f) continue
             flash.alpha = (FLASH_ALPHA * sin(Math.PI * local)).toInt()
@@ -78,7 +85,8 @@ class EffectRenderer {
         layout: BoardLayout,
         effect: Effect,
     ) {
-        val (cx, cy) = centre(layout, effect.origin)
+        val cx = centreX(layout, effect.origin)
+        val cy = centreY(layout, effect.origin)
         stroke.strokeWidth = layout.cellSize * RING_WIDTH
         stroke.alpha = (OPAQUE * (1f - effect.progress)).toInt()
         canvas.drawCircle(cx, cy, layout.cellSize * (RING_START + RING_GROWTH * effect.progress), stroke)
@@ -90,7 +98,8 @@ class EffectRenderer {
         effect: Effect,
         horizontal: Boolean,
     ) {
-        val (cx, cy) = centre(layout, effect.origin)
+        val cx = centreX(layout, effect.origin)
+        val cy = centreY(layout, effect.origin)
         val reach = layout.cellSize * BOARD_SIZE * effect.progress
         val half = layout.cellSize * BEAM_HALF
         beam.alpha = (BEAM_ALPHA * (1f - effect.progress * BEAM_FADE)).toInt()
@@ -107,25 +116,27 @@ class EffectRenderer {
         layout: BoardLayout,
         effect: Effect,
     ) {
-        val (cx, cy) = centre(layout, effect.origin)
+        val cx = centreX(layout, effect.origin)
+        val cy = centreY(layout, effect.origin)
         val travelled = (effect.progress / STREAK_TRAVEL).coerceAtMost(1f)
         stroke.strokeWidth = layout.cellSize * STREAK_WIDTH
         stroke.alpha = (OPAQUE * (1f - effect.progress * STREAK_FADE)).toInt()
         for (cell in effect.cells) {
-            val (tx, ty) = centre(layout, cell)
+            val tx = centreX(layout, cell)
+            val ty = centreY(layout, cell)
             canvas.drawLine(cx, cy, cx + (tx - cx) * travelled, cy + (ty - cy) * travelled, stroke)
         }
     }
 
-    private fun centre(
+    private fun centreX(
         layout: BoardLayout,
         pos: Pos,
-    ) = Pair(layout.originX + (pos.col + HALF) * layout.cellSize, layout.originY + (pos.row + HALF) * layout.cellSize)
+    ) = layout.originX + (pos.col + HALF) * layout.cellSize
 
-    private fun distance(
-        a: Pos,
-        b: Pos,
-    ) = max(abs(a.row - b.row), abs(a.col - b.col))
+    private fun centreY(
+        layout: BoardLayout,
+        pos: Pos,
+    ) = layout.originY + (pos.row + HALF) * layout.cellSize
 
     private companion object {
         const val HALF = 0.5f

@@ -51,7 +51,9 @@ object SpecialOverlays {
         glow: Float,
     ) {
         val alpha = sprite.alpha
+        val mark = if (sprite.piece.gem == Gem.WHITE) DARK_MARK else Color.WHITE
         sprite.piece.gem?.let {
+            sheen.color = mark
             sheen.alpha = (alpha * glow * SHEEN_ALPHA).toInt()
             canvas.drawPath(GemShapes.pathOf(it), sheen)
         }
@@ -63,8 +65,7 @@ object SpecialOverlays {
                 Special.CROSS -> plus
                 Special.COLOUR -> return
             }
-        overlayFill.color = if (sprite.piece.gem == Gem.WHITE) DARK_MARK else Color.WHITE
-        sheen.color = if (sprite.piece.gem == Gem.WHITE) DARK_MARK else Color.WHITE
+        overlayFill.color = mark
         overlayFill.alpha = (alpha * (OVERLAY_BASE + OVERLAY_GLOW * glow) * OPAQUE).toInt()
         outline.alpha = (alpha * OUTLINE_ALPHA).toInt()
         canvas.drawPath(path, overlayFill)

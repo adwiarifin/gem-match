@@ -314,26 +314,19 @@ class Timeline(
             steps: List<Step>,
             onCleared: (Int) -> Unit,
         ): Timeline {
-            var fired = false
-            return Timeline(
-                steps.map { step ->
-                    if (step is Step.Activate) {
-                        ActivateAnimation(step, first = !fired).also { fired = true }
-                    } else {
-                        animationFor(step, onCleared)
-                    }
-                },
-            )
+            val firstActivate = steps.indexOfFirst { it is Step.Activate }
+            return Timeline(steps.mapIndexed { index, step -> animationFor(step, index != firstActivate, onCleared) })
         }
 
         private fun animationFor(
             step: Step,
+            chained: Boolean,
             onCleared: (Int) -> Unit,
         ): Animation =
             when (step) {
                 is Step.Swap -> SwapAnimation(step.a, step.b)
                 is Step.Clear -> ClearAnimation(step.cells, step.points, onCleared)
-                is Step.Activate -> ActivateAnimation(step)
+                is Step.Activate -> ActivateAnimation(step, first = !chained)
                 is Step.Create -> CreateAnimation(step.pos, step.piece)
                 is Step.Fall -> FallAnimation(step.moves)
                 is Step.Spawn -> SpawnAnimation(step.gems)
