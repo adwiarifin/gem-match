@@ -36,24 +36,24 @@ Order inside one clear: the swap's own effects, then matched specials in board o
 
 ## Combos (two specials swapped together)
 
-Each special fires its own effect from the cell it moved to. There are no bespoke pair effects except the colour gem's.
+Each special fires its own effect from the cell it moved to. There are no bespoke pair effects except two of the same line or blast, which make one bigger effect, and the colour gem's (D20).
 
 Cells cleared on an open board, both gems in the middle (pinned by `PairCombosTest`). "Along a row" means the swap is sideways, "along a column" up or down.
 
 | Pair | Along a row | Along a column |
 |---|---|---|
-| Blast + Blast | 12 | 12 |
+| Blast + Blast | 25 | 25 |
 | Blast + Row line | 14 | 14 |
 | Blast + Column line | 14 | 14 |
 | Blast + Cross | 19 | 19 |
 | Blast + Short X | 15 | 15 |
 | Blast + Full X | 20 | 20 |
-| Row line + Row line | 8 | 16 |
+| Row line + Row line | 24 | 24 |
 | Row line + Column line | 15 | 15 |
 | Row line + Cross | 15 | 22 |
 | Row line + Short X | 16 | 15 |
 | Row line + Full X | 21 | 20 |
-| Column line + Column line | 16 | 8 |
+| Column line + Column line | 24 | 24 |
 | Column line + Cross | 22 | 15 |
 | Column line + Short X | 15 | 16 |
 | Column line + Full X | 20 | 21 |
@@ -64,7 +64,7 @@ Cells cleared on an open board, both gems in the middle (pinned by `PairCombosTe
 | Short X + Full X | 23 | 23 |
 | Full X + Full X | 28 | 28 |
 
-Edges and corners clip every effect to the board. Any other special inside the cleared cells fires too.
+Two of the same line or blast clear one bigger area centred on the cell the dragged gem moved to: three columns (two column lines) or three rows (two row lines), always including both gems' own, or a 5x5 square (two blasts). Edges and corners clip every effect to the board. Any other special inside the cleared cells fires too.
 
 **Colour gem combos**
 
@@ -92,7 +92,7 @@ Edges and corners clip every effect to the board. Any other special inside the c
 | Runs, groups, the hanging gem | `Matches.kt` |
 | Which special a group makes, where it goes | `Creation.kt` |
 | What each special clears, firing order, chains | `Activation.kt` |
-| Colour gem combos | `Combo.kt` |
+| Colour gem combos, and the bigger effect of two same lines or blasts | `Combo.kt` |
 | Turning one move into steps (swap, fire, clear, create, fall, spawn, cascade) | `Resolution.kt` |
 | Points | `Scoring.kt` |
 | Save letters | `SaveCodec.kt` |

@@ -52,7 +52,7 @@ Intent: `docs/intent/special-gems.md`. Every rule, the pair table and where each
 | L with both arms 3 or more | Cross | Clears its row and its column |
 | Long T: any run of 4 or more crossing inside a run | Full X | Clears both diagonals through it, across the board |
 
-A special gem stays on the board until the player swaps it with an orthogonal neighbour, a match uses it, or another effect covers it. A swap that touches a special is always legal, even when no match would form. Combos stay small: colour + colour clears the board; colour + another special converts every gem of that other special's colour into that special and fires them all (converted line gems copy the partner's direction); any other pair fires both effects. No bespoke pair effects.
+A special gem stays on the board until the player swaps it with an orthogonal neighbour, a match uses it, or another effect covers it. A swap that touches a special is always legal, even when no match would form. Combos stay small: colour + colour clears the board; colour + another special converts every gem of that other special's colour into that special and fires them all (converted line gems copy the partner's direction); two of the same line or blast make one bigger effect, three columns, three rows or a 5x5 square centred where the dragged gem landed; any other pair fires both effects. No other bespoke pair effects.
 
 Rules (the owner decided the table, the combos and the playtest changes; the rest are assumptions to be confirmed):
 1. **Specials join matches (changed after playtest, D16).** A special keeps its colour and counts in a run of that colour like a plain gem. The colour gem has no colour and never counts.
