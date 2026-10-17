@@ -172,4 +172,32 @@ class MatchesTest {
 
         assertEquals(2, groups.size)
     }
+
+    @Test
+    fun aSpecialPieceNeverJoinsARun() {
+        val board = boardOf("RRRR").with(Pos(0, 1), Piece(Gem.RED, Special.BLAST))
+
+        assertEquals(emptyList(), findRuns(board))
+    }
+
+    @Test
+    fun aSpecialSplitsARunIntoPartsTooShort() {
+        val board = boardOf("RRRRR").with(Pos(0, 2), Piece(Gem.RED, Special.CROSS))
+
+        assertEquals(emptyList(), findRuns(board))
+    }
+
+    @Test
+    fun aColourGemNeverJoinsARun() {
+        val board = boardOf("RR.R").with(Pos(0, 2), Piece(null, Special.COLOUR))
+
+        assertEquals(emptyList(), findRuns(board))
+    }
+
+    @Test
+    fun runsOnEitherSideOfASpecialStillCount() {
+        val board = boardOf("RRRBRRR").with(Pos(0, 3), Piece(Gem.BLUE, Special.LINE_ROW))
+
+        assertEquals(2, findRuns(board).size)
+    }
 }

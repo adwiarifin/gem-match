@@ -162,4 +162,78 @@ class MoveTest {
     private companion object {
         const val SEEDS = 300L
     }
+
+    private val special = Piece(Gem.RED, Special.BLAST)
+
+    @Test
+    fun swapTouchingASpecialIsValidWithNoMatch() {
+        val board = boardOf("RGBY").with(Pos(0, 1), special)
+
+        assertTrue(isValidSwap(board, Pos(0, 0), Pos(0, 1)))
+        assertTrue(isValidSwap(board, Pos(0, 1), Pos(0, 2)))
+    }
+
+    @Test
+    fun swapOfTwoSpecialsIsValid() {
+        val board = boardOf("RG").with(Pos(0, 0), special).with(Pos(0, 1), Piece(null, Special.COLOUR))
+
+        assertTrue(isValidSwap(board, Pos(0, 0), Pos(0, 1)))
+    }
+
+    @Test
+    fun swapOfTwoPlainGemsStillNeedsAMatch() {
+        val board = boardOf("RGBY").with(Pos(0, 3), special)
+
+        assertFalse(isValidSwap(board, Pos(0, 0), Pos(0, 1)))
+    }
+
+    @Test
+    fun specialSwapWithAnEmptyCellIsInvalid() {
+        val board = boardOf("R.").with(Pos(0, 0), special)
+
+        assertFalse(isValidSwap(board, Pos(0, 0), Pos(0, 1)))
+    }
+
+    @Test
+    fun specialSwapMustStillBeAdjacent() {
+        val board = boardOf("RGB").with(Pos(0, 0), special)
+
+        assertFalse(isValidSwap(board, Pos(0, 0), Pos(0, 2)))
+    }
+
+    @Test
+    fun aBoardHoldingASpecialAlwaysHasAValidMove() {
+        for (seed in 1L..SEEDS) {
+            val base = randomStableBoard(seed)
+            val board = base.with(Pos((seed % BOARD_SIZE).toInt(), (seed / 3 % BOARD_SIZE).toInt()), special)
+
+            assertTrue(hasValidMove(board), "seed $seed")
+            assertTrue(findValidMoves(board).isNotEmpty(), "seed $seed")
+        }
+    }
+
+    @Test
+    fun findMatchMovesAgreesWithTheOldRuleOnPlainBoards() {
+        for (seed in 1L..SEEDS) {
+            val board = randomStableBoard(seed)
+
+            assertEquals(bruteForceMoves(board), findMatchMoves(board).map { setOf(it.from, it.to) }.toSet(), "seed $seed")
+            assertEquals(findMatchMoves(board), findValidMoves(board), "seed $seed")
+        }
+    }
+
+    @Test
+    fun findMatchMovesIgnoresSwapsThatOnlyWorkThroughASpecial() {
+        val board = boardOf("RGBY", "YBGR").with(Pos(0, 1), special)
+
+        assertEquals(emptyList(), findMatchMoves(board))
+        assertTrue(findValidMoves(board).isNotEmpty())
+    }
+
+    @Test
+    fun findMatchMovesKeepsAMatchBesideASpecial() {
+        val board = boardOf("BRRBR").with(Pos(0, 0), Piece(Gem.WHITE, Special.BLAST))
+
+        assertEquals(listOf(Move(Pos(0, 3), Pos(0, 4))), findMatchMoves(board))
+    }
 }
