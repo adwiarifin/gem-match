@@ -31,7 +31,7 @@ internal val DOUBLED = setOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL)
  * to: three columns or three rows, always including both gems' own, or a 5x5 square for two blasts.
  */
 internal fun pairCells(
-    special: Special?,
+    special: Special,
     landing: Pos,
 ): Set<Pos> =
     ALL_CELLS.filterTo(mutableSetOf()) { cell ->

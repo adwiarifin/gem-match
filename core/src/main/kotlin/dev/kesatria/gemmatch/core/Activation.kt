@@ -91,9 +91,10 @@ private fun initialActivations(
 ): List<Step.Activate> {
     val first = swapped[a]?.special
     val second = swapped[b]?.special
+    val doubled = first?.takeIf { it == second && it in DOUBLED }
     return when {
         first == Special.COLOUR && second == Special.COLOUR -> listOf(clearBoard(b))
-        first == second && first in DOUBLED -> listOf(Step.Activate(b, checkNotNull(first), pairCells(first, b)))
+        doubled != null -> listOf(Step.Activate(b, doubled, pairCells(doubled, b)))
         first == Special.COLOUR && second != null -> colourWithSpecial(swapped, a, b)
         second == Special.COLOUR && first != null -> colourWithSpecial(swapped, b, a)
         else -> listOf(a to b, b to a).mapNotNull { (origin, partner) -> firing(swapped, origin, colourFrom = partner) }
