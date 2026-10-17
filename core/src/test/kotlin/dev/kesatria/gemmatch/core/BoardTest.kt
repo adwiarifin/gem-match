@@ -3,6 +3,7 @@ package dev.kesatria.gemmatch.core
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 class BoardTest {
@@ -68,5 +69,54 @@ class BoardTest {
 
         assertEquals(a, b)
         assertEquals(a.hashCode(), b.hashCode())
+    }
+
+    @Test
+    fun pieceRoundTripsThroughTheBoard() {
+        val special = Piece(Gem.GREEN, Special.CROSS)
+        val board = Board.empty().withPiece(Pos(4, 4), special)
+
+        assertEquals(special, board.piece(Pos(4, 4)))
+        assertEquals(Gem.GREEN, board[Pos(4, 4)])
+        assertNull(board.piece(Pos(0, 0)))
+        assertNull(board.piece(Pos(-1, 0)))
+    }
+
+    @Test
+    fun withPieceNullClearsACell() {
+        val board = Board.empty().withPiece(Pos(1, 1), Piece(null, Special.COLOUR))
+
+        assertNull(board.withPiece(Pos(1, 1), null).piece(Pos(1, 1)))
+    }
+
+    @Test
+    fun withPieceOutsideTheBoardIsRejected() {
+        assertFailsWith<IllegalArgumentException> {
+            Board.empty().withPiece(Pos(0, BOARD_SIZE), Piece(Gem.RED))
+        }
+    }
+
+    @Test
+    fun swapMovesSpecialsAsUnits() {
+        val a = Pos(2, 2)
+        val b = Pos(2, 3)
+        val board =
+            Board
+                .empty()
+                .withPiece(a, Piece(Gem.RED, Special.BLAST))
+                .withPiece(b, Piece(null, Special.COLOUR))
+
+        val swapped = board.swap(a, b)
+
+        assertEquals(Piece(null, Special.COLOUR), swapped.piece(a))
+        assertEquals(Piece(Gem.RED, Special.BLAST), swapped.piece(b))
+    }
+
+    @Test
+    fun boardsWithDifferentSpecialsAreNotEqual() {
+        val plain = Board.empty().with(Pos(0, 0), Gem.RED)
+        val special = Board.empty().withPiece(Pos(0, 0), Piece(Gem.RED, Special.BLAST))
+
+        assertNotEquals(plain, special)
     }
 }
