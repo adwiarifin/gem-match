@@ -371,7 +371,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 **Acceptance:**
 - [ ] A swap forming a run of 4, a run of 5, an L and a T each leave exactly one special of the right kind at the right cell (SC13).
 - [ ] A swap forming two groups can leave two specials.
-- [ ] A match at cascade depth 2 or more makes no special.
+- [ ] A match at cascade depth 2 or more makes no special. (Superseded by D16: it does.)
 - [ ] `TestReplay` rebuilds the final board from the steps, including `Create`.
 - [ ] Gem count stays 64 on every resolved board.
 - [ ] Step order is Clear, Create, Fall, Spawn: a special made by a vertical run of 4 falls like any gem once the cells below it clear.
@@ -384,7 +384,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 - [ ] Owner review of `Piece` and `Step` shape before activation builds on them.
 
 #### T24: Blast, line and cross fire on swap
-**Description:** Pure `effectCells` for blast (3x3), line (row or column), cross (both), clipped to the board. `resolveSwap` swaps first, fires the special from the cell it moved to, emits `Step.Activate(origin, special, cells)`, then one `Clear` that also holds any normal match the swap formed. Cascades continue at depth 2 and up. A fired swap creates no special. Effect gems score `POINTS_PER_EFFECT_GEM` times depth.
+**Description:** Pure `effectCells` for blast (3x3), line (row or column), cross (both), clipped to the board. `resolveSwap` swaps first, fires the special from the cell it moved to, emits `Step.Activate(origin, special, cells)`, then one `Clear` that also holds any normal match the swap formed. Cascades continue at depth 2 and up. A fired swap creates no special (removed by D21: the match still makes its special). Effect gems score `POINTS_PER_EFFECT_GEM` times depth.
 **Acceptance:**
 - [ ] Each effect clears exactly its cells, including at edges and corners.
 - [ ] A swap with a special and no match is accepted; the same swap is rejected for two plain gems.

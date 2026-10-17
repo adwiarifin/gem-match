@@ -20,7 +20,7 @@ Status: live. Every command below runs today. `make check-fast`, `make check-tas
 | Compile | Zero errors in `core` | Cheapest signal there is | `./gradlew :core:compileKotlin` | every edit | block |
 | Style | Zero ktlint errors in `core` and `app` | Formatting noise stays out of diffs | `./gradlew ktlintCheck` | every edit | block |
 | Secrets | No secrets in source | A leaked key in a public repo or blog repo is permanent | `gitleaks detect --redact --no-banner` | every edit | block |
-| Floor guard | No new suppression comments, stubs, skipped or deleted tests, removed assertions, new exceptions, or loosened rules in this file | The five moves an agent makes to get to green. Diff-scoped, so it costs milliseconds | `scripts/floor-guard.py` | every edit | block |
+| Floor guard | No new suppression comments, stubs, skipped or deleted tests, removed assertions, new exceptions, or loosened rules in this file | The five moves an agent makes to get to green. Diff-scoped, so it costs milliseconds | `scripts/floor-guard.py` (its own cases: `scripts/test-floor-guard.sh`, run in `make check-fast`) | every edit | block |
 | Core boundary | `core` has no `android.*`, `java.*`, `javax.*` imports and applies no Android Gradle plugin | Keeps the core KMP-ready and the presentation layer replaceable (stated project goal) | `scripts/check-core-boundary.sh` | every edit | block |
 | Core tests | All `core` tests pass | Game rules are the product | `./gradlew :core:test` | task end | block |
 | App tests | All `app` unit tests pass | The drag, animation, session and save logic is where the playtest bugs were found. Android-free classes only; rendering and wiring stay with the on-device checks | `./gradlew :app:testDebugUnitTest` | task end | block |
