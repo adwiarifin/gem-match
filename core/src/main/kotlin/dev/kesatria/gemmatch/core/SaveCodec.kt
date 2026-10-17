@@ -23,6 +23,10 @@ private val SPECIAL_CHARS =
         Special.COLOUR to 'W',
     )
 
+private val GEM_BY_DIGIT = Gem.entries.associateBy { '0' + it.ordinal }
+
+private val SPECIAL_BY_CHAR = SPECIAL_CHARS.entries.associate { (special, char) -> char to special }
+
 internal data class SavedState(
     val board: Board,
     val score: Int,
@@ -71,12 +75,8 @@ private fun decodeParts(parts: List<String>): SavedState? {
 }
 
 private fun decodeGm1Board(digits: String): Board? {
-    val gems =
-        digits
-            .takeIf { it.length == CELL_COUNT }
-            ?.map { char -> if (char in '0'..'9') Gem.entries.getOrNull(char - '0') else null }
-            ?.filterNotNull()
-    return gems?.takeIf { it.size == digits.length }?.let { boardOf(it.map { gem -> Piece(gem) }) }
+    val gems = digits.takeIf { it.length == CELL_COUNT }?.map { GEM_BY_DIGIT[it] }
+    return gems?.takeIf { null !in it }?.let { boardOf(it.filterNotNull().map { gem -> Piece(gem) }) }
 }
 
 private fun decodeGm2Board(text: String): Board? {
@@ -86,11 +86,13 @@ private fun decodeGm2Board(text: String): Board? {
 
 /** Null unless the pair is a gem digit with `-` or a letter other than `W`, or the colour gem `-W`. */
 private fun decodeCell(cell: String): Piece? {
-    val gem = if (cell[0] == NO_PART) null else Gem.entries.getOrNull(cell[0] - '0')?.takeIf { cell[0] in '0'..'9' }
-    val special = if (cell[1] == NO_PART) null else SPECIAL_CHARS.entries.firstOrNull { it.value == cell[1] }?.key
-    val known = (cell[0] == NO_PART || gem != null) && (cell[1] == NO_PART || special != null)
+    val (gemChar, specialChar) = cell[0] to cell[1]
+    val gemKnown = gemChar == NO_PART || gemChar in GEM_BY_DIGIT
+    val specialKnown = specialChar == NO_PART || specialChar in SPECIAL_BY_CHAR
+    val gem = GEM_BY_DIGIT[gemChar]
+    val special = SPECIAL_BY_CHAR[specialChar]
     val coherent = (gem == null) == (special == Special.COLOUR)
-    return if (known && coherent) Piece(gem, special) else null
+    return if (gemKnown && specialKnown && coherent) Piece(gem, special) else null
 }
 
 private fun boardOf(pieces: List<Piece>): Board =
