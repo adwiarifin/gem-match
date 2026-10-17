@@ -41,17 +41,17 @@ Details: `tasks/plan.md` ("Special gems"). Spec: `SPEC.md` "Special Gems". Every
 - [ ] T19: `Piece`, `Special`, `Board` holds `Piece` (behaviour unchanged). Done when: invalid `Piece` rejected, all old tests green with assertions intact, pieces move as units. Verify: `make check-task`
 - [ ] T20: Specials inert in matches; a special swap is always legal; `findMatchMoves`. Done when: no run through a special, special swap valid without a match, board with a special always has a move. Verify: `make check-task`
 - [ ] T21: Classify groups (4 blast, 5+ colour, L line with direction, T/+ cross, priority). Done when: table tests cover every shape and priority. Verify: `make check-task`
-- [ ] T22: Creation in `resolveSwap` (depth 1 only, `Step.Create`). Done when: SC13 holds in tests, cascade matches make none, gem count stays 64. Verify: `make check-task`
+- [ ] T22: Creation in `resolveSwap` (depth 1 only, `Step.Create`). Done when: SC13 holds in tests, cascade matches make none, gem count stays 64, step order is Clear, Create, Fall, Spawn. Verify: `make check-task`
 - [ ] Checkpoint E: creation green, owner reviews `Piece` and `Step` shape
 - [ ] T23: Blast, line, cross fire on swap (`Step.Activate`, 10 per effect gem). Done when: exact cells incl. edges, same-`Clear` normal match, cascade at depth 2. Verify: `make check-task`
 - [ ] T24: Colour gem fires on its partner's colour. Done when: all of that colour and itself clear, forms no run. Verify: `make check-task`
-- [ ] T25: Chain reactions (each piece once, player's swap only). Done when: chain and loop tests pass, cascades never fire specials. Verify: `make check-task`
-- [ ] T26: Combos (colour+colour clears board, colour+special converts and fires, other pairs fire both). Done when: SC14 holds in tests. Verify: `make check-task`
+- [ ] T25: Chain reactions (each piece once, player's swap only). Done when: chain and loop tests pass, a special beside a cascade match is untouched, all `Activate` steps come before the single `Clear`. Verify: `make check-task`
+- [ ] T26: Combos (colour+colour clears board, colour+special converts and fires, other pairs fire both). Done when: SC14 holds in tests, colour gem's `Activate` lists converted cells then one `Activate` per converted piece. Verify: `make check-task`
 - [ ] Checkpoint F: activation green, owner confirms the open questions in `plan.md`
 - [ ] T27: Scoring pass (literal expected scores, no double count, sum of `Clear.points` equals score). Verify: `make check-task`
 - [ ] T28: Save `GM2` with a `GM1` reader. Done when: SC15 holds, malformed input returns null, worst case under 256 characters. Verify: `make check-task`
 - [ ] T29: Game-level soak over many seeds with specials. Done when: invariants hold after every move, no reshuffle with a special on the board. Verify: `make check-task`
-- [ ] Checkpoint G: core complete, coverage at least 80% and not falling, owner reviews the core API
+- [ ] Checkpoint G: `make check-full` green, coverage at least 80% (measured 100% must not fall more than 0.5%), owner reviews the core API
 
 ## Phase 6: Special gems, app
 
@@ -60,7 +60,7 @@ Each task ends with `make check-task` and a look on the A52.
 - [ ] T30: White gem becomes a pentagon. Done when: seven silhouettes distinct in grayscale. Verify: `make check-task`, install and look
 - [ ] T31: Sprites carry `Piece`; created special appears and survives cascades and resume. Done when: rendered board equals core board, SC16 holds. Verify: `make check-task`, play on the A52
 - [ ] T32: Overlays (burst, stripe, cross, colour wheel) and shimmer. Done when: four specials told apart on the A52. Verify: `make check-task`, look on the A52
-- [ ] Checkpoint H: owner sees all four specials on the A52
+- [ ] Checkpoint H: `make check-full` green, owner sees all four specials on the A52
 - [ ] T33: Effect animations (ring, beam, streaks; chains in order). Done when: SC17 holds, board matches core at the end, input blocked. Verify: `make check-task`, fire each effect on the A52
 - [ ] T34: Idle hint prefers a match move, falls back to a special swap; GM1 save resumes after update. Done when: hint tests pass, install-over resumes. Verify: `make check-task`, install over the old build
 - [ ] Checkpoint I: `make check-full` green, ten-minute owner session (SC16 to 18), tune constants

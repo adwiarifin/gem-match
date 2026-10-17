@@ -313,7 +313,7 @@ T28 may run in parallel with T21-T26 (it needs only the `Piece` type). T30 may r
 
 ### Phase 5: Special gems, core (test-first)
 
-Every core task: write the failing tests first (red), then the code (green), then tidy. Verify with `make check-task` (compile, ktlint, boundary, floor guard, gitleaks, core and app tests, 80% coverage). Existing tests are migrated, never weakened or deleted.
+Every core task: write the failing tests first (red), then the code (green), then tidy. Verify with `make check-task` (compile, ktlint, boundary, floor guard, gitleaks, core and app tests, 80% coverage). `check-task` does not run detekt or Lint, so Checkpoints G and H also run `make check-full`: `Resolution.kt` and `Timeline.kt` are the likely size and complexity offenders and suppressions are banned. Existing tests are migrated, never weakened or deleted.
 
 #### T19: `Piece`, `Special`, and `Board` holds `Piece`
 **Description:** Add `Special` (BLAST, LINE_ROW, LINE_COL, CROSS, COLOUR) and `Piece(gem: Gem?, special: Special?)`, where `gem` is null only for COLOUR (enforced in `init`). `Board` stores `Piece?`. `GemMove` and `Placed` carry `Piece`. No special gem exists yet, so behaviour is identical. The app adapts minimally to compile.
@@ -339,7 +339,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 #### T21: Classify match groups
 **Description:** Pure function from a `MatchGroup` to the special it makes: run of 4 blast, 5 or more colour, L line (direction from the longer arm, equal arms row), T or + cross. Priority colour, cross, line, blast. L against T per spec rule 5, including groups of three or more runs.
 **Acceptance:**
-- [ ] Table-driven tests for 4, 5, 6, L (both arm orders, equal arms), T, +, and a 3-run group.
+- [ ] Table-driven tests for 4, 5, 6, L (both arm orders, equal arms; arm length is the run length including the corner), T, +, and a 3-run group.
 - [ ] A plain run of 3 makes nothing.
 - [ ] A group that qualifies for several kinds returns the highest priority.
 **Verify:** `make check-task`
@@ -354,6 +354,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 - [ ] A match at cascade depth 2 or more makes no special.
 - [ ] `TestReplay` rebuilds the final board from the steps, including `Create`.
 - [ ] Gem count stays 64 on every resolved board.
+- [ ] Step order is Clear, Create, Fall, Spawn: a special made by a vertical run of 4 falls like any gem once the cells below it clear.
 **Verify:** `make check-task`
 **Files:** `Resolution.kt`, `Step.kt`, `TestReplay.kt`, `CascadeTest.kt`.
 **Scope:** Medium. **Depends on:** T21.
@@ -387,7 +388,8 @@ Every core task: write the failing tests first (red), then the code (green), the
 **Description:** If an effect covers another special, that piece fires too, from where it sits. Each piece fires once per move. Only the player's own swap starts a chain; nothing at depth 2 or more fires a special. One `Activate` step per fired piece, in a deterministic order.
 **Acceptance:**
 - [ ] A blast covering a line gem fires the line gem; a loop between two specials fires each once.
-- [ ] A cascade whose clear covers a special does not fire it (the piece survives or is cleared only by an effect).
+- [ ] A special beside a cascade match is untouched and falls intact (specials are inert, so a cascade never fires or clears one).
+- [ ] All `Activate` steps of a move come before its single `Clear`, in firing order.
 - [ ] Order of `Activate` steps is stable for the same input.
 **Verify:** `make check-task`
 **Files:** `Activation.kt`, `Resolution.kt`, `ActivationTest.kt`.
@@ -397,7 +399,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 **Description:** Colour + colour clears the board. Colour + another special converts every piece of that special's colour into that special, then fires them all (chains apply). Any other pair fires both effects at once.
 **Acceptance:**
 - [ ] Colour + colour clears all 64 cells.
-- [ ] Colour + each of blast, line, cross converts the right pieces and fires them.
+- [ ] Colour + each of blast, line, cross converts the right pieces and fires them. The colour gem's `Activate` lists the converted cells, then one `Activate` follows per converted piece. No separate conversion step.
 - [ ] Each remaining pair fires both effects, from their own cells.
 **Verify:** `make check-task`
 **Files:** `Activation.kt`, `Combo.kt`, `ComboTest.kt`.
@@ -408,7 +410,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 - [ ] Owner confirms the open questions on colour consumption and converted line direction.
 
 #### T27: Scoring pass
-**Description:** Pin the scoring rules across creation, chains and combos. Constants live in `Scoring.kt`. Every effect-cleared gem scores `POINTS_PER_EFFECT_GEM` once, times depth; creating a special adds nothing; the total never wraps (existing saturating add).
+**Description:** T23 introduces `POINTS_PER_EFFECT_GEM`; this task pins the rules across creation, chains and combos with literal expected scores and adds the property check. Constants live in `Scoring.kt`. Every effect-cleared gem scores `POINTS_PER_EFFECT_GEM` once, times depth; creating a special adds nothing; the total never wraps (existing saturating add).
 **Acceptance:**
 - [ ] Literal expected scores for a blast, a colour + colour (640 at depth 1), and a chain, so a changed constant fails a test.
 - [ ] A cell cleared by both a run and an effect scores once.
@@ -439,7 +441,7 @@ Every core task: write the failing tests first (red), then the code (green), the
 **Scope:** Small. **Depends on:** T27, T28.
 
 #### Checkpoint G: Core complete
-- [ ] `make check-task` green, core coverage at least 80% and not below 100% minus tolerance (ratchet in `CONSTRAINTS.md`).
+- [ ] `make check-full` green. Core coverage at least 80% (enforced); the measured 100% must not fall by more than 0.5% (`CONSTRAINTS.md`).
 - [ ] SC13, 14, 15 covered. Owner review of the final core API before the UI.
 
 ### Phase 6: Special gems, app
@@ -475,6 +477,7 @@ App tasks end with `make check-task` and an on-device check on the A52 (build an
 **Scope:** Medium. **Depends on:** T31, T30.
 
 #### Checkpoint H: Specials visible
+- [ ] `make check-full` green (detekt and Lint on the new drawing code).
 - [ ] Owner sees all four specials on the A52 and can tell them apart.
 
 #### T33: Effect animations
