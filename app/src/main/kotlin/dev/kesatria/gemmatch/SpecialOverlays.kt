@@ -2,6 +2,7 @@ package dev.kesatria.gemmatch
 
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -20,7 +21,9 @@ object SpecialOverlays {
     private val burst = spikes()
     private val stripeRow = stripe(horizontal = true)
     private val stripeColumn = stripe(horizontal = false)
-    private val plus = plus()
+    private val plus = plus(PLUS_ARM, PLUS_REACH, 0f)
+    private val xShort = plus(X_SHORT_ARM, X_SHORT_REACH, DIAGONAL_DEGREES)
+    private val xFull = plus(PLUS_ARM, X_FULL_REACH, DIAGONAL_DEGREES)
     private val wheel = Array(Gem.entries.size) { wedge(it) }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val overlayFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
@@ -63,6 +66,8 @@ object SpecialOverlays {
                 Special.LINE_ROW -> stripeRow
                 Special.LINE_COL -> stripeColumn
                 Special.CROSS -> plus
+                Special.X_SHORT -> xShort
+                Special.X_FULL -> xFull
                 Special.COLOUR -> return
             }
         overlayFill.color = mark
@@ -123,10 +128,13 @@ object SpecialOverlays {
             }
         }
 
-    private fun plus(): Path =
+    /** A plus with arms [arm] wide and [reach] long, turned by [degrees]. Turned 45 degrees it is an X. */
+    private fun plus(
+        arm: Float,
+        reach: Float,
+        degrees: Float,
+    ): Path =
         Path().apply {
-            val arm = PLUS_ARM
-            val reach = PLUS_REACH
             moveTo(-arm, -reach)
             lineTo(arm, -reach)
             lineTo(arm, -arm)
@@ -140,6 +148,7 @@ object SpecialOverlays {
             lineTo(-reach, -arm)
             lineTo(-arm, -arm)
             close()
+            transform(Matrix().apply { setRotate(degrees) })
         }
 
     private fun wedge(index: Int): Path =
@@ -161,6 +170,10 @@ object SpecialOverlays {
     private const val STRIPE_CORNER = 0.1f
     private const val PLUS_ARM = 0.17f
     private const val PLUS_REACH = 0.8f
+    private const val X_SHORT_ARM = 0.13f
+    private const val X_SHORT_REACH = 0.55f
+    private const val X_FULL_REACH = 0.88f
+    private const val DIAGONAL_DEGREES = 45f
     private const val WHEEL_RADIUS = 0.85f
     private const val RIM_WIDTH = 0.12f
     private const val OUTLINE_WIDTH = 0.07f

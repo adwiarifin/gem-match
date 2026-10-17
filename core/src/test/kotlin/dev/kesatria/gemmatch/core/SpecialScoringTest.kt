@@ -100,7 +100,7 @@ class SpecialScoringTest {
 
     @Test
     fun theClearPointsAlwaysAddUpToTheScoreWithSpecialsOnTheBoard() {
-        val specials = listOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL, Special.CROSS)
+        val specials = Special.entries.filter { it != Special.COLOUR }
         var checked = 0
         for (seed in 1L..SEEDS) {
             val special = Piece(Gem.WHITE, specials[(seed % specials.size).toInt()])

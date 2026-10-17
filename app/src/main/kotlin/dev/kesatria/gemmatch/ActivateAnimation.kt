@@ -36,6 +36,8 @@ class ActivateAnimation(
             Special.BLAST -> BLAST_SECONDS
             Special.LINE_ROW, Special.LINE_COL -> LINE_SECONDS
             Special.CROSS -> CROSS_SECONDS
+            Special.X_SHORT -> X_SHORT_SECONDS
+            Special.X_FULL -> X_FULL_SECONDS
             Special.COLOUR -> COLOUR_SECONDS
         }
 
@@ -43,6 +45,8 @@ class ActivateAnimation(
         const val BLAST_SECONDS = 0.4f
         const val LINE_SECONDS = 0.4f
         const val CROSS_SECONDS = 0.45f
+        const val X_SHORT_SECONDS = 0.35f
+        const val X_FULL_SECONDS = 0.45f
         const val COLOUR_SECONDS = 0.55f
         const val CHAIN_SPEEDUP = 0.6f
     }

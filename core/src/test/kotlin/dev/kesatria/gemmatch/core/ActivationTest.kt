@@ -55,6 +55,31 @@ class ActivationTest {
     }
 
     @Test
+    fun shortXCoversBothDiagonalsTwoCellsOut() {
+        val expected = cells(2 to 2, 3 to 3, 4 to 4, 5 to 5, 6 to 6, 6 to 2, 5 to 3, 3 to 5, 2 to 6)
+
+        assertEquals(expected, effectCells(Pos(4, 4), Special.X_SHORT))
+        assertEquals(9, effectCells(Pos(4, 4), Special.X_SHORT).size)
+    }
+
+    @Test
+    fun shortXIsClippedAtEdgesAndCorners() {
+        assertEquals(cells(0 to 0, 1 to 1, 2 to 2), effectCells(Pos(0, 0), Special.X_SHORT))
+        assertEquals(cells(0 to 3, 1 to 2, 1 to 4, 2 to 1, 2 to 5), effectCells(Pos(0, 3), Special.X_SHORT))
+    }
+
+    @Test
+    fun fullXCoversBothDiagonalsAcrossTheBoard() {
+        val diagonals = (0 until BOARD_SIZE).flatMap { listOf(Pos(it, it), Pos(it, BOARD_SIZE - 1 - it)) }.toSet()
+
+        val both = effectCells(Pos(0, 0), Special.X_FULL) + effectCells(Pos(0, 7), Special.X_FULL)
+        assertEquals(diagonals, both)
+        assertEquals(8, effectCells(Pos(0, 0), Special.X_FULL).size)
+        assertEquals(14, effectCells(Pos(3, 3), Special.X_FULL).size)
+        assertEquals(14, effectCells(Pos(3, 4), Special.X_FULL).size)
+    }
+
+    @Test
     fun aSpecialSwapWithNoMatchIsAcceptedButTwoPlainGemsAreNot() {
         val board = patterned(Pos(4, 4) to Piece(Gem.WHITE, Special.BLAST))
         val game = assertNotNull(Game.decode(encodeFor(board)))
@@ -151,7 +176,7 @@ class ActivationTest {
 
     @Test
     fun theBoardStaysFullAndReplaysAfterAnyEffect() {
-        for (special in listOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL, Special.CROSS)) {
+        for (special in Special.entries.filter { it != Special.COLOUR }) {
             for (seed in 1L..SEEDS) {
                 val board = patterned(Pos(2, 2) to Piece(Gem.WHITE, special))
 
@@ -385,6 +410,8 @@ class ActivationTest {
             Special.LINE_ROW to 'R',
             Special.LINE_COL to 'C',
             Special.CROSS to 'X',
+            Special.X_SHORT to 'S',
+            Special.X_FULL to 'F',
         )
 
     private fun encodeFor(board: Board): String {

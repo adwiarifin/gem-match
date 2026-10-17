@@ -18,6 +18,8 @@ private val SPECIAL_CHARS =
         Special.LINE_ROW to 'R',
         Special.LINE_COL to 'C',
         Special.CROSS to 'X',
+        Special.X_SHORT to 'S',
+        Special.X_FULL to 'F',
         Special.COLOUR to 'W',
     )
 
@@ -30,7 +32,7 @@ internal data class SavedState(
 /**
  * Text format `GM2;<score>;<rng state>;<64 cells, row by row>`. A cell is two characters: the gem digit
  * (`-` for the colour gem), then the special kind (`-` none, `B` blast, `R` line along the row,
- * `C` line along the column, `X` cross, `W` colour). Hand-written to avoid a dependency.
+ * `C` line along the column, `X` cross, `S` short X, `F` full X, `W` colour). Hand-written to avoid a dependency.
  */
 internal fun encodeState(state: SavedState): String {
     val cells =

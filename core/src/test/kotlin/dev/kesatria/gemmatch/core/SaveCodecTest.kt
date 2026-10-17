@@ -173,6 +173,8 @@ class SaveCodecTest {
             .with(Pos(0, 2), Piece(Gem.YELLOW, Special.LINE_COL))
             .with(Pos(0, 3), Piece(Gem.WHITE, Special.CROSS))
             .with(Pos(0, 4), Piece(null, Special.COLOUR))
+            .with(Pos(0, 5), Piece(Gem.GREEN, Special.X_SHORT))
+            .with(Pos(0, 6), Piece(Gem.BLUE, Special.X_FULL))
 
     private val letters =
         mapOf(
@@ -181,6 +183,8 @@ class SaveCodecTest {
             Special.LINE_ROW to 'R',
             Special.LINE_COL to 'C',
             Special.CROSS to 'X',
+            Special.X_SHORT to 'S',
+            Special.X_FULL to 'F',
             Special.COLOUR to 'W',
         )
 

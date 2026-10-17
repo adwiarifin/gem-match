@@ -13,6 +13,8 @@ fun effectCells(
         Special.LINE_ROW -> rowCells(origin.row)
         Special.LINE_COL -> columnCells(origin.col)
         Special.CROSS -> rowCells(origin.row) + columnCells(origin.col)
+        Special.X_SHORT -> diagonalCells(origin, SHORT_X_REACH)
+        Special.X_FULL -> diagonalCells(origin, BOARD_SIZE)
         Special.COLOUR -> emptySet()
     }
 
@@ -21,6 +23,16 @@ private fun blastCells(origin: Pos): Set<Pos> =
         .flatMap { row -> (origin.col - 1..origin.col + 1).map { col -> Pos(row, col) } }
         .filter { it.isInBounds() }
         .toSet()
+
+/** The cell itself and both diagonals through it, [reach] cells each way, clipped to the board. */
+private fun diagonalCells(
+    origin: Pos,
+    reach: Int,
+): Set<Pos> =
+    (-reach..reach)
+        .flatMap { step ->
+            listOf(Pos(origin.row + step, origin.col + step), Pos(origin.row + step, origin.col - step))
+        }.filterTo(mutableSetOf()) { it.isInBounds() }
 
 private fun rowCells(row: Int): Set<Pos> = (0 until BOARD_SIZE).mapTo(mutableSetOf()) { Pos(row, it) }
 

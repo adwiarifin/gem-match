@@ -16,7 +16,7 @@ class ComboTest {
     }
 
     private val colour = Piece(null, Special.COLOUR)
-    private val effects = listOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL, Special.CROSS)
+    private val effects = Special.entries.filter { it != Special.COLOUR }
 
     private fun activates(steps: List<Step>) = steps.filterIsInstance<Step.Activate>()
 
