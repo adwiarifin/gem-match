@@ -64,6 +64,8 @@ private fun expectedEffect(
     step: Step.Activate,
 ): Set<Pos> =
     when {
+        // Two of the same line or blast swapped together clear one bigger area, centred where the dragged one landed.
+        step.special != Special.COLOUR && step.cells == pairCells(step.special, step.origin) -> step.cells
         step.special != Special.COLOUR -> effectCells(step.origin, step.special)
         // Two colour gems clear the board.
         ALL_CELLS.count { board[it]?.special == Special.COLOUR } >= 2 && step.cells == ALL_CELLS -> ALL_CELLS

@@ -52,6 +52,7 @@ fun firings(
 ): List<Step.Activate> {
     val fired = swap?.let { initialActivations(board, it.first, it.second).toMutableList() } ?: mutableListOf()
     val seen = fired.mapTo(mutableSetOf()) { it.origin }
+    swap?.let { seen += listOf(it.first, it.second) }
     fireNew(board, matched, null, fired, seen)
     var next = 0
     while (next < fired.size) {
@@ -91,6 +92,7 @@ private fun initialActivations(
     val second = swapped[b]?.special
     return when {
         first == Special.COLOUR && second == Special.COLOUR -> listOf(clearBoard(b))
+        first == second && first in DOUBLED -> listOf(Step.Activate(b, checkNotNull(first), pairCells(first, b)))
         first == Special.COLOUR && second != null -> colourWithSpecial(swapped, a, b)
         second == Special.COLOUR && first != null -> colourWithSpecial(swapped, b, a)
         else ->

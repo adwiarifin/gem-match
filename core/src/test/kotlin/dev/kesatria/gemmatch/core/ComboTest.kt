@@ -97,8 +97,10 @@ class ComboTest {
 
     @Test
     fun everyOtherPairFiresBothEffectsFromTheirOwnCells() {
+        val doubled = setOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL)
         for (first in effects) {
             for (second in effects) {
+                if (first == second && first in doubled) continue
                 val board = patterned(Pos(4, 4) to Piece(Gem.WHITE, first), Pos(4, 5) to Piece(Gem.BLUE, second))
 
                 val result = activates(resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(1L)).steps)
@@ -135,5 +137,40 @@ class ComboTest {
 
     private companion object {
         const val SEEDS = 30L
+    }
+
+    @Test
+    fun twoOfTheSameLineOrBlastMakeOneBiggerEffectCentredOnTheDraggedGem() {
+        for (special in listOf(Special.LINE_ROW, Special.LINE_COL, Special.BLAST)) {
+            val board = patterned(Pos(3, 3) to Piece(Gem.WHITE, special), Pos(3, 4) to Piece(Gem.BLUE, special))
+
+            val fired = activates(resolveSwap(board, Pos(3, 3), Pos(3, 4), Rng(1L)).steps)
+
+            assertEquals(1, fired.size, "$special")
+            assertEquals(Pos(3, 4), fired.single().origin, "$special")
+            assertEquals(pairCells(special, Pos(3, 4)), fired.single().cells, "$special")
+        }
+    }
+
+    @Test
+    fun twoColumnLinesAlwaysClearThreeColumnsWhicheverWayTheyAreSwapped() {
+        fun columns(
+            from: Pos,
+            to: Pos,
+        ): Set<Int> {
+            val board = patterned(from to Piece(Gem.WHITE, Special.LINE_COL), to to Piece(Gem.BLUE, Special.LINE_COL))
+            val cleared =
+                resolveSwap(board, from, to, Rng(1L))
+                    .steps
+                    .filterIsInstance<Step.Clear>()
+                    .first()
+                    .cells
+            return cleared.map { it.col }.toSet()
+        }
+
+        assertEquals(setOf(3, 4, 5), columns(Pos(3, 3), Pos(3, 4)))
+        assertEquals(setOf(2, 3, 4), columns(Pos(3, 4), Pos(3, 3)))
+        assertEquals(setOf(2, 3, 4), columns(Pos(3, 3), Pos(4, 3)))
+        assertEquals(setOf(2, 3, 4), columns(Pos(4, 3), Pos(3, 3)))
     }
 }

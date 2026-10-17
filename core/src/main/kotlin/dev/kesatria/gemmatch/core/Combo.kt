@@ -1,5 +1,7 @@
 package dev.kesatria.gemmatch.core
 
+import kotlin.math.abs
+
 /** Two colour gems: the one that landed on [origin] takes the whole board. */
 internal fun clearBoard(origin: Pos): Step.Activate = Step.Activate(origin, Special.COLOUR, ALL_CELLS)
 
@@ -23,3 +25,22 @@ internal fun colourWithSpecial(
 
 internal val ALL_CELLS: Set<Pos> =
     (0 until BOARD_SIZE).flatMapTo(mutableSetOf()) { row -> (0 until BOARD_SIZE).map { col -> Pos(row, col) } }
+
+/** Two of these swapped together make one bigger effect instead of two overlapping ones (D20). */
+internal val DOUBLED = setOf(Special.BLAST, Special.LINE_ROW, Special.LINE_COL)
+
+/**
+ * What two [special] gems of the same kind clear when swapped, centred on [landing], the cell the dragged one moved
+ * to: three columns or three rows, always including both gems' own, or a 5x5 square for two blasts.
+ */
+internal fun pairCells(
+    special: Special?,
+    landing: Pos,
+): Set<Pos> =
+    ALL_CELLS.filterTo(mutableSetOf()) { cell ->
+        when (special) {
+            Special.LINE_COL -> abs(cell.col - landing.col) <= 1
+            Special.LINE_ROW -> abs(cell.row - landing.row) <= 1
+            else -> abs(cell.col - landing.col) <= 2 && abs(cell.row - landing.row) <= 2
+        }
+    }

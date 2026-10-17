@@ -1,5 +1,6 @@
 package dev.kesatria.gemmatch.core
 
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -19,18 +20,18 @@ class PairCombosTest {
     /** The pair, then the cells cleared when swapped sideways and when swapped up or down. */
     private val table =
         listOf(
-            Triple(blast to blast, 12, 12),
+            Triple(blast to blast, 25, 25),
             Triple(blast to row, 14, 14),
             Triple(blast to col, 14, 14),
             Triple(blast to cross, 19, 19),
             Triple(blast to shortX, 15, 15),
             Triple(blast to fullX, 20, 20),
-            Triple(row to row, 8, 16),
+            Triple(row to row, 24, 24),
             Triple(row to col, 15, 15),
             Triple(row to cross, 15, 22),
             Triple(row to shortX, 16, 15),
             Triple(row to fullX, 21, 20),
-            Triple(col to col, 16, 8),
+            Triple(col to col, 24, 24),
             Triple(col to cross, 22, 15),
             Triple(col to shortX, 15, 16),
             Triple(col to fullX, 20, 21),
@@ -60,14 +61,35 @@ class PairCombosTest {
 
             assertEquals(horizontal, sideways.cells.size, "${pair.first} + ${pair.second} swapped along a row")
             assertEquals(vertical, upDown.cells.size, "${pair.first} + ${pair.second} swapped along a column")
-            val rowCells = effectCells(Pos(3, 4), pair.first) + effectCells(Pos(3, 3), pair.second)
-            val columnCells = effectCells(Pos(4, 3), pair.first) + effectCells(Pos(3, 3), pair.second)
+            val rowCells = expectedCells(pair, Pos(3, 4))
+            val columnCells = expectedCells(pair, Pos(4, 3))
             assertEquals(rowCells, sideways.cells, "${pair.first} + ${pair.second} cells along a row")
             assertEquals(columnCells, upDown.cells, "${pair.first} + ${pair.second} cells along a column")
             assertEquals(horizontal * POINTS_PER_EFFECT_GEM, sideways.points, "${pair.first} + ${pair.second} points")
             assertEquals(vertical * POINTS_PER_EFFECT_GEM, upDown.points, "${pair.first} + ${pair.second} points")
         }
     }
+
+    private fun everyCell() = (0 until BOARD_SIZE).flatMap { r -> (0 until BOARD_SIZE).map { c -> Pos(r, c) } }
+
+    /** What the pair clears: both effects, or one bigger effect for two of the same line or blast. */
+    private fun expectedCells(
+        pair: Pair<Special, Special>,
+        partner: Pos,
+    ): Set<Pos> =
+        when {
+            pair.first != pair.second -> effectCells(partner, pair.first) + effectCells(Pos(3, 3), pair.second)
+            pair.first == Special.LINE_COL -> everyCell().filter { abs(it.col - partner.col) <= 1 }.toSet()
+            pair.first == Special.LINE_ROW -> everyCell().filter { abs(it.row - partner.row) <= 1 }.toSet()
+            pair.first == Special.BLAST -> everyCell().filter { near(it, partner, 2) }.toSet()
+            else -> effectCells(partner, pair.first) + effectCells(Pos(3, 3), pair.second)
+        }
+
+    private fun near(
+        cell: Pos,
+        centre: Pos,
+        reach: Int,
+    ) = abs(cell.row - centre.row) <= reach && abs(cell.col - centre.col) <= reach
 
     @Test
     fun theTableCoversEveryPairOnce() {

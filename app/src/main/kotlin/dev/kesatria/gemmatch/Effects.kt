@@ -20,6 +20,19 @@ class Effect(
 ) {
     var progress = 0f
 
+    /** The rows a row line beams along: its own row, or three together for two row lines. */
+    val beamRows: List<Int> =
+        if (special == Special.LINE_ROW) indexesWhere({ it.col == origin.col }) { it.row } else listOf(origin.row)
+
+    /** The columns a column line beams along: its own column, or three together for two column lines. */
+    val beamColumns: List<Int> =
+        if (special == Special.LINE_COL) indexesWhere({ it.row == origin.row }) { it.col } else listOf(origin.col)
+
+    private fun indexesWhere(
+        on: (Pos) -> Boolean,
+        index: (Pos) -> Int,
+    ): List<Int> = cells.filter(on).map(index).distinct()
+
     /** How far the farthest taken cell is from the origin, in cells (at least 1). */
     val reach: Int = (cells.maxOfOrNull { cheb(it, origin) } ?: 0).coerceAtLeast(1)
 }
@@ -50,11 +63,11 @@ class EffectRenderer {
             drawTaken(canvas, layout, effect)
             when (effect.special) {
                 Special.BLAST -> drawRing(canvas, layout, effect)
-                Special.LINE_ROW -> drawBeam(canvas, layout, effect, horizontal = true)
-                Special.LINE_COL -> drawBeam(canvas, layout, effect, horizontal = false)
+                Special.LINE_ROW -> drawBeams(canvas, layout, effect, horizontal = true)
+                Special.LINE_COL -> drawBeams(canvas, layout, effect, horizontal = false)
                 Special.CROSS -> {
-                    drawBeam(canvas, layout, effect, horizontal = true)
-                    drawBeam(canvas, layout, effect, horizontal = false)
+                    drawBeams(canvas, layout, effect, horizontal = true)
+                    drawBeams(canvas, layout, effect, horizontal = false)
                 }
                 Special.X_SHORT, Special.X_FULL -> drawDiagonals(canvas, layout, effect)
                 Special.COLOUR -> drawStreaks(canvas, layout, effect)
@@ -90,26 +103,31 @@ class EffectRenderer {
         val cy = centreY(layout, effect.origin)
         stroke.strokeWidth = layout.cellSize * RING_WIDTH
         stroke.alpha = (OPAQUE * (1f - effect.progress)).toInt()
-        canvas.drawCircle(cx, cy, layout.cellSize * (RING_START + RING_GROWTH * effect.progress), stroke)
+        canvas.drawCircle(cx, cy, layout.cellSize * effect.reach * (RING_START + RING_GROWTH * effect.progress), stroke)
     }
 
-    private fun drawBeam(
+    private fun drawBeams(
         canvas: Canvas,
         layout: BoardLayout,
         effect: Effect,
         horizontal: Boolean,
     ) {
-        val cx = centreX(layout, effect.origin)
-        val cy = centreY(layout, effect.origin)
         val reach = layout.cellSize * BOARD_SIZE * effect.progress
         val half = layout.cellSize * BEAM_HALF
         beam.alpha = (BEAM_ALPHA * (1f - effect.progress * BEAM_FADE)).toInt()
-        if (horizontal) {
-            rect.set(cx - reach, cy - half, cx + reach, cy + half)
-        } else {
-            rect.set(cx - half, cy - reach, cx + half, cy + reach)
+        val lines = if (horizontal) effect.beamRows else effect.beamColumns
+        for (line in lines) {
+            if (horizontal) {
+                val cy = layout.originY + (line + HALF) * layout.cellSize
+                val cx = centreX(layout, effect.origin)
+                rect.set(cx - reach, cy - half, cx + reach, cy + half)
+            } else {
+                val cx = layout.originX + (line + HALF) * layout.cellSize
+                val cy = centreY(layout, effect.origin)
+                rect.set(cx - half, cy - reach, cx + half, cy + reach)
+            }
+            canvas.drawRoundRect(rect, half, half, beam)
         }
-        canvas.drawRoundRect(rect, half, half, beam)
     }
 
     /** Two beams turned 45 degrees, each growing out of the origin to the farthest cell the effect takes. */
