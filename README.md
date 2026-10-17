@@ -67,7 +67,7 @@ It expects the keystore at `~/Private/keys/gemmatch/gemmatch-release.jks` with a
 
 `make release-check BASE=<last reviewed commit or tag>` is the gate before calling a version released: the floor guard against everything since `BASE`, then `make check-full`. `check-full` also fails if the app ever declares an Android permission.
 
-The floor guard (`scripts/floor-guard.py`) looks at the working diff for new suppression comments, stubs, skipped or deleted tests, removed assertions and loosened rules. A retyped or re-aimed assertion passes (same function, message and argument count, and one argument kept); a deleted, emptied or trivially swapped one does not. `scripts/test-floor-guard.sh` tests the guard itself and runs in `make check-fast`.
+The floor guard (`scripts/floor-guard.py`) looks at the working diff for new suppression comments, stubs, skipped or deleted tests, removed assertions and loosened rules. A retyped or re-aimed assertion passes (same function, message and argument count, and one argument kept); a deleted, emptied or trivially swapped one does not. `scripts/test-floor-guard.sh` tests the guard itself and runs in `make check-fast`. `scripts/check-test-count.sh` fails when fewer tests ran than `scripts/test-count-floor.txt`, so a test that silently stops running is caught.
 
 ## Layout
 
