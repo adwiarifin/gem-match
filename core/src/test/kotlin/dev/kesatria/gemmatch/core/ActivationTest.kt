@@ -277,7 +277,28 @@ class ActivationTest {
     }
 
     @Test
-    fun specialsOutsideTheEffectAreNeverFiredByTheCascade() {
+    fun aSpecialThatIsPartOfAMatchFiresWhereItSits() {
+        val board =
+            patterned(
+                Pos(3, 1) to Piece(Gem.GREEN),
+                Pos(3, 2) to Piece(Gem.GREEN, Special.LINE_ROW),
+                Pos(4, 3) to Piece(Gem.GREEN),
+            )
+
+        val result = resolveSwap(board, Pos(4, 3), Pos(3, 3), Rng(1L))
+
+        val activate = result.steps.filterIsInstance<Step.Activate>().first()
+        assertEquals(Pos(3, 2), activate.origin)
+        assertEquals(Special.LINE_ROW, activate.special)
+        assertEquals(row(3), activate.cells)
+        val clear = result.steps.filterIsInstance<Step.Clear>().first()
+        assertEquals(row(3), clear.cells)
+        assertEquals(POINTS_RUN_OF_3 + 5 * POINTS_PER_EFFECT_GEM, clear.points)
+        assertTrue(result.steps.none { it is Step.Create }, "a firing match makes no new special")
+    }
+
+    @Test
+    fun everySpecialThatLeavesTheBoardFiresOnceAndNoneVanishOtherwise() {
         val corner = Piece(Gem.BLUE, Special.CROSS)
         val other = Piece(Gem.GREEN, Special.LINE_ROW)
         for (seed in 1L..SEEDS) {
@@ -285,10 +306,55 @@ class ActivationTest {
 
             val result = resolveSwap(board, Pos(2, 2), Pos(2, 3), Rng(seed))
 
-            assertEquals(1, result.steps.count { it is Step.Activate }, "seed $seed")
-            val survivors = ALL_CELLS.mapNotNull { result.board[it] }.filter { it.isSpecial }.toSet()
-            assertEquals(setOf(corner, other), survivors, "seed $seed")
+            val removed = specialsRemoved(board, result.steps)
+            assertEquals(removed.size, result.steps.count { it is Step.Activate }, "seed $seed")
+            val survivors = ALL_CELLS.mapNotNull { result.board[it] }.filter { it.isSpecial }.toMutableList()
+            val made = result.steps.filterIsInstance<Step.Create>().map { it.piece }
+            val initial = listOf(Piece(Gem.WHITE, Special.BLAST), corner, other)
+            val expected = (initial - removed.toSet() + made).sortedBy { it.toString() }
+            assertEquals(expected, survivors.sortedBy { it.toString() }, "seed $seed")
         }
+    }
+
+    /** The non-colour specials that sit in the cells of a Clear, on the board that Clear is applied to. */
+    private fun specialsRemoved(
+        start: Board,
+        steps: List<Step>,
+    ): List<Piece> =
+        steps.flatMapIndexed { index, step ->
+            if (step !is Step.Clear) return@flatMapIndexed emptyList()
+            val before = replay(start, steps.take(index))
+            step.cells.mapNotNull { before[it] }.filter { it.isSpecial && it.special != Special.COLOUR }
+        }
+
+    @Test
+    fun aSpecialLinedUpByACascadeFiresAtThatDepth() {
+        var fired = 0
+        for (seed in 1L..CASCADE_SEEDS) {
+            val base = randomStableBoard(seed)
+            val special = base.with(Pos(6, 3), Piece(base[Pos(6, 3)]?.gem, Special.LINE_ROW))
+            val move = findMatchMoves(special).firstOrNull() ?: continue
+
+            val steps = resolveSwap(special, move.from, move.to, Rng(seed)).steps
+
+            val depths = depthOfEachActivate(steps)
+            fired += depths.count { it >= 2 }
+            assertEquals(depths.sorted(), depths, "seed $seed: Activates must not go backwards in depth")
+        }
+        assertTrue(fired > 0, "no cascade ever lined up a special")
+    }
+
+    private fun depthOfEachActivate(steps: List<Step>): List<Int> {
+        var depth = 1
+        val depths = mutableListOf<Int>()
+        for (step in steps) {
+            when (step) {
+                is Step.Activate -> depths += depth
+                is Step.Clear -> depth = step.depth + 1
+                else -> Unit
+            }
+        }
+        return depths
     }
 
     @Test
@@ -334,5 +400,6 @@ class ActivationTest {
 
     private companion object {
         const val SEEDS = 40L
+        const val CASCADE_SEEDS = 400L
     }
 }

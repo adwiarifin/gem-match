@@ -107,21 +107,46 @@ class ResolveCreationTest {
     }
 
     @Test
-    fun onlyTheFirstMatchOfAMoveMakesSpecialsAndEveryBoardStaysFull() {
+    fun everyQualifyingGroupOfAMoveMakesASpecialAtAnyDepth() {
         var checked = 0
+        var cascadeMade = 0
         for (seed in 1L..SEEDS) {
             val board = randomStableBoard(seed)
             val move = findValidMoves(board).firstOrNull() ?: continue
 
             val result = resolveSwap(board, move.from, move.to, Rng(seed))
 
-            val expected = findMatchGroups(board.swap(move.from, move.to)).count { classify(it) != null }
+            val expected = expectedCreates(board, result.steps)
             assertEquals(expected, creates(result.steps).size, "seed $seed")
             assertTrue(isFull(result.board), "seed $seed")
             assertEquals(result.board, replay(board, result.steps), "seed $seed")
+            cascadeMade += creates(result.steps.drop(result.steps.indexOfFirst { it is Step.Fall } + 1)).size
             checked++
         }
         assertTrue(checked > SEEDS / 2, "too few boards had a move: $checked")
+        assertTrue(cascadeMade > 0, "no cascade ever made a special")
+    }
+
+    /** Counts qualifying groups on the board each Clear is applied to, skipping any Clear that follows an Activate. */
+    private fun expectedCreates(
+        start: Board,
+        steps: List<Step>,
+    ): Int {
+        var board = start
+        var fired = false
+        var total = 0
+        steps.forEachIndexed { index, step ->
+            when (step) {
+                is Step.Activate -> fired = true
+                is Step.Clear -> {
+                    if (!fired) total += findMatchGroups(board).count { classify(it) != null }
+                    fired = false
+                }
+                else -> Unit
+            }
+            board = replay(start, steps.take(index + 1))
+        }
+        return total
     }
 
     private companion object {

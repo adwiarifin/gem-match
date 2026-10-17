@@ -27,28 +27,44 @@ private fun rowCells(row: Int): Set<Pos> = (0 until BOARD_SIZE).mapTo(mutableSet
 private fun columnCells(col: Int): Set<Pos> = (0 until BOARD_SIZE).mapTo(mutableSetOf()) { Pos(it, col) }
 
 /**
- * Everything the swap of [a] and [b] fires, on the board [swapped] where it has already happened, in firing order.
- * A special fires from the cell it moved to; if both are special both fire, [a] first. A colour gem takes every gem
- * of its partner's colour, and itself. An effect that covers another special fires it too, once, from where it
- * sits; a covered colour gem has no partner, so it is cleared and fires nothing.
+ * Everything that fires in one clear, in firing order. First the swap's own effects, when [swap] is the player's
+ * swap on the board [board] where it has already happened: a special fires from the cell it moved to, both do if
+ * both are special, and a colour gem takes every gem of its partner's colour and itself. Then every special that is
+ * part of a match in [matched] fires from where it sits. Last, an effect that covers another special fires it too,
+ * once. A covered colour gem has no partner, so it is cleared and fires nothing.
  */
-fun activations(
-    swapped: Board,
-    a: Pos,
-    b: Pos,
+fun firings(
+    board: Board,
+    matched: Set<Pos>,
+    swap: Pair<Pos, Pos>?,
 ): List<Step.Activate> {
-    val fired = initialActivations(swapped, a, b).toMutableList()
+    val fired = swap?.let { initialActivations(board, it.first, it.second).toMutableList() } ?: mutableListOf()
     val seen = fired.mapTo(mutableSetOf()) { it.origin }
+    for (pos in matched.sortedWith(compareBy({ it.row }, { it.col }))) {
+        val special = board[pos]?.special
+        if (special != null && special != Special.COLOUR && seen.add(pos)) {
+            fired += Step.Activate(pos, special, effectCells(pos, special))
+        }
+    }
+    chain(board, fired, seen)
+    return fired
+}
+
+/** Fires every special that an effect in [fired] covers and that has not fired yet, in the order they are reached. */
+private fun chain(
+    board: Board,
+    fired: MutableList<Step.Activate>,
+    seen: MutableSet<Pos>,
+) {
     var next = 0
     while (next < fired.size) {
         for (pos in fired[next++].cells.sortedWith(compareBy({ it.row }, { it.col }))) {
-            val special = swapped[pos]?.special
+            val special = board[pos]?.special
             if (special != null && special != Special.COLOUR && seen.add(pos)) {
                 fired += Step.Activate(pos, special, effectCells(pos, special))
             }
         }
     }
-    return fired
 }
 
 private fun initialActivations(

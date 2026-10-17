@@ -8,7 +8,8 @@ data class Resolution(
 
 /**
  * Plays a valid swap to a stable board: clear, fall, spawn, repeat until no matches remain.
- * [a] is the cell the player dragged. Only the player's own match (depth 1) can make special pieces.
+ * [a] is the cell the player dragged. A special fires when the swap moves it, or when it is part of a match at any
+ * depth, and any clear that fires nothing earns specials for its qualifying groups.
  * Consumes [rng] in place (one gem per spawn); pass a copy if the caller must keep its own.
  */
 fun resolveSwap(
@@ -24,23 +25,22 @@ fun resolveSwap(
     var score = 0
     var depth = 1
 
-    val fired = activations(current, a, b)
-    steps += fired
-    var effectCells = fired.flatMapTo(mutableSetOf()) { it.cells }
-
     while (true) {
         val groups = findMatchGroups(current)
-        if (groups.isEmpty() && effectCells.isEmpty()) break
-
         val matched = groups.flatMapTo(mutableSetOf()) { it.cells }
+        val fired = firings(current, matched, if (depth == 1) a to b else null)
+        if (groups.isEmpty() && fired.isEmpty()) break
+
+        steps += fired
+        val effectCells = fired.flatMapTo(mutableSetOf()) { it.cells }
         val points = scoreGroups(groups, depth) + scoreEffectGems((effectCells - matched).size, depth)
         val cleared = matched + effectCells
         steps += Step.Clear(cleared, points, depth)
         score += points
         current = cleared.fold(current) { b, pos -> b.with(pos, null) }
 
-        if (depth == 1 && fired.isEmpty()) {
-            for (create in createdPieces(groups, a, b)) {
+        if (fired.isEmpty()) {
+            for (create in createdPieces(groups, if (depth == 1) listOf(a, b) else emptyList())) {
                 steps += create
                 current = current.with(create.pos, create.piece)
             }
@@ -51,7 +51,6 @@ fun resolveSwap(
         val (afterSpawn, spawn) = refill(afterFall, rng)
         steps += spawn
         current = afterSpawn
-        effectCells = mutableSetOf()
         depth++
     }
     return Resolution(current, steps, score)

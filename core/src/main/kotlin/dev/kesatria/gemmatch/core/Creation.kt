@@ -36,17 +36,30 @@ private fun lineFor(group: MatchGroup): Special {
 private fun Run.endsAt(pos: Pos): Boolean = pos == cells.first() || pos == cells.last()
 
 /**
- * The special pieces the player's own swap earns, one per qualifying group. Each goes on the swapped cell
- * that belongs to the group; if both do, on the one the player dragged ([dragged]).
+ * The special pieces a clear earns, one per qualifying group. On the player's own swap each goes on the swapped
+ * cell that belongs to the group, the first of [swapped] (the dragged cell comes first). Anywhere else, a cascade
+ * match or a group the swap did not touch, it goes at the group's centre: the crossing of an L, T or +, the middle
+ * of a straight run.
  */
 fun createdPieces(
     groups: List<MatchGroup>,
-    dragged: Pos,
-    other: Pos,
+    swapped: List<Pos>,
 ): List<Step.Create> =
     groups.mapNotNull { group ->
         val special = classify(group) ?: return@mapNotNull null
-        val pos = listOf(dragged, other).firstOrNull { it in group.cells } ?: return@mapNotNull null
+        val pos = swapped.firstOrNull { it in group.cells } ?: anchorOf(group)
         val piece = if (special == Special.COLOUR) Piece(null, special) else Piece(group.runs.first().gem, special)
         Step.Create(pos, piece)
     }
+
+private fun anchorOf(group: MatchGroup): Pos {
+    val horizontal = group.runs.filter { it.isHorizontal }
+    val vertical = group.runs.filter { !it.isHorizontal }
+    val crossing =
+        horizontal
+            .flatMap { h -> vertical.map { v -> h.cells.firstOrNull { it in v.cells } } }
+            .firstNotNullOfOrNull { it }
+    if (crossing != null) return crossing
+    val run = group.runs.first()
+    return run.cells[run.cells.size / 2]
+}

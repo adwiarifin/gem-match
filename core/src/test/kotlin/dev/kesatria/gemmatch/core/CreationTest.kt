@@ -93,4 +93,31 @@ class CreationTest {
     fun threeRunsWithOneCrossingInsideARunAreAT() {
         assertEquals(Special.CROSS, classifyShape("RRR", ".RR", ".RR"))
     }
+
+    private fun anchoredAt(vararg rows: String): List<Step.Create> {
+        val groups = findMatchGroups(boardOf(*rows))
+        return createdPieces(groups, emptyList())
+    }
+
+    @Test
+    fun withNoSwappedCellARunMakesItsSpecialAtTheMiddle() {
+        assertEquals(listOf(Step.Create(Pos(0, 2), Piece(Gem.RED, Special.BLAST))), anchoredAt("RRRR"))
+        assertEquals(listOf(Step.Create(Pos(2, 0), Piece(Gem.RED, Special.BLAST))), anchoredAt("R", "R", "R", "R"))
+        assertEquals(listOf(Step.Create(Pos(0, 2), Piece(null, Special.COLOUR))), anchoredAt("RRRRR"))
+    }
+
+    @Test
+    fun withNoSwappedCellAShapeMakesItsSpecialAtTheCrossing() {
+        assertEquals(listOf(Step.Create(Pos(0, 0), Piece(Gem.RED, Special.LINE_ROW))), anchoredAt("RRR", "R..", "R.."))
+        assertEquals(listOf(Step.Create(Pos(0, 1), Piece(Gem.RED, Special.CROSS))), anchoredAt("RRR", ".R.", ".R."))
+    }
+
+    @Test
+    fun aSwappedCellInTheGroupBeatsTheMiddle() {
+        val groups = findMatchGroups(boardOf("RRRR"))
+
+        val made = createdPieces(groups, listOf(Pos(1, 3), Pos(0, 3)))
+
+        assertEquals(listOf(Step.Create(Pos(0, 3), Piece(Gem.RED, Special.BLAST))), made)
+    }
 }
