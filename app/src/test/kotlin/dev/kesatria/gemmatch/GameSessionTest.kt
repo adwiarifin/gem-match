@@ -228,18 +228,45 @@ class GameSessionTest {
         assertEquals(0, session.shownScore)
     }
 
+    private fun deadGame(): Game {
+        val digits =
+            (0 until BOARD_SIZE).joinToString("") { row ->
+                (0 until BOARD_SIZE).joinToString("") { col -> ((row + col) % 3).toString() }
+            }
+        return checkNotNull(Game.decode("GM1;0;1;$digits")) { "the dead board must load" }
+    }
+
     @Test
-    fun aNewGameConfirmedMidReshuffleLeavesNoNoticeOnTheFreshBoard() {
-        val game = Game.new(61L)
-        val scene = Scene().also { it.load(game.board) }
-        val session = sessionOf(game, seed = 7L)
-        val reshuffle = Timeline(listOf(ReshuffleAnimation(Game.new(62L).board)))
-        reshuffle.advance(0.4f, scene) // the notice is up and the player confirms New Game right now
+    fun aSessionOnABoardWithNoValidMoveIsOver() {
+        assertTrue(sessionOf(deadGame()).isOver)
+    }
+
+    @Test
+    fun aNewGameAfterTheGameIsOverIsPlayableWithAZeroScore() {
+        val dead = deadGame()
+        val scene = Scene().also { it.load(dead.board) }
+        val session = sessionOf(dead)
 
         playToEnd(session.newGame(scene), scene)
         session.finish(scene)
 
+        assertFalse(session.isOver)
+        assertEquals(0, session.shownScore)
         assertSceneShows(session.board, scene)
+    }
+
+    @Test
+    fun aSessionWithAMoveLeftIsNotOverBeforeDuringOrAfterAMove() {
+        val game = Game.new(5L)
+        val scene = Scene().also { it.load(game.board) }
+        val session = sessionOf(game)
+        assertFalse(session.isOver, "before")
+
+        playToEnd(session.play(findValidMoves(game.board).first()), scene)
+        assertFalse(session.isOver, "while the move is still pending")
+
+        session.finish(scene)
+        assertFalse(session.isOver, "after")
     }
 
     @Test

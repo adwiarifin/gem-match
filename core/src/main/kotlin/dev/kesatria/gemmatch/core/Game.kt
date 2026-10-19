@@ -18,6 +18,9 @@ class Game private constructor(
     /** Where the random sequence stands, so a saved game continues with the same future gems. */
     val rngState: Long get() = rng.state
 
+    /** True when no swap is valid, so the run is over. Derived from the board, never stored. */
+    val isOver: Boolean get() = !hasValidMove(board)
+
     fun trySwap(
         a: Pos,
         b: Pos,
@@ -26,9 +29,7 @@ class Game private constructor(
 
         val nextRng = rng.copy()
         val resolution = resolveSwap(board, a, b, nextRng)
-        val (settled, reshuffle) = ensureMoveExists(resolution.board, nextRng)
-        val steps = if (reshuffle != null) resolution.steps + reshuffle else resolution.steps
-        return SwapOutcome.Accepted(Game(settled, saturatingAdd(score, resolution.score), nextRng), steps)
+        return SwapOutcome.Accepted(Game(resolution.board, saturatingAdd(score, resolution.score), nextRng), resolution.steps)
     }
 
     fun encode(): String = encodeState(SavedState(board, score, rng.state))

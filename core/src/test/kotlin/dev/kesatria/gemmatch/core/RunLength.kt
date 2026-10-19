@@ -30,7 +30,7 @@ data class PlayedRun(
     val ended: Boolean,
 )
 
-/** Plays [seed] with [player] until the first dead board (the first reshuffle) or [cap] moves. */
+/** Plays [seed] with [player] until the game is over (no valid move) or [cap] moves. */
 fun playUntilDead(
     seed: Long,
     player: RunPlayer,
@@ -41,8 +41,8 @@ fun playUntilDead(
     for (move in 1..cap) {
         val pick = player.choose(game.board, chooser)
         val outcome = game.trySwap(pick.from, pick.to) as SwapOutcome.Accepted
-        if (outcome.steps.any { it is Step.Reshuffle }) return PlayedRun(move, ended = true)
         game = outcome.game
+        if (game.isOver) return PlayedRun(move, ended = true)
     }
     return PlayedRun(maxOf(cap, 0), ended = false)
 }

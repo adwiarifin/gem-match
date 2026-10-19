@@ -35,6 +35,9 @@ class GameSession(
 
     val board: Board get() = game.board
 
+    /** True once the board has no valid move and the move that left it so has finished animating. */
+    val isOver: Boolean get() = pending == null && game.isOver
+
     /** True while an accepted move or a new game animates, so a tap may skip it. Not for a rejected swap. */
     val isMovePlaying: Boolean get() = pending != null
 

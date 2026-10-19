@@ -25,6 +25,8 @@ class PauseRaceTest {
         val moveCount = 400
         var expected = Game.new(99L)
         repeat(moveCount) { turn ->
+            // A game that ends starts the next one, as New Game does in the session below.
+            if (expected.isOver) expected = Game.new(99L)
             val moves = findValidMoves(expected.board)
             val move = moves[(turn * 5) % moves.size]
             expected = (expected.trySwap(move.from, move.to) as SwapOutcome.Accepted).game
@@ -39,7 +41,12 @@ class PauseRaceTest {
                 while (!stop.get()) session.save()
             }
         repeat(moveCount) { turn ->
-            val moves = findValidMoves(session.board)
+            var moves = findValidMoves(session.board)
+            if (moves.isEmpty()) {
+                playToEnd(session.newGame(scene), scene)
+                session.finish(scene)
+                moves = findValidMoves(session.board)
+            }
             playToEnd(session.play(moves[(turn * 5) % moves.size]), scene)
             session.finish(scene)
         }

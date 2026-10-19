@@ -134,14 +134,16 @@ class SaveCodecTest {
     }
 
     @Test
-    fun boardWithNoValidMoveReturnsNull() {
+    fun boardWithNoValidMoveLoadsAsAnOverGame() {
         val (version, score, rng) = saved.split(";")
         val deadDiagonal =
             (0 until BOARD_SIZE).joinToString("") { row ->
                 (0 until BOARD_SIZE).joinToString("") { col -> ((row + col) % 3).toString() }
             }
 
-        assertNull(Game.decode("$version;$score;$rng;$deadDiagonal"))
+        val game = assertNotNull(Game.decode("$version;$score;$rng;$deadDiagonal"))
+
+        assertTrue(game.isOver)
     }
 
     @Test

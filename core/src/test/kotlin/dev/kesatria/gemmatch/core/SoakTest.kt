@@ -12,7 +12,7 @@ class SoakTest {
         var created = 0
         var fired = 0
         var specialMoves = 0
-        var reshuffles = 0
+        var overs = 0
     }
 
     private fun hasSpecial(board: Board) = ALL_CELLS.any { board[it]?.isSpecial == true }
@@ -25,7 +25,11 @@ class SoakTest {
         var game = Game.new(seed)
         val chooser = Rng(seed * CHOOSER_SALT)
         val history = mutableListOf<List<Step>>()
-        repeat(MOVES_PER_GAME) { turn ->
+        for (turn in 0 until MOVES_PER_GAME) {
+            if (game.isOver) {
+                tally.overs++
+                break
+            }
             val moves = findValidMoves(game.board)
             val move = moves[chooser.nextInt(moves.size)]
             val outcome = game.trySwap(move.from, move.to)
@@ -33,7 +37,6 @@ class SoakTest {
             onMove(game, outcome)
             tally.created += outcome.steps.count { it is Step.Create }
             tally.fired += outcome.steps.count { it is Step.Activate }
-            tally.reshuffles += outcome.steps.count { it is Step.Reshuffle }
             if (listOf(move.from, move.to).any { game.board[it]?.isSpecial == true }) tally.specialMoves++
             history += outcome.steps
             game = outcome.game
@@ -50,7 +53,7 @@ class SoakTest {
                 val label = "seed $seed"
                 assertTrue(isFull(after.board), label)
                 assertTrue(findRuns(after.board).isEmpty(), label)
-                assertTrue(hasValidMove(after.board), label)
+                if (!after.isOver) assertTrue(hasValidMove(after.board), label)
                 val restored = assertNotNull(Game.decode(after.encode()), label)
                 assertEquals(after.board, restored.board, label)
                 assertEquals(after.score, restored.score, label)
@@ -70,7 +73,8 @@ class SoakTest {
             val piece = Piece(if (special == Special.COLOUR) null else Gem.GREEN, special)
             var game = gameOf(patterned(Pos(3, 3) to piece, Pos(5, 5) to piece))
             val chooser = Rng(special.ordinal + 1L)
-            repeat(KIND_MOVES) { turn ->
+            for (turn in 0 until KIND_MOVES) {
+                if (game.isOver) break
                 val moves = findValidMoves(game.board)
                 val move = moves[chooser.nextInt(moves.size)]
 
@@ -80,7 +84,7 @@ class SoakTest {
                 assertEquals(outcome.game.board, replay(game.board, outcome.steps), "$special turn $turn")
                 assertTrue(isFull(outcome.game.board), "$special turn $turn")
                 assertTrue(findRuns(outcome.game.board).isEmpty(), "$special turn $turn")
-                assertTrue(hasValidMove(outcome.game.board), "$special turn $turn")
+                if (!outcome.game.isOver) assertTrue(hasValidMove(outcome.game.board), "$special turn $turn")
                 val restored = assertNotNull(Game.decode(outcome.game.encode()))
                 assertEquals(outcome.game.board, restored.board, "$special turn $turn")
                 game = outcome.game
@@ -116,18 +120,39 @@ class SoakTest {
     }
 
     @Test
-    fun aBoardHoldingASpecialNeverReshuffles() {
+    fun aBoardHoldingASpecialIsNeverOver() {
         val tally = Tally()
+        var withSpecial = 0
         for (seed in 1L..SEEDS) {
-            play(seed, tally) { before, outcome ->
-                val reshuffled = outcome.steps.indexOfFirst { it is Step.Reshuffle }
-                if (reshuffled >= 0) {
-                    val settled = replay(before.board, outcome.steps.take(reshuffled))
-                    assertTrue(!hasSpecial(settled), "seed $seed reshuffled a board holding a special")
+            play(seed, tally) { _, outcome ->
+                if (hasSpecial(outcome.game.board)) {
+                    withSpecial++
+                    assertTrue(!outcome.game.isOver, "seed $seed ended on a board holding a special")
                 }
             }
         }
-        assertTrue(tally.reshuffles > 0, "no game reshuffled, so this checked nothing")
+        assertTrue(withSpecial > 0, "no board held a special, so this checked nothing")
+        assertTrue(tally.overs > 0, "no game ended, so the end was never checked")
+    }
+
+    @Test
+    fun aGameThatEndsKeepsTheBoardItsStepsLeftAndStillSaves() {
+        var ended = 0
+        for (seed in 1L..SEEDS) {
+            var game = Game.new(seed)
+            val chooser = Rng(seed * CHOOSER_SALT)
+            while (!game.isOver) {
+                val moves = findValidMoves(game.board)
+                val move = moves[chooser.nextInt(moves.size)]
+                val outcome = game.trySwap(move.from, move.to) as SwapOutcome.Accepted
+                assertEquals(outcome.game.board, replay(game.board, outcome.steps), "seed $seed")
+                game = outcome.game
+            }
+            ended++
+            assertTrue(findValidMoves(game.board).isEmpty(), "seed $seed")
+            assertTrue(assertNotNull(Game.decode(game.encode())).isOver, "seed $seed")
+        }
+        assertEquals(SEEDS, ended.toLong())
     }
 
     @Test

@@ -170,35 +170,6 @@ class TimelineTest {
     }
 
     @Test
-    fun aReshuffleAnnouncesItselfRattlesThenShowsTheNewBoard() {
-        val rearranged = Game.new(42L).board
-        val timeline = Timeline(listOf(ReshuffleAnimation(rearranged)))
-
-        timeline.advance(0.4f, scene)
-        assertEquals("No moves left - reshuffling", scene.message)
-        assertTrue(scene.messageAlpha > 0.9f, "the notice has faded in")
-        var rattling = false
-        scene.forEach { if (it.dx != 0f) rattling = true }
-        assertTrue(rattling, "the gems are shaking")
-
-        timeline.advance(0.5f, scene)
-        scene.forEach { assertTrue(it.scale < 1f, "shrinking away") }
-        scene.forEach { assertEquals(0f, it.dx, "the shake has stopped") }
-
-        timeline.advance(0.3f, scene)
-        assertNull(scene.message, "the notice is gone once the new gems appear")
-
-        timeline.advance(2f, scene)
-        assertTrue(timeline.isFinished)
-        assertSceneShows(rearranged, scene)
-    }
-
-    @Test
-    fun aReshuffleTakesAboutOneAndAHalfSeconds() {
-        assertNear(1.5f, ReshuffleAnimation(board).seconds, "total length")
-    }
-
-    @Test
     fun easingStartsAtZeroEndsAtOneAndNeverGoesBackwards() {
         val curves = listOf<(Float) -> Float>(Easing::inOut, Easing::out, Easing::fall)
         for (curve in curves) {

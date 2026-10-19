@@ -70,7 +70,7 @@ private fun decodeParts(parts: List<String>): SavedState? {
             VERSION_2 -> decodeGm2Board(parts[BOARD_PART])
             else -> null
         }
-    val valid = score != null && score >= 0 && rngState != null && board != null && isPlayable(board)
+    val valid = score != null && score >= 0 && rngState != null && board != null && findRuns(board).isEmpty()
     return if (valid) SavedState(board, score, rngState) else null
 }
 

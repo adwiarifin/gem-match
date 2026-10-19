@@ -46,9 +46,4 @@ sealed interface Step {
     data class Spawn(
         val gems: List<Placed>,
     ) : Step
-
-    /** The board was dead (no valid move) and was rearranged into [board]. */
-    data class Reshuffle(
-        val board: Board,
-    ) : Step
 }

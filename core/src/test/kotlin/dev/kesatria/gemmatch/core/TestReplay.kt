@@ -45,10 +45,6 @@ fun replay(
             is Step.Spawn -> {
                 step.gems.fold(board) { b, placed -> b.with(placed.pos, placed.piece) }
             }
-
-            is Step.Reshuffle -> {
-                step.board
-            }
         }
     }
 }
