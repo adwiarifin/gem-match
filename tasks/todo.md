@@ -73,7 +73,7 @@ Note on T36: the `CONSTRAINTS.md` "Measured, not yet enforced" rows are out of d
 
 Details: `tasks/plan.md` ("Game over and run stats"). Spec: `SPEC.md` "Game Over and Run Stats". Every `core` task: tests first, then `make check-task`.
 
-- [ ] T37: Measure run length (random and greedy play, 1,000 seeds each, until the first dead board). Done when: median, p10, p90 and the cap rate are in `docs/decisions.md` as D22, and the helper stays as the base of the soak test. Verify: `make check-task`
+- [x] T37: Measure run length (random and greedy play, 1,000 seeds each, until the first dead board). Done when: median, p10, p90 and the cap rate are in `docs/decisions.md` as D22, and the helper stays as the base of the soak test. Verify: `make check-task`
 - [ ] Checkpoint J: owner reads D22 and decides whether the ending rule stands. Nothing below starts before this
 - [ ] T38: `Game.isOver`; delete the reshuffle (core and app). Done when: a plain dead board is over, a board with a special is not, `trySwap` is `Rejected` when over, no `Reshuffle` reference remains. Commit message states why reshuffle tests go; test-count floor adjusted. Verify: `make check-task`
 - [ ] T39: `RunStats` from the steps (moves, cascade, moveScore, gems, match, created and fired by kind). Done when: hand-computed values match on crafted moves and `score` equals the sum of `Clear.points` across seeds. Verify: `make check-task`

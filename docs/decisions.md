@@ -131,3 +131,16 @@ The owner approved the special gems spec and confirmed that special gems are ine
 - Why: the owner swapped a column gem into `W W _ W W`. The five whites should leave a colour gem, but nothing appeared, because D16 (and the spec before it) said a clear in which any special fires makes no special. Two reviewers had already flagged the same thing as "the game ate the reward", and the owner's case settles it.
 - Impact: every qualifying match group makes its special, whether or not a special fires in the same clear (swapped into the match, matched, or chained). A swapped-in special fires and the match still leaves its gem: a run of 4 leaves a blast, a run of 5 a colour gem, an L a cross gem, a short T a short X, a long T a full X. More specials appear, and a chain can leave several. The new gem is placed after the clear, so the effect that fired cannot clear it. Tests play every effect kind swapped into each shape, and a property test compares the specials made against the match groups found on boards that hold each kind.
 - Rollback: wrap the `createdPieces` loop in `resolveSwap` (`Resolution.kt`) in `if (fired.isEmpty())` and put the "fire stops creation" tests back.
+
+**D22. How long a run lasts before the board is dead (measured 2026-10-19, before building game over).**
+- Why: the intent ends a run when no valid move is left, but specials (D16) make dead boards rare. Before building the card, stats and storage, the rule needed numbers. `RunLengthTest` plays 1,000 seeded games per player, up to 5,000 moves, and stops at the first reshuffle (the board the new rule would call dead). Random play picks any legal move, special swaps included. Greedy play takes a match move whenever one exists.
+- Result:
+
+  | Player | Games | Hit the 5,000 cap | p10 | Median | p90 |
+  |---|---|---|---|---|---|
+  | Random | 1,000 | 0 | 67 | 376 | 1,259 |
+  | Greedy | 1,000 | 463 | 744 | 4,424 | 5,000 |
+
+  A capped game counts as 5,000 moves, so every greedy figure is a lower bound.
+- Impact: random play always ends, usually within a few hundred moves. Greedy play ends in about half of the games before 5,000 moves, and the rest were still going. A real player sits somewhere between the two, so a run will end, but a careful player may play thousands of moves first. Checkpoint J asks the owner whether that is a "finish" worth building around, or whether the ending rule needs help (a move limit, fewer specials, a harsher spawn).
+- Rollback: none needed, nothing shipped changed. `RunLengthTest` runs a 20-seed sample by default; set `RUN_LENGTH_SEEDS` and `RUN_LENGTH_CAP` to repeat the full measurement (about 26 minutes) with `./gradlew :core:test --tests '*RunLengthTest.measure*' --rerun --no-build-cache -i`.
