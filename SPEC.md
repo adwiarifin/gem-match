@@ -82,7 +82,7 @@ Give the game a finish. A run ends when the settled board has no valid move. The
 ### Assumptions (correct me, or these stand)
 
 1. "No valid move" is `!hasValidMove(board)` on the board after a move has fully resolved. A board with any special gem always has a valid move, so a run can only end on a board of plain gems.
-2. `isOver` is derived from the board, never stored. A loaded save whose board has no valid move is over. No shipped build saves such a board (they reshuffled), so this only guards a damaged save.
+2. `isOver` is derived from the board, never stored. A loaded save whose board has no valid move is over, and the save reader accepts it (it still rejects a board with a run). This is needed, not just a guard: a move is saved before its animation ends, so a kill during the last move's animation leaves a dead board on disk, and the next launch must reach game over and record the run.
 3. The reshuffle is deleted, not kept as a fallback: `ensureMoveExists`, `Step.Reshuffle`, its animation and its tests go. `generateBoard` stays, since a new game still needs a playable board.
 4. Run stats that come from moves (moves, cascade, gems, specials, biggest match, biggest move score) are computed in `core` from the steps and saved with the game, because a run spans app launches. Time is not a `core` concern: the app injects epoch milliseconds and active milliseconds.
 5. Wall-clock time is `endedAt - startedAt` in epoch ms (`System.currentTimeMillis` in the app), so it includes time the app was closed. Active time is the sum of foreground frame deltas from the game loop, the rule the idle hint already uses, so backgrounding never counts. A clock set backwards clamps wall time to at least active time.
