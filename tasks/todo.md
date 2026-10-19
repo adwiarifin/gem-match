@@ -76,7 +76,7 @@ Left open on purpose. None blocks the first release. Items marked "owner" need a
 Release steps:
 - [x] Merge release PR #1, approve the `sign` job, check the published APK's certificate against `RELEASE_CERT_SHA256` (owner). Done: #1 merged 2026-10-16 and v0.1.0 to v0.1.2 are published; the v0.1.2 APK verifies, its SHA-256 file matches, signer `CN=Adwi Arifin, O=Kesatria Dev`, certificate SHA-256 `b8b8af6e4ba9e5faf7d34cecffdd9bc3c6ed4bf9e125ed42555131a2d7bb5a81` (compare it with your `RELEASE_CERT_SHA256`).
 - [x] Remove `release-as` from `release-please-config.json` right after the first release. Done: it is no longer in the file.
-- [ ] Install the CI-signed APK over the old build on the A52 and check the game resumes the saved board (owner plugs in the phone). Still open: the A52 now holds a debug build of the special gems branch (the signed release was uninstalled on 2026-10-17 with the owner's say-so), so do this with the signed 0.2.0 APK once it is published.
+- [x] Install the CI-signed APK over the old build on the A52 and check the game resumes the saved board (owner plugs in the phone). Done 2026-10-19: v0.2.0 (SHA-256 matches the published file, pinned cert) installed with `adb install -r` over a locally signed build holding a game in progress; score and board resumed. Before that, a v0.1.2 GM1 save also resumed under a locally signed build of the same code.
 - [x] Add a tag ruleset on `v*` (restrict updates and deletions) in the repository settings (owner)
 - [x] Back up the keystore and both passwords outside this machine (owner; backed up to cloud storage, location not recorded)
 
