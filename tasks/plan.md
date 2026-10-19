@@ -533,9 +533,199 @@ App tasks end with `make check-task` and an on-device check on the A52 (build an
 **Files:** `SPEC.md`, `CONSTRAINTS.md`, `README.md`, `docs/decisions.md`.
 **Scope:** Small. **Depends on:** Checkpoint I.
 
+## Game over and run stats (Phases 7 and 8)
+
+Spec: `SPEC.md` "Game Over and Run Stats" (approved 2026-10-19). Intent: `docs/intent/game-over-and-stats.md`. Tasks continue the numbering at T37 and are tracked in `tasks/todo.md`. Status: DRAFT, awaiting owner approval.
+
+### Overview
+
+A run ends when the settled board has no valid move. The reshuffle goes away. Every run records move-derived stats in `core` (saved in `GM3` so a run survives app restarts), the app adds wall and active time, and a finished run lands in `runs.txt` (last 100) and `lifetime.txt` (all runs). The game-over card and a stats screen show it.
+
+### Architecture decisions
+
+- **Measure before building the UI.** T37 plays random legal moves on many seeds and counts how long a run lasts, using the existing reshuffle as the "this board would be dead" signal. Specials make dead boards rare (D16), so a run might almost never end. Checkpoint J stops for the owner to read the numbers (spec decision 4). Random play is a weak proxy for a human, which the owner should weigh.
+- **Core first, then app, as in Phases 1 to 6.** Every rule and every codec is `core` and test-first. The app wires clocks, files and drawing.
+- **Deleting the reshuffle is one task (T38).** `Step.Reshuffle` is matched in `core` and `app`, so removal cannot be split by layer without leaving dead code. After T38 a dead board stops input but shows no card. The app is not releasable again until T44.
+- **One key-value codec for four formats.** `RN1`, `LT1` and the `GM3` stats part share the same `key=value,...` reader/writer (T40), so a new stat is one key everywhere.
+- **Time stays out of `core`.** `core` takes `startedMs`, `activeMs` and `endedMs` as numbers. `RunClock` in `app` owns the clocks (T42).
+- **At-most-once recording** with a `last` marker (the newest recorded run's `started`) in `lifetime.txt` (T43). A kill during game over can lose that run, never double it.
+- **Shared scroll list.** The card and the stats screen both scroll a list of text rows; one pure `ScrollList` and `StatFormat` (labels, durations) serve both (T44).
+
+### Dependency graph
+
+```
+T37 measure run length ── Checkpoint J (owner reads numbers)
+        │
+T38 isOver, remove reshuffle (core + app) ── T39 RunStats from steps ── T40 key-value codec + GM3 ── T41 FinishedRun, Lifetime, RN1/LT1
+                                                                                                       │
+                                                                                       Checkpoint K (core complete)
+                                                                                                       │
+T42 RunClock + GM3 in session ── T43 history files, record once, best seed ── T44 game-over card ── T45 stats screen
+                                                                                                       │
+                                                                          T46 near-dead fixture + device runbook ── Checkpoint L ── T47 docs
+```
+
+T39 and T40 touch `Game.kt` and `SaveCodec.kt` in sequence, so they are not parallel. T46 can start once T40 exists (it needs `GM3`), in parallel with T43 to T45.
+
+### Risks and mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Runs almost never end, so "a finish" is not felt | High | T37 measures first; Checkpoint J gates the rest; the owner decides (move limit, fewer specials, harsher spawn) before any UI work |
+| Random play lasts differently from a human | Medium | T37 reports random play and a greedy "always take a match if there is one" player; the owner treats both as bounds |
+| `GM3` stats part makes the save big or fragile | Medium | 1024-character read limit, a worst-case length test, a bad stats part returns null (new game) |
+| A kill during game over double counts or loses a run | Medium | Order of writes and the `last` marker in T43; a test kills between each pair of writes |
+| Removing reshuffle tests trips the floor guard and the test-count floor | Low | T38's commit message states the reason; `scripts/test-count-floor.txt` is lowered in the same commit and raised again as tests land |
+| Text drawing allocates every frame (card and stats screen) | Low | Reuse `Paint` and string pieces; measure frame time on the A52 at Checkpoint L |
+| The wall clock moves backwards (user changes the time) | Low | Wall time is clamped to at least active time (T42) |
+| A `GM2` save resumed after the update has no start time | Low | Accepted in the spec: the run starts at load time, wall time undercounts once |
+
+### Phase 7: Game over and run stats, core
+
+#### T37: Measure run length
+**Description:** A test-source helper plays many seeded games with random legal moves, and with a greedy player that always takes a match move when one exists, until the first `Reshuffle` step (the dead board) or a move cap. It reports moves to the first dead board and the share of games that never reach one. No change to shipped code. The numbers go into `docs/decisions.md` as D22.
+**Acceptance:**
+- [ ] 1,000 seeds per player, move cap 5,000, finishes in under 60 seconds.
+- [ ] D22 records median, p10, p90 and the share of games that hit the cap, for both players, with the date.
+- [ ] The helper is kept as the base of the T38 soak test (no throwaway code, no `@Ignore`).
+**Verify:** `./gradlew :core:test`; `make check-task`
+**Files:** `core/src/test/.../RunLengthTest.kt`, `docs/decisions.md`.
+**Scope:** Small. **Depends on:** none.
+
+#### Checkpoint J: Owner reads the numbers
+- [ ] Owner reads D22 and decides: carry on as specced, or change the ending rule (spec decision 4). Nothing below starts before this.
+
+#### T38: `isOver`, and the reshuffle goes
+**Description:** `Game.isOver` is `!hasValidMove(board)`, derived. `trySwap` returns `Rejected` when over. Delete `ensureMoveExists`, `Step.Reshuffle`, `rearranged`, `ReshuffleAnimation`, their tests and their `Timeline` branch. `generateBoard` stays. The soak test now asserts a run reaches `isOver`.
+**Acceptance:**
+- [ ] A hand-built plain board with no valid move is over; the same board with one special gem is not.
+- [ ] `trySwap` on an over game is `Rejected`; a game whose last move leaves a dead board is over after that move, with no reshuffle step.
+- [ ] No reference to `Reshuffle` or `ensureMoveExists` remains in `core` or `app`.
+- [ ] After a dead board the app ignores board touches and does not crash (no card yet).
+**Verify:** `make check-task`; install the debug build, nothing regresses on a normal game.
+**Files:** `Game.kt`, `Reshuffle.kt`, `Step.kt`, `Timeline.kt`, plus tests (`ReshuffleTest`, `SoakTest`, `TestReplay`, `PlaybackTest`, `TimelineTest`, `GameSessionTest`). Mostly deletions.
+**Scope:** Medium. **Depends on:** Checkpoint J.
+
+#### T39: `RunStats` from the steps
+**Description:** Immutable `RunStats` holding `moves`, `cascade`, `moveScore`, `gems`, `match`, and `created`/`fired` counts by `Special`. `resolveSwap` reports the largest match group and the specials it fired; `Game.trySwap` adds the move's stats. `Game.stats` is readable. No codec yet.
+**Acceptance:**
+- [ ] Each stat equals a hand-computed value on crafted moves: a plain 3-match, a cascade of depth 3, a blast and a chain, a swap that makes a special.
+- [ ] Gems are counted once per clear even when a run and an effect overlap.
+- [ ] Across many seeds: `moves` equals accepted swaps, and `score` equals the sum of `Clear.points`.
+- [ ] `RunStats` addition is associative.
+**Verify:** `make check-task`
+**Files:** `RunStats.kt`, `Resolution.kt`, `Matches.kt` (group size), `Game.kt`, `RunStatsTest.kt`.
+**Scope:** Medium. **Depends on:** T38.
+
+#### T40: Key-value codec and `GM3`
+**Description:** A shared reader/writer for `key=value,key=value` (missing key 0, unknown key ignored, malformed pair or negative value is null). `GM3;<score>;<rng>;<64 cells>;<stats>` with `started` and `active` in the stats part. `Game` encodes `GM3` only; decodes `GM3`, `GM2` (zero stats, `started` = the load time passed in) and `GM1`. `MAX_SAVE_LENGTH` 256 to 1024.
+**Acceptance:**
+- [ ] A game with stats and every special round-trips equal and plays the same future.
+- [ ] A `GM2` and a `GM1` string from the shipped builds load with zero stats.
+- [ ] Missing key reads 0, unknown key ignored, a negative or non-numeric value returns null for the whole save; truncated and garbage return null.
+- [ ] Worst-case `GM3` stays under 1024 characters.
+**Verify:** `make check-task`
+**Files:** `KeyValue.kt`, `SaveCodec.kt`, `Game.kt`, `KeyValueTest.kt`, `SaveCodecTest.kt`.
+**Scope:** Medium. **Depends on:** T39.
+
+#### T41: `FinishedRun`, `Lifetime`, and the `RN1` and `LT1` lines
+**Description:** `RunStats.finish(startedMs, endedMs, activeMs, previousBest)` makes a `FinishedRun` (wall clamped to at least active; `best` flag strictly above the previous best). `Lifetime` folds runs with saturating `Long` sums and bests, and carries `last`. Line codecs for both, and a pure `keepNewest(runs, run, 100)`.
+**Acceptance:**
+- [ ] New best: first run with score above 0, a tie is not a new best, a higher score is.
+- [ ] Lifetime after 101 runs still includes run 1 while the run list holds 100.
+- [ ] `RN1` and `LT1` round-trip; a newer line with an extra key is read by this codec; a malformed line returns null.
+- [ ] Sums saturate instead of wrapping.
+**Verify:** `make check-task`
+**Files:** `RunRecord.kt`, `Lifetime.kt`, `RunRecordTest.kt`, `LifetimeTest.kt`.
+**Scope:** Medium. **Depends on:** T40.
+
+#### Checkpoint K: Core complete
+- [ ] `make check-full` green; `core` coverage at least 80% (measured value must not fall more than 0.5%).
+- [ ] SC1 to SC7 covered by tests. Owner reviews the core API before the app work.
+
+### Phase 8: Game over and run stats, app
+
+App tasks end with `make check-task`. Drawing and wiring are checked by hand on the A52.
+
+#### T42: `RunClock` and `GM3` in the session
+**Description:** `RunClock` holds `startedMs` and accumulates foreground frame deltas as `activeMs` (the idle rule: the loop stops on pause). `GameSession` stamps new games with `startedMs`, passes `activeMs` into the saved game on every save and on pause, and restores both on load. A new game resets the clock. Wall time is clamped.
+**Acceptance:**
+- [ ] Active time grows only while frames run; a simulated pause adds nothing; wall time keeps growing.
+- [ ] A saved and reloaded game keeps `started` and `active`; a `GM2` save starts at load time.
+- [ ] New Game resets both clocks.
+**Verify:** `make check-task`
+**Files:** `RunClock.kt`, `GameSession.kt`, `GameController.kt`, `GameStore.kt` (if the signature changes), `RunClockTest.kt`, `GameSessionTest.kt`.
+**Scope:** Medium. **Depends on:** T40.
+
+#### T43: History files, record once, best score seeded
+**Description:** `RunHistory` interface and a file-backed version in `GameStore`: `runs.txt` and `lifetime.txt` with their size limits and the atomic write. When the session sees the board is over, it finishes the run and records it once (lifetime first, then runs, then replaces `game.sav` with a fresh game), guarded by `last`. On first launch with no `lifetime.txt`, the best score is seeded from `best.txt`. New Game mid-run records nothing.
+**Acceptance:**
+- [ ] A finished run appears once in each file; the saved game is a fresh one afterwards.
+- [ ] Killing the process between each pair of writes never records the run twice.
+- [ ] The 101st run drops the oldest line; lifetime keeps its totals.
+- [ ] A damaged `runs.txt` line costs only that run; a damaged `lifetime.txt` reads as empty; oversize files are treated as damaged.
+- [ ] `best.txt` seeds the lifetime best once; abandoned games count toward best but not toward history.
+**Verify:** `make check-task`
+**Files:** `RunHistory.kt`, `GameStore.kt`, `GameSession.kt`, `MainActivity.kt` (load best from lifetime), `GameStoreTest.kt`, `GameSessionTest.kt`.
+**Scope:** Medium. **Depends on:** T41, T42.
+
+#### T44: Game-over card
+**Description:** After the last move's animation, wait `GAME_OVER_DELAY_MS` (600), then fade a card in over the dimmed dead board: score, best, "New best" flag, every per-run stat in a vertical-drag scroll list, Play Again pinned at the bottom (and a Stats button, inert until T45). Play Again starts a new game with no confirmation. A pure `ScrollList` and `StatFormat` (labels, `mm:ss` durations) serve the card and, later, the stats screen.
+**Acceptance:**
+- [ ] The card appears only after the animation and the delay; board touches are blocked while it shows.
+- [ ] It lists every stat from the spec table with the right labels and units; durations read `mm:ss` (or `h:mm:ss`).
+- [ ] The list scrolls when it does not fit and stops at both ends; the buttons stay pinned.
+- [ ] Play Again starts a new game; New Game still asks first.
+**Verify:** `make check-task`; the T46 runbook on the A52.
+**Files:** `GameOverCard.kt`, `ScrollList.kt`, `StatFormat.kt`, `GameController.kt`, `ScrollListTest.kt`, `StatFormatTest.kt`.
+**Scope:** Medium. **Depends on:** T43.
+
+#### T45: Stats screen
+**Description:** A Stats button on the HUD and the card opens a screen: lifetime records and totals on top (with derived averages), the last 100 runs below, newest first, each row score, moves, active time. Vertical drag scrolls; Back (and a Close button) returns.
+**Acceptance:**
+- [ ] The lifetime block shows runs played, bests, totals and averages from `lifetime.txt`.
+- [ ] 101 recorded runs show 100 rows, newest first.
+- [ ] Back returns to the game, or to the card if opened from it.
+- [ ] An empty history shows a plain "No finished runs yet".
+**Verify:** `make check-task`; look on the A52.
+**Files:** `StatsScreen.kt`, `Hud.kt`, `GameController.kt`, `StatFormat.kt`, `StatsScreenTest.kt`.
+**Scope:** Medium. **Depends on:** T44.
+
+#### T46: Near-dead fixture and device runbook
+**Description:** A test finds a board where one legal plain move leaves a dead board, encodes it as a `GM3` string, and asserts it. `docs/` gets a short runbook: install the debug APK, write the string into `game.sav` with `adb shell run-as`, make the move, check the card. No debug code ships in the release.
+**Acceptance:**
+- [ ] The fixture test fails if the board stops being one move from dead.
+- [ ] The runbook gets from the string to the card on the A52 in the listed steps.
+**Verify:** `make check-task`; run the runbook once.
+**Files:** `core/src/test/.../NearDeadFixtureTest.kt`, `docs/game-over-runbook.md`.
+**Scope:** Small. **Depends on:** T40 (parallel with T43 to T45).
+
+#### Checkpoint L: Game over and stats complete
+- [ ] `make check-full` green (APK size, permissions, detekt, Lint, osv-scanner).
+- [ ] On the A52, SC9 to SC12 verified with the runbook: the card, Play Again, a kill on the card, wall versus active time after backgrounding, 100 rows after 101 runs.
+- [ ] Frame time during the card and the stats screen recorded; no regression against `CONSTRAINTS.md`.
+- [ ] Owner plays a normal session and reads the stats.
+
+#### T47: Docs close-out
+**Description:** `README.md` features, `docs/decisions.md` (D22 numbers, D23 for the ending rule and storage, with why, impact and rollback), `SPEC.md` status, the measured rows in `CONSTRAINTS.md` (owner), the open items in `tasks/todo.md`. Docs commit, separate from code, owner approval first.
+**Acceptance:**
+- [ ] Every decision made during build has a why, impact and rollback.
+- [ ] Measured values match the last `make check-full`.
+**Verify:** `make check-fast`
+**Files:** `README.md`, `docs/decisions.md`, `SPEC.md`, `CONSTRAINTS.md`.
+**Scope:** Small. **Depends on:** Checkpoint L.
+
+### Decisions (owner-approved, 2026-10-19)
+
+See `SPEC.md` "Decisions from the owner". In short: abandoned games are not recorded; the card shows every stat; `moveScore` is stored; measure run length first; `GM3` is approved; `match` is the largest match group.
+
+### Open questions
+
+None.
+
 ## Post-v1 candidates (not planned)
 
-Sound, "best single move" record, Compose or ready-made-lib UI as a second perspective, KMP port. Each is a separate spec.
+Sound, Compose or ready-made-lib UI as a second perspective, KMP port. Each is a separate spec.
 
 ## Decisions (owner-approved)
 

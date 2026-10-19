@@ -69,6 +69,30 @@ Each task ends with `make check-task` and a look on the A52.
 
 Note on T36: the `CONSTRAINTS.md` "Measured, not yet enforced" rows are out of date (release APK 63,634 bytes unsigned, debug APK 1,114,297 bytes, `core` coverage 99.77%, measured 2026-10-17). `scripts/floor-guard.py` treats raising a "must not grow" number or lowering a "must not fall" number as loosening the bar, so the update needs the owner. All three are still inside their caps and tolerance.
 
+## Phase 7: Game over and run stats, core
+
+Details: `tasks/plan.md` ("Game over and run stats"). Spec: `SPEC.md` "Game Over and Run Stats". Every `core` task: tests first, then `make check-task`.
+
+- [ ] T37: Measure run length (random and greedy play, 1,000 seeds each, until the first dead board). Done when: median, p10, p90 and the cap rate are in `docs/decisions.md` as D22, and the helper stays as the base of the soak test. Verify: `make check-task`
+- [ ] Checkpoint J: owner reads D22 and decides whether the ending rule stands. Nothing below starts before this
+- [ ] T38: `Game.isOver`; delete the reshuffle (core and app). Done when: a plain dead board is over, a board with a special is not, `trySwap` is `Rejected` when over, no `Reshuffle` reference remains. Commit message states why reshuffle tests go; test-count floor adjusted. Verify: `make check-task`
+- [ ] T39: `RunStats` from the steps (moves, cascade, moveScore, gems, match, created and fired by kind). Done when: hand-computed values match on crafted moves and `score` equals the sum of `Clear.points` across seeds. Verify: `make check-task`
+- [ ] T40: Key-value codec and `GM3`. Done when: round trip is equal, `GM2` and `GM1` load with zero stats, bad stats part returns null, worst case under 1024 characters. Verify: `make check-task`
+- [ ] T41: `FinishedRun`, `Lifetime`, `RN1` and `LT1` lines, keep newest 100. Done when: new best rules hold, lifetime keeps dropped runs, sums saturate, unknown key ignored. Verify: `make check-task`
+- [ ] Checkpoint K: `make check-full` green, `core` coverage at least 80% (measured value must not fall more than 0.5%), owner reviews the core API
+
+## Phase 8: Game over and run stats, app
+
+Each task ends with `make check-task`; drawing and wiring are checked on the A52.
+
+- [ ] T42: `RunClock` (wall and foreground-only active time) and `GM3` in the session. Done when: pause adds no active time, a reload keeps `started` and `active`, New Game resets. Verify: `make check-task`
+- [ ] T43: `runs.txt`, `lifetime.txt`, record once, `best.txt` seeds the best score. Done when: a run is never counted twice across a kill, the 101st run drops the oldest, damaged lines cost only themselves, abandoned games record nothing. Verify: `make check-task`
+- [ ] T44: Game-over card (600 ms beat, fade-in, every stat, scroll, Play Again). Done when: it appears after the animation, blocks the board, scrolls and keeps buttons pinned. Verify: `make check-task`, the T46 runbook on the A52
+- [ ] T45: Stats screen (lifetime block, last 100 runs, HUD and card buttons, Back). Done when: 101 runs show 100 rows newest first, empty history reads plainly. Verify: `make check-task`, look on the A52
+- [ ] T46: Near-dead fixture and device runbook (`docs/game-over-runbook.md`). Done when: the fixture test pins the board and the runbook reaches the card on the A52. Verify: `make check-task`, run the runbook once
+- [ ] Checkpoint L: `make check-full` green, SC9 to SC12 on the A52, frame time recorded, owner plays a session
+- [ ] T47: Docs close-out (README, D22 and D23, SPEC status, CONSTRAINTS measured rows by the owner, open items). Owner approval, separate docs commit. Verify: `make check-fast`
+
 ## Open items after the review and release work (2026-10-16)
 
 Left open on purpose. None blocks the first release. Items marked "owner" need an action only the owner can do.
