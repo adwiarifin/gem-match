@@ -123,12 +123,23 @@ class CascadeTest {
     fun rngIsAdvancedByExactlyTheSpawnedGems() {
         val rng = Rng(5L)
 
-        val result = resolveSwap(oneMoveBoard, swapA, swapB, rng)
+        val result = resolveSwap(oneMoveBoard, swapA, swapB, rng, spawnRetries = 0)
 
         val spawned = result.steps.filterIsInstance<Step.Spawn>().sumOf { it.gems.size }
         val reference = Rng(5L)
         repeat(spawned) { reference.nextGem() }
         assertEquals(reference.state, rng.state)
+    }
+
+    @Test
+    fun rngIsAdvancedByAtLeastOneDrawPerSpawnedGemAndAtMostOnePlusRetries() {
+        val rng = Rng(5L)
+
+        val result = resolveSwap(oneMoveBoard, swapA, swapB, rng)
+
+        val spawned = result.steps.filterIsInstance<Step.Spawn>().sumOf { it.gems.size }
+        val draws = generateSequence(0) { it + 1 }.first { n -> Rng(5L).also { r -> repeat(n) { r.nextGem() } }.state == rng.state }
+        assertTrue(draws in spawned..spawned * (1 + SPAWN_RETRIES), "$draws draws for $spawned gems")
     }
 
     @Test
