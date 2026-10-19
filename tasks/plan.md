@@ -543,6 +543,7 @@ A run ends when the settled board has no valid move. The reshuffle goes away. Ev
 
 ### Architecture decisions
 
+- **Harsher spawn first (T37b).** D22 showed greedy play often goes thousands of moves without a dead board. The owner chose to make dead boards likelier with an anti-clustering refill (SPEC assumption 9) before anything else is built, and to re-measure with the T37 harness. A board holding a special never dies, so hoarding one special still prevents game over; the spawn rule cannot fix that.
 - **Measure before building the UI.** T37 plays random legal moves on many seeds and counts how long a run lasts, using the existing reshuffle as the "this board would be dead" signal. Specials make dead boards rare (D16), so a run might almost never end. Checkpoint J stops for the owner to read the numbers (spec decision 4). Random play is a weak proxy for a human, which the owner should weigh.
 - **Core first, then app, as in Phases 1 to 6.** Every rule and every codec is `core` and test-first. The app wires clocks, files and drawing.
 - **Deleting the reshuffle is one task (T38).** `Step.Reshuffle` is matched in `core` and `app`, so removal cannot be split by layer without leaving dead code. After T38 a dead board stops input but shows no card. The app is not releasable again until T44.
@@ -554,7 +555,7 @@ A run ends when the settled board has no valid move. The reshuffle goes away. Ev
 ### Dependency graph
 
 ```
-T37 measure run length ── Checkpoint J (owner reads numbers)
+T37 measure run length ── Checkpoint J (owner reads numbers) ── T37b harsher spawn, re-measure
         │
 T38 isOver, remove reshuffle (core + app) ── T39 RunStats from steps ── T40 key-value codec + GM3 ── T41 FinishedRun, Lifetime, RN1/LT1
                                                                                                        │
@@ -593,7 +594,18 @@ T39 and T40 touch `Game.kt` and `SaveCodec.kt` in sequence, so they are not para
 **Scope:** Small. **Depends on:** none.
 
 #### Checkpoint J: Owner reads the numbers
-- [ ] Owner reads D22 and decides: carry on as specced, or change the ending rule (spec decision 4). Nothing below starts before this.
+- [x] Owner read D22 and chose a harsher spawn (2026-10-19), over a move limit or fewer specials. Nothing below starts before T37b.
+
+#### T37b: Harsher spawn
+**Description:** `refill` rejects a drawn gem that equals an orthogonal neighbour already placed, retrying up to `SPAWN_RETRIES` (start 4) times, then keeps the last draw. Test-first. Re-run the T37 measurement and tune `SPAWN_RETRIES` (and the neighbour rule if needed) until the target holds. Record the before and after numbers as D23.
+**Acceptance:**
+- [ ] A refill never leaves a board with fewer than 64 pieces, and with `SPAWN_RETRIES` above 0 it places a gem that differs from its placed neighbours whenever one of the 7 colours does.
+- [ ] Same seed and moves give the same board (retries use the seeded `Rng`).
+- [ ] No match is left after a refill beyond what the existing cascade rules already resolve (the soak invariants still hold).
+- [ ] Target met on the T37 harness with 1,000 seeds, cap 5,000: greedy median under 1,500 moves and under 5% of games capped. If it cannot be met, stop and bring the numbers to the owner.
+**Verify:** `make check-task`; the full measurement command in D22.
+**Files:** `Resolution.kt` (`refill`), `ResolutionTest.kt` or `CascadeTest.kt`, `docs/decisions.md`.
+**Scope:** Small. **Depends on:** Checkpoint J.
 
 #### T38: `isOver`, and the reshuffle goes
 **Description:** `Game.isOver` is `!hasValidMove(board)`, derived. `trySwap` returns `Rejected` when over. Delete `ensureMoveExists`, `Step.Reshuffle`, `rearranged`, `ReshuffleAnimation`, their tests and their `Timeline` branch. `generateBoard` stays. The soak test now asserts a run reaches `isOver`.
@@ -604,7 +616,7 @@ T39 and T40 touch `Game.kt` and `SaveCodec.kt` in sequence, so they are not para
 - [ ] After a dead board the app ignores board touches and does not crash (no card yet).
 **Verify:** `make check-task`; install the debug build, nothing regresses on a normal game.
 **Files:** `Game.kt`, `Reshuffle.kt`, `Step.kt`, `Timeline.kt`, plus tests (`ReshuffleTest`, `SoakTest`, `TestReplay`, `PlaybackTest`, `TimelineTest`, `GameSessionTest`). Mostly deletions.
-**Scope:** Medium. **Depends on:** Checkpoint J.
+**Scope:** Medium. **Depends on:** T37b.
 
 #### T39: `RunStats` from the steps
 **Description:** Immutable `RunStats` holding `moves`, `cascade`, `moveScore`, `gems`, `match`, and `created`/`fired` counts by `Special`. `resolveSwap` reports the largest match group and the specials it fired; `Game.trySwap` adds the move's stats. `Game.stats` is readable. No codec yet.

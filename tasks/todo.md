@@ -74,7 +74,8 @@ Note on T36: the `CONSTRAINTS.md` "Measured, not yet enforced" rows are out of d
 Details: `tasks/plan.md` ("Game over and run stats"). Spec: `SPEC.md` "Game Over and Run Stats". Every `core` task: tests first, then `make check-task`.
 
 - [x] T37: Measure run length (random and greedy play, 1,000 seeds each, until the first dead board). Done when: median, p10, p90 and the cap rate are in `docs/decisions.md` as D22, and the helper stays as the base of the soak test. Verify: `make check-task`
-- [ ] Checkpoint J: owner reads D22 and decides whether the ending rule stands. Nothing below starts before this
+- [x] Checkpoint J: owner read D22 and chose a harsher spawn (2026-10-19)
+- [ ] T37b: Harsher spawn (anti-clustering refill, `SPAWN_RETRIES` 4). Done when: refill is deterministic and always full, soak invariants hold, and the T37 harness shows greedy median under 1,500 moves with under 5% capped (D23). Verify: `make check-task`, full measurement
 - [ ] T38: `Game.isOver`; delete the reshuffle (core and app). Done when: a plain dead board is over, a board with a special is not, `trySwap` is `Rejected` when over, no `Reshuffle` reference remains. Commit message states why reshuffle tests go; test-count floor adjusted. Verify: `make check-task`
 - [ ] T39: `RunStats` from the steps (moves, cascade, moveScore, gems, match, created and fired by kind). Done when: hand-computed values match on crafted moves and `score` equals the sum of `Clear.points` across seeds. Verify: `make check-task`
 - [ ] T40: Key-value codec and `GM3`. Done when: round trip is equal, `GM2` and `GM1` load with zero stats, bad stats part returns null, worst case under 1024 characters. Verify: `make check-task`
