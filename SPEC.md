@@ -7,7 +7,7 @@ Scope check (Phase 0): one product with two layers (`core`, `app`). Not decompos
 
 ## Objective
 
-An offline, native Android match-3 game for the owner's Samsung Galaxy A52. Endless play, no ads, no network, no accounts. The APK stays tiny. Quitting or being interrupted at any moment never loses progress.
+An offline, native Android match-3 game for the owner's Samsung Galaxy A52. Runs that end at game over, no ads, no network, no accounts. The APK stays tiny. Quitting or being interrupted at any moment never loses progress.
 
 Secondary goals: portfolio piece and blog material. The core is pure Kotlin, KMP-ready, and reusable under a second UI later.
 
@@ -22,12 +22,12 @@ Success looks like:
 2. A move is a swap of two orthogonally adjacent gems. A swap that creates no match is rejected and reverts, unless one of the two gems is a special gem (see Special Gems).
 3. A match is 3 or more in a row or column. Intersecting runs (L, T, +) clear as one union. A run of 3 with a gem hanging off it can also clear as one group (see Special Gems). Special gems count in a run of their colour; the colour gem never does.
 4. After a clear, gems above fall, new gems spawn from above the top edge, and new matches cascade automatically.
-5. Scoring is tiered, to reward planned moves over lucky chains. Each cleared run scores by length: 3 gems = 30, 4 gems = 60, 5 or more = 100. A group of runs that intersect (L, T, +) also earns one flat +50 shape bonus per group. Everything is multiplied by cascade depth (1x for the player's own match, 2x for the first chain, and so on). Constants live in one place and are tunable. A "best single move" record is a possible later addition and is not in v1.
+5. Scoring is tiered, to reward planned moves over lucky chains. Each cleared run scores by length: 3 gems = 30, 4 gems = 60, 5 or more = 100. A group of runs that intersect (L, T, +) also earns one flat +50 shape bonus per group. Everything is multiplied by cascade depth (1x for the player's own match, 2x for the first chain, and so on). Constants live in one place and are tunable. The "best single move" record is in scope as `moveScore` (see Game Over and Run Stats).
 6. The starting board has no matches and at least one valid move.
-7. If no valid move exists after a cascade settles (a board holding a special gem always has one), the board reshuffles its existing gems until it has no matches and at least one valid move. There is no game over.
+7. If no valid move exists after a cascade settles (a board holding a special gem always has one), the run is over. There is no reshuffle (changed 2026-10-19, see Game Over and Run Stats).
 8. Core resolves a whole move instantly and returns a list of steps. The presentation layer plays those steps back as animation. State is saved after the move resolves, so a resumed game is never mid-animation.
 9. Core owns its random number generator (SplitMix64 or similar), because `kotlin.random.Random` does not expose serializable state. RNG state is part of saved state, so resume continues the exact same future gems.
-10. Save format is a compact hand-written text encoding in core. No serialization library, to keep the APK small and core dependency-free. Version `GM2` adds special gems; `GM1` saves still load (see Special Gems).
+10. Save format is a compact hand-written text encoding in core. No serialization library, to keep the APK small and core dependency-free. Version `GM2` adds special gems; `GM3` adds the run's stats (see Game Over and Run Stats); `GM1` and `GM2` saves still load.
 11. App uses the framework `android.app.Activity` and `SurfaceView` only. No AndroidX, no Compose, no Kotlin dependencies beyond stdlib. Gems are drawn as vector shapes (Canvas paths), no bitmap assets. Each gem type has a distinct shape as well as a distinct color (white is a pentagon). Special gems are the same shape plus a vector overlay.
 12. Portrait only. minSdk 26. compileSdk and targetSdk are the latest stable at scaffold time.
 13. Distribution is sideloading via `adb install`. No Play Store in v1. The release keystore is never committed.
@@ -70,6 +70,169 @@ Rules (the owner decided the table, the combos and the playtest changes; the res
 Save format: `GM1;<score>;<rng>;<64 digits>` becomes `GM2;<score>;<rng>;<64 two-character cells>`. The first character of a cell is the gem digit (`0` to `6`, or `-` for the colour gem). The second is the special kind: `-` none, `B` blast, `R` line (row), `C` line (column), `X` cross, `S` short X, `F` full X, `W` colour. Game encodes only GM2 and still decodes GM1, so a game saved before this version loads into the new one. A corrupt or unknown save returns null (a new game), never a crash. Saves stay under the existing 256-character read limit.
 
 Expected changes: new `Piece.kt`, `Special.kt`, `Creation.kt`, `Activation.kt` and `Combo.kt` in `core`; `Board`, `Matches`, `Move`, `Resolution`, `Step`, `Scoring`, `SaveCodec`, `Reshuffle` and `Game` change. In `app`: `Scene`, `BoardRenderer`, `GemShapes`, `SpecialOverlays`, `Effects`, `IdleHint` and the playback code change.
+
+## Game Over and Run Stats (approved 2026-10-19)
+
+Intent: `docs/intent/game-over-and-stats.md`. Scope check (Phase 0): one feature across the same two layers, not decomposed. The existing text above and below was edited to match on approval (see "Changes to existing text").
+
+### Objective
+
+Give the game a finish. A run ends when the settled board has no valid move. The game-over card shows the run's stats and Play Again. Every finished run is kept (last 100) and rolled into lifetime records and totals. A run is one session: new game to game over, even across app launches.
+
+### Assumptions (correct me, or these stand)
+
+1. "No valid move" is `!hasValidMove(board)` on the board after a move has fully resolved. A board with any special gem always has a valid move, so a run can only end on a board of plain gems.
+2. `isOver` is derived from the board, never stored. A loaded save whose board has no valid move is over. No shipped build saves such a board (they reshuffled), so this only guards a damaged save.
+3. The reshuffle is deleted, not kept as a fallback: `ensureMoveExists`, `Step.Reshuffle`, its animation and its tests go. `generateBoard` stays, since a new game still needs a playable board.
+4. Run stats that come from moves (moves, cascade, gems, specials, biggest match, biggest move score) are computed in `core` from the steps and saved with the game, because a run spans app launches. Time is not a `core` concern: the app injects epoch milliseconds and active milliseconds.
+5. Wall-clock time is `endedAt - startedAt` in epoch ms (`System.currentTimeMillis` in the app), so it includes time the app was closed. Active time is the sum of foreground frame deltas from the game loop, the rule the idle hint already uses, so backgrounding never counts. A clock set backwards clamps wall time to at least active time.
+6. Active time on disk is current as of the last save (after each move and on pause). A kill loses the time since the last move, at most.
+7. A game that is abandoned with New Game is not a finished run: it adds nothing to history or lifetime. Its score still counts toward the best score, as it does today.
+8. A resumed `GM2` save has no start time, so its run starts at load time and its wall time undercounts once. Accepted.
+9. Lifetime best score is seeded from `best.txt` the first time `lifetime.txt` is missing, so the owner's current best survives the update. `best.txt` is then unused.
+
+### Behaviour
+
+- **Game over.** After the last move's animation ends, a short beat (`GAME_OVER_DELAY_MS`, tunable, start 600) shows the dead board, then the card fades in over it. Input on the board is blocked. `trySwap` on an over game returns `Rejected`.
+- **Card.** Score, best score, a "New best" flag, then every per-run stat in the table below (decided by the owner, no top five), then Play Again and Stats. The list scrolls with a vertical drag if it does not fit; Play Again and Stats stay pinned at the bottom. Play Again starts a new game with no confirmation. The existing New Game button keeps its confirmation.
+- **Stats screen.** Reached from a button on the HUD and from the card. Top: lifetime records and totals. Below: the last 100 runs, newest first, each row showing score, moves, and active time, with a vertical drag to scroll. Back returns to the game. Text drawn on the canvas, no new assets.
+- **New best.** A run's score strictly greater than the lifetime best before it. The first finished run with a score above 0 is a new best.
+- **Exactly once.** A finished run is added to history and lifetime at most once, even if the app is killed during game over. A kill mid-write may lose that one run; it never counts it twice. After recording, the saved game is replaced by a fresh one, so reopening shows a new game (the run is in the stats screen).
+
+### Stats
+
+Per run (all in `RunStats`, absent keys read 0):
+
+| Key | Meaning |
+|---|---|
+| `score`, `moves` | final score; accepted swaps |
+| `cascade` | highest cascade depth reached in any one move |
+| `moveScore` | biggest score from a single move |
+| `gems` | gems cleared, counting each cell once per clear |
+| `match` | gems in the largest single match group (the run plus its hanging gem, or the union of crossing runs), before effects |
+| `cB cR cC cX cS cF cW` | specials created, by kind (blast, line row, line column, cross, short X, full X, colour) |
+| `tB tR tC tX tS tF tW` | specials fired, by kind |
+| `wall`, `active` | milliseconds |
+| `ended` | epoch ms the run ended; `started` is kept in the save only |
+| `best` | 1 if it set a new best |
+
+Derived, never stored: average score per move, average score per run.
+
+Lifetime (`LT1`): `runs` and sums of every key above that is a count or duration, as `Long` with saturating add; bests for `score`, `cascade`, `moveScore`, `match`, `wall` (longest run) and `active`; `last` (the `started` of the newest recorded run, the at-most-once marker). `new best` is not summed.
+
+### Storage and formats
+
+Three text files, written by `GameStore` with its temp-file-then-rename write on the single writer thread. Codecs and `RunStats` live in `core`; a small `RunHistory` interface (`record(run)`, `runs()`, `lifetime()`) lives in `app`, so the backend can change later. No database, no dependency.
+
+- `runs.txt`: newest 100 runs, one per line: `RN1;key=value,key=value,...`. Appending run 101 drops the oldest.
+- `lifetime.txt`: one line, `LT1;key=value,...`, updated on every finish, never recomputed from `runs.txt`.
+- `game.sav`: `GM3;<score>;<rng>;<64 cells>;<key=value,...>`. The fifth part holds the run's stats so far, including `started` and `active`. `Game` encodes only `GM3` and decodes `GM3`, `GM2` (stats zero, `started` = load time) and `GM1`. A bad stats part makes the whole save null (a new game), never a crash. `MAX_SAVE_LENGTH` rises from 256 to 1024.
+- Reading: a missing key is 0, an unknown key is ignored, a malformed pair or a negative value makes that line unreadable and it is skipped. A bad line in `runs.txt` loses that run only. A bad `lifetime.txt` is treated as empty.
+- Version tags change only if a key's meaning changes or the line structure changes. A new stat is one key and needs no migration.
+- Size limits: `runs.txt` 64 KiB (about 30 KiB at 100 runs), `lifetime.txt` and `game.sav` 2 KiB. A larger file is treated as damaged.
+- A new stat cannot be backfilled. Older runs show 0 for it and lifetime starts counting from the day it is added.
+
+### Core API (shape, not final signatures)
+
+```kotlin
+class Game {
+    val isOver: Boolean                         // derived: !hasValidMove(board)
+    val stats: RunStats                         // move-derived stats so far, saved in GM3
+    fun trySwap(a: Pos, b: Pos): SwapOutcome    // Rejected when isOver; no reshuffle step any more
+}
+data class RunStats(...)                        // immutable; plus(moveResult), toLine(), fromLine()
+fun RunStats.finish(startedMs: Long, endedMs: Long, activeMs: Long, previousBest: Int): FinishedRun
+data class Lifetime(...)                        // plus(run: FinishedRun)
+fun encodeRun(run: FinishedRun): String
+fun decodeRun(line: String): FinishedRun?
+fun encodeLifetime(l: Lifetime): String
+fun decodeLifetime(line: String): Lifetime?
+```
+
+`Resolution` reports the largest match group and the specials it fired, because `Step.Clear` does not carry group sizes. `Step` itself only loses `Reshuffle`.
+
+### Commands
+
+No new commands. Per task: `make check-task`. Review and release: `make check-full`. After removing the reshuffle tests, `scripts/test-count-floor.txt` is lowered only with a commit message that says why; adding tests raises it.
+
+### Project structure
+
+```
+core/.../RunStats.kt        Per-run stats, derived from steps
+core/.../RunRecord.kt       FinishedRun, Lifetime, their line codecs (key=value)
+core/.../SaveCodec.kt       GM3 (stats part); GM2 and GM1 readers kept
+core/.../Reshuffle.kt       Loses ensureMoveExists; keeps generateBoard
+app/.../RunHistory.kt       Interface + file-backed runs.txt / lifetime.txt
+app/.../GameStore.kt        Gains the two files and their size limits
+app/.../RunClock.kt         Wall start and foreground-only active time
+app/.../GameOverCard.kt     Card drawing and hit areas
+app/.../StatsScreen.kt      Lifetime block + scrolling run list
+```
+
+### Code style
+
+Unchanged. One example for the key-value reader, to show the shape:
+
+```kotlin
+internal fun readPairs(text: String): Map<String, Long>? =
+    text.split(',').filter { it.isNotEmpty() }.associate { pair ->
+        val (key, value) = pair.split('=', limit = 2).takeIf { it.size == 2 } ?: return null
+        key to (value.toLongOrNull()?.takeIf { it >= 0 } ?: return null)
+    }
+```
+
+### Testing strategy
+
+- `core`, test-first: `isOver` true on a hand-built plain board with no valid move, false when it holds a special; `trySwap` on an over game is `Rejected`; a game that reaches a dead board after a cascade ends instead of reshuffling; each stat from crafted moves (cascade depth, biggest match, specials created and fired by kind, gems counted once per clear); `RunStats` additions are associative; new best on the first run, on a tie, and on a higher score.
+- Codecs: `GM3` round trip, `GM2` and `GM1` still load, corrupt or negative stats part returns null; `RN1` and `LT1` round trip, missing key is 0, unknown key ignored, malformed line returns null; adding a key to a round trip leaves old lines readable.
+- Property-style, many seeds: play random valid moves to game over or a move cap; assert `moves` equals accepted swaps, `score` equals the sum of `Clear.points`, `cascade` ≥ 1 once a move is made, and the stats survive an encode and decode at every move. This doubles as the length measurement for Open Question 4.
+- `app` unit tests: history keeps the newest 100; lifetime survives the 101st run; a finish is recorded once when the process dies and the game is reloaded; `best.txt` seeds a missing `lifetime.txt`; `RunClock` counts only foreground time and clamps wall time; New Game mid-run records nothing; a damaged `runs.txt` line costs only that run. Rendering, scrolling and the card timing are checked by hand.
+- On-device, without debug code in the release: install the debug APK, write a one-move-left `GM3` board with `adb shell run-as <package> ...` into `game.sav`, make the last move, and watch the card. A dead board is otherwise too rare to reach by playing (Open Question 4).
+- Coverage stays ≥ 80% on `core`; the new `core` files are written test-first.
+
+### Boundaries
+
+- Always: tests first in `core`; keep `core` free of `android.*`, `java.*`, `javax.*` (the clock values are passed in); every write goes through the atomic write; an unreadable stats file is empty, never a crash; state in the commit message why a reshuffle test was removed.
+- Ask first: the `GM3` save format change (Open Question 5), raising a size limit beyond those listed, adding any dependency, any change to `CONSTRAINTS.md`.
+- Never: a new permission; recompute lifetime from `runs.txt`; store `isOver`; put stat rules in `app`; add debug-only code paths to the release build; skip or weaken tests to get green.
+
+### Success criteria
+
+1. A board with no valid move ends the game: `isOver` is true, `trySwap` is `Rejected`, no reshuffle step exists (in tests).
+2. A board holding any special gem is never over (in tests).
+3. Each stat in the table equals the value computed by hand on crafted moves (in tests).
+4. A run's stats survive a save, a kill and a reload, and `GM1` and `GM2` saves still load (in tests).
+5. History holds at most 100 runs, oldest dropped, while lifetime still includes the dropped runs (in tests).
+6. A killed process during game over never counts a run twice (in tests).
+7. A damaged `runs.txt` line, `lifetime.txt` or stats part never crashes the app (in tests).
+8. Release APK stays ≤ 1 MiB and the manifest still declares zero permissions.
+9. On the A52 with the crafted dead board: the last move animates, the beat passes, the card appears with the right score, best and every stat, scrolling if needed, Play Again starts a new game, and the run shows in the stats screen.
+10. On the A52: kill the app on the card and reopen: a new game, the run is in the stats screen once.
+11. On the A52: wall time and active time differ after the app was backgrounded mid-run, and wall time is the longer.
+12. On the A52: the stats screen shows lifetime records above a scrolling list of runs, and 101 recorded runs show 100 rows.
+
+### Changes to existing text, applied on approval
+
+- Objective: "Endless play" becomes "runs that end at game over".
+- Assumption 7 (reshuffle, "no game over") is replaced by this section; success criterion 9 ("never stalls") is replaced by criteria 1 and 2 above.
+- Assumption 5: the "best single move" record moves from "possible later" to in scope (`moveScore`).
+- Assumption 10 and the Save format paragraph: add `GM3`.
+- Core API and Project Structure: add the entries above. Success criterion 8: the high score is read from `lifetime.txt`.
+- Out of Scope: add daily or weekly stats, share, sync, a database.
+- Features list: add `docs/intent/game-over-and-stats.md`.
+
+### Decisions from the owner (2026-10-19)
+
+1. Abandoned games (New Game mid-run) are not recorded. Their score still counts toward the best score.
+2. The game-over card shows every per-run stat, not a top five.
+3. `moveScore` is stored; average score per move is derived.
+4. Measure first: the first task is a random-play simulation over many seeds to see how long runs last. No design change until the numbers are in. If runs are very long, the owner decides again (a move limit, fewer specials, a harsher spawn).
+5. The `GM3` save format change is approved.
+6. `match` is the largest match group's gem count before effects.
+
+### Open questions
+
+None.
 
 ## Tech Stack
 
@@ -205,8 +368,8 @@ Conventions: `PascalCase` types, `camelCase` functions, `UPPER_SNAKE` constants,
 5. On the A52: a swap that makes a match plays swap, clear, fall and spawn in order, and cascades chain with rising multiplier.
 6. On the A52: an invalid swap animates back and costs nothing.
 7. On the A52: force-stop the app mid-cascade, reopen, and see the board and score from the last resolved move. Same future gems appear as would have without the kill.
-8. High score persists across New Game and app restarts.
-9. A board with no valid moves reshuffles itself, never stalls.
+8. High score persists across New Game and app restarts (read from `lifetime.txt`, seeded from `best.txt`).
+9. A board with no valid moves ends the run and shows the game-over card; it never stalls (see Game Over and Run Stats, criteria 1 and 2).
 10. New Game asks for confirmation before discarding the current game.
 11. Frame time on the A52 feels smooth (informal: no visible stutter during cascades). A measured number is recorded in `CONSTRAINTS.md` once the render loop exists.
 
@@ -220,7 +383,7 @@ Conventions: `PascalCase` types, `camelCase` functions, `UPPER_SNAKE` constants,
 
 ## Out of Scope (v1)
 
-Power-ups other than the six special gems, special gems from matches of six or more, bespoke effects for specific pairs of special gems, levels or goals, timers, "best single move" record, sound, haptics, themes, tablets and landscape, tap-tap input, online anything, ads, accounts, leaderboards, iOS, web, Play Store release.
+Power-ups other than the six special gems, special gems from matches of six or more, bespoke effects for specific pairs of special gems, levels or goals, timers, daily or weekly stats, share, sync, a database, sound, haptics, themes, tablets and landscape, tap-tap input, online anything, ads, accounts, leaderboards, iOS, web, Play Store release.
 
 ## Decisions
 
@@ -236,3 +399,4 @@ Each feature has an intent file with the owner's confirmed reasons. A rule here 
 
 - Base game: `docs/intent/bejeweled-clone.md`.
 - Special gems: `docs/intent/special-gems.md`. Changed assumptions 2, 3, 7, 10, 11, the Special Gems section (revised after playtest: D16, D17; rules in `docs/special-gem-rules.md`), the Core API, success criteria 13 to 18, and Out of Scope.
+- Game over and run stats: `docs/intent/game-over-and-stats.md`. Changed assumptions 5, 7 and 10, the Objective, success criteria 8 and 9, Out of Scope, and added the section Game Over and Run Stats.
