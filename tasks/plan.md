@@ -597,7 +597,7 @@ T39 and T40 touch `Game.kt` and `SaveCodec.kt` in sequence, so they are not para
 - [x] Owner read D22 and chose a harsher spawn (2026-10-19), over a move limit or fewer specials. Nothing below starts before T37b.
 
 #### T37b: Harsher spawn
-**Description:** `refill` rejects a drawn gem that equals an orthogonal neighbour already placed, retrying up to `SPAWN_RETRIES` (start 4) times, then keeps the last draw. Test-first. Re-run the T37 measurement and tune `SPAWN_RETRIES` (and the neighbour rule if needed) until the target holds. Record the before and after numbers as D23.
+**Description:** `refill` rejects a drawn gem that equals an orthogonal neighbour already placed, retrying up to `SPAWN_RETRIES` times (1), then keeps the last draw. Test-first. Re-run the T37 measurement and tune `SPAWN_RETRIES` (and the neighbour rule if needed) until the target holds. Record the before and after numbers as D23. Done: 1 retry chosen by the owner.
 **Acceptance:**
 - [ ] A refill never leaves a board with fewer than 64 pieces, and with `SPAWN_RETRIES` above 0 it places a gem that differs from its placed neighbours whenever one of the 7 colours does.
 - [ ] Same seed and moves give the same board (retries use the seeded `Rng`).

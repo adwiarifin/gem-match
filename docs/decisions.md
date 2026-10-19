@@ -144,3 +144,18 @@ The owner approved the special gems spec and confirmed that special gems are ine
   A capped game counts as 5,000 moves, so every greedy figure is a lower bound.
 - Impact: random play always ends, usually within a few hundred moves. Greedy play ends in about half of the games before 5,000 moves, and the rest were still going. A real player sits somewhere between the two, so a run will end, but a careful player may play thousands of moves first. Checkpoint J asks the owner whether that is a "finish" worth building around, or whether the ending rule needs help (a move limit, fewer specials, a harsher spawn).
 - Rollback: none needed, nothing shipped changed. `RunLengthTest` runs a 20-seed sample by default; set `RUN_LENGTH_SEEDS` and `RUN_LENGTH_CAP` to repeat the full measurement (about 26 minutes) with `./gradlew :core:test --tests '*RunLengthTest.measure*' --rerun --no-build-cache -i`.
+
+**D23. New gems avoid matching a neighbour (one retry), so a run ends in hundreds of moves, not thousands.**
+- Why: D22 showed greedy play going a median of 4,424 moves with 46% of games still running at 5,000, so "no valid move left" would almost never end a run. The owner chose a harsher spawn over a move limit or fewer specials.
+- Impact: `refill` draws each new gem and, if it equals an orthogonal neighbour already on the board, redraws up to `SPAWN_RETRIES` times (1), then keeps the last draw so the board always fills. Retries use the seeded `Rng`, so a seed is deterministic and a save is unaffected. Specials and their rules are untouched. A board that holds a special still never dies, so a player who keeps one special can never lose. Cascades happen less often because new gems rarely match what they land next to. Measured with the D22 harness, 1,000 games per player, 5,000-move cap, none capped:
+
+  | `SPAWN_RETRIES` | Random median (p10 to p90) | Greedy median (p10 to p90) |
+  |---|---|---|
+  | 0 (before) | 376 (67 to 1,259) | 4,424 (744 to 5,000+) |
+  | 1 (chosen) | 69 (20 to 206) | 226 (39 to 712) |
+  | 2 (300 games) | 52 (17 to 137) | 104 (28 to 352) |
+  | 3 (300 games) | 42 (15 to 110) | 87 (22 to 239) |
+  | 4 (1,000 games) | 41 (14 to 113) | 80 (22 to 240) |
+
+  More than 3 retries buys almost nothing. The target (greedy median under 1,500 and under 5% capped) is met at every setting above 0.
+- Rollback: set `SPAWN_RETRIES` to 0 in `Resolution.kt`; `refill` then draws one gem per cell as before. Saves are unaffected either way. `ActivationTest.cascadesAfterAnEffectRunAtDepthTwoAndUp` and `CascadeTest.rngIsAdvancedByExactlyTheSpawnedGems` pass `spawnRetries = 0` because they test depth numbering and the generator count, not the spawn rule.

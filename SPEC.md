@@ -89,7 +89,7 @@ Give the game a finish. A run ends when the settled board has no valid move. The
 6. Active time on disk is current as of the last save (after each move and on pause). A kill loses the time since the last move, at most.
 7. A game that is abandoned with New Game is not a finished run: it adds nothing to history or lifetime. Its score still counts toward the best score, as it does today.
 8. A resumed `GM2` save has no start time, so its run starts at load time and its wall time undercounts once. Accepted.
-9. Spawn (decided 2026-10-19 after D22): `refill` draws each new gem and rejects it if it equals an orthogonal neighbour already on the board, retrying up to `SPAWN_RETRIES` times (start 4, tunable) and then keeping the last draw so the board always fills. Retries use the same seeded `Rng`. This makes dead boards likelier, because adjacent pairs are what valid moves are built from. Specials and their rules are unchanged. Saves are unaffected: they store the `Rng` state.
+9. Spawn (decided 2026-10-19 after D22): `refill` draws each new gem and rejects it if it equals an orthogonal neighbour already on the board, retrying up to `SPAWN_RETRIES` times (1, chosen by the owner from D23; tunable) and then keeping the last draw so the board always fills. Retries use the same seeded `Rng`. This makes dead boards likelier, because adjacent pairs are what valid moves are built from. Specials and their rules are unchanged. Saves are unaffected: they store the `Rng` state.
 10. Lifetime best score is seeded from `best.txt` the first time `lifetime.txt` is missing, so the owner's current best survives the update. `best.txt` is then unused.
 
 ### Behaviour
@@ -227,7 +227,7 @@ internal fun readPairs(text: String): Map<String, Long>? =
 1. Abandoned games (New Game mid-run) are not recorded. Their score still counts toward the best score.
 2. The game-over card shows every per-run stat, not a top five.
 3. `moveScore` is stored; average score per move is derived.
-4. Measure first, then decide. Done (D22): random play ends in a median of 376 moves, greedy play had a median of 4,424 with 46% of games not ended by 5,000 moves. The owner chose a harsher spawn (anti-clustering refill, assumption 9) over a move limit or fewer specials. Target after the change: greedy play has a median under 1,500 moves and fewer than 5% of 1,000 games reach the 5,000-move cap; the owner may change the numbers. A board that holds a special never dies, so a player who keeps one special on the board can never lose. The measurement cannot show that. If it matters, the fix is on the special-gem side and is a separate decision.
+4. Measure first, then decide. Done (D22): random play ends in a median of 376 moves, greedy play had a median of 4,424 with 46% of games not ended by 5,000 moves. The owner chose a harsher spawn (anti-clustering refill, assumption 9) over a move limit or fewer specials. Target after the change: greedy play has a median under 1,500 moves and fewer than 5% of 1,000 games reach the 5,000-move cap. Met with `SPAWN_RETRIES` 1 (D23): greedy median 226, none capped. A board that holds a special never dies, so a player who keeps one special on the board can never lose. The measurement cannot show that. If it matters, the fix is on the special-gem side and is a separate decision.
 5. The `GM3` save format change is approved.
 6. `match` is the largest match group's gem count before effects.
 
