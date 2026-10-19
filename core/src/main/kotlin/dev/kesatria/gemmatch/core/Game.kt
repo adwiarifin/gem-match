@@ -14,6 +14,7 @@ class Game private constructor(
     val board: Board,
     val score: Int,
     private val rng: Rng,
+    val stats: RunStats = RunStats.EMPTY,
 ) {
     /** Where the random sequence stands, so a saved game continues with the same future gems. */
     val rngState: Long get() = rng.state
@@ -29,7 +30,8 @@ class Game private constructor(
 
         val nextRng = rng.copy()
         val resolution = resolveSwap(board, a, b, nextRng)
-        return SwapOutcome.Accepted(Game(resolution.board, saturatingAdd(score, resolution.score), nextRng), resolution.steps)
+        val next = Game(resolution.board, saturatingAdd(score, resolution.score), nextRng, stats + RunStats.ofMove(resolution))
+        return SwapOutcome.Accepted(next, resolution.steps)
     }
 
     fun encode(): String = encodeState(SavedState(board, score, rng.state))

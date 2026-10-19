@@ -4,6 +4,8 @@ data class Resolution(
     val board: Board,
     val steps: List<Step>,
     val score: Int,
+    /** Gems in the biggest match group of the move, before any effect. 0 if no group formed. */
+    val largestMatch: Int = 0,
 )
 
 /**
@@ -26,6 +28,7 @@ fun resolveSwap(
     var current = board.swap(a, b)
     var score = 0
     var depth = 1
+    var largestMatch = 0
 
     while (true) {
         val groups = findMatchGroups(current)
@@ -33,6 +36,7 @@ fun resolveSwap(
         val swap = if (depth == 1) a to b else null
         val fired = firings(current, matched, swap)
         if (groups.isEmpty() && fired.isEmpty()) break
+        largestMatch = maxOf(largestMatch, groups.maxOfOrNull { it.cells.size } ?: 0)
 
         steps += fired
         val effectCells = fired.flatMapTo(mutableSetOf()) { it.cells }
@@ -54,7 +58,7 @@ fun resolveSwap(
         current = afterSpawn
         depth++
     }
-    return Resolution(current, steps, score)
+    return Resolution(current, steps, score, largestMatch)
 }
 
 /** Drops every piece to the lowest free row of its column. Moves are listed column by column, lowest gem first. */
