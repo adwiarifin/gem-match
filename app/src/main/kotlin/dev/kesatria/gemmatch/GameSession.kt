@@ -6,6 +6,7 @@ import dev.kesatria.gemmatch.core.Game
 import dev.kesatria.gemmatch.core.Move
 import dev.kesatria.gemmatch.core.Placed
 import dev.kesatria.gemmatch.core.Pos
+import dev.kesatria.gemmatch.core.RunTime
 import dev.kesatria.gemmatch.core.SwapOutcome
 import dev.kesatria.gemmatch.core.saturatingAdd
 
@@ -18,8 +19,11 @@ class GameSession(
     private var game: Game,
     private val store: GameStore,
     initialBest: Int,
+    private val nowMs: () -> Long = System::currentTimeMillis,
     private val newSeed: () -> Long,
 ) {
+    private val clock = RunClock(game.time.activeMs)
+
     private var pending: Game? = null
     private var savedBest = maxOf(initialBest, game.score)
 
@@ -34,6 +38,12 @@ class GameSession(
         private set
 
     val board: Board get() = game.board
+
+    /** When this run started and how long it has been played in the foreground. */
+    val time: RunTime get() = RunTime(latest.time.startedMs, clock.activeMs)
+
+    /** One game-loop step with the app in front. The only thing that adds active time. */
+    fun tick(seconds: Float) = clock.advance(seconds)
 
     /** True once the board has no valid move and the move that left it so has finished animating. */
     val isOver: Boolean get() = pending == null && game.isOver
@@ -51,7 +61,7 @@ class GameSession(
                 val timeline = Timeline.forSteps(outcome.steps, ::addPoints)
                 pending = outcome.game
                 latest = outcome.game
-                store.saveGame(outcome.game)
+                store.saveGame(outcome.game.withActiveMs(clock.activeMs))
                 timeline
             }
         }
@@ -62,7 +72,8 @@ class GameSession(
         val abandoned = pending ?: game
         bestScore = maxOf(bestScore, abandoned.score)
         scene.load(abandoned.board)
-        game = Game.new(newSeed())
+        game = Game.new(newSeed(), startedMs = nowMs())
+        clock.reset()
         pending = game
         latest = game
         store.saveGame(game)
@@ -89,7 +100,7 @@ class GameSession(
     }
 
     /** Writes the current game and best score to disk and waits. Called from the UI thread when the app is paused. */
-    fun save() = store.flush({ latest }, { bestScore })
+    fun save() = store.flush({ latest.withActiveMs(clock.activeMs) }, { bestScore })
 
     private fun addPoints(points: Int) {
         shownScore = saturatingAdd(shownScore, points)

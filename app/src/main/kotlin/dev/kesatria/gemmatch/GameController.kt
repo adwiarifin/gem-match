@@ -24,7 +24,7 @@ class GameController(
     initialBest: Int,
     newSeed: () -> Long = System::nanoTime,
 ) {
-    private val session = GameSession(game, store, initialBest, newSeed)
+    private val session = GameSession(game, store, initialBest, newSeed = newSeed)
     private val scene = Scene().also { it.load(session.board) }
     private val hud = Hud()
     private val dialog = ConfirmDialog()
@@ -64,6 +64,7 @@ class GameController(
             idleHint.touched()
             if (layout != null) handle(event, layout)
         }
+        session.tick(seconds)
         scene.advanceClock(seconds)
         timeline?.let { running ->
             running.advance(seconds, scene)

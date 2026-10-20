@@ -4,6 +4,7 @@ import dev.kesatria.gemmatch.core.BOARD_SIZE
 import dev.kesatria.gemmatch.core.Game
 import dev.kesatria.gemmatch.core.Move
 import dev.kesatria.gemmatch.core.Pos
+import dev.kesatria.gemmatch.core.RunTime
 import dev.kesatria.gemmatch.core.SwapOutcome
 import dev.kesatria.gemmatch.core.findValidMoves
 import dev.kesatria.gemmatch.core.isValidSwap
@@ -21,11 +22,16 @@ class GameSessionTest {
 
     private val store get() = GameStore(directory)
 
+    private companion object {
+        const val NOW = 50_000L
+    }
+
     private fun sessionOf(
         game: Game,
         best: Int = 0,
         seed: Long = 99L,
-    ) = GameSession(game, store.also { storeInUse = it }, best) { seed }
+        nowMs: Long = NOW,
+    ) = GameSession(game, store.also { storeInUse = it }, best, { nowMs }) { seed }
 
     private var storeInUse: GameStore? = null
 
@@ -186,7 +192,7 @@ class GameSessionTest {
         session.finish(scene)
         storeInUse!!.awaitWrites()
 
-        val fresh = Game.new(4242L)
+        val fresh = Game.new(4242L, startedMs = NOW)
         assertEquals(0, session.shownScore)
         assertEquals(best, session.bestScore)
         assertEquals(fresh.board, session.board)
@@ -234,6 +240,70 @@ class GameSessionTest {
                 (0 until BOARD_SIZE).joinToString("") { col -> ((row + col) % 3).toString() }
             }
         return checkNotNull(Game.decode("GM1;0;1;$digits")) { "the dead board must load" }
+    }
+
+    private fun savedGame(): Game = checkNotNull(Game.decode(checkNotNull(saved("game.sav")))) { "no readable save" }
+
+    @Test
+    fun activeTimeGrowsOnlyWhileTheLoopTicks() {
+        val session = sessionOf(Game.new(5L, startedMs = 1_000L))
+
+        session.tick(1.5f)
+        assertEquals(1_500L, session.time.activeMs)
+
+        // A pause stops the loop, so nothing ticks and nothing is added.
+        assertEquals(1_500L, session.time.activeMs)
+        session.tick(0.5f)
+        assertEquals(2_000L, session.time.activeMs)
+    }
+
+    @Test
+    fun aLoadedGameKeepsItsStartAndContinuesItsActiveTime() {
+        val game = Game.new(5L, startedMs = 1_000L).withActiveMs(4_000L)
+        val session = sessionOf(game)
+
+        assertEquals(RunTime(1_000L, 4_000L), session.time)
+        session.tick(1f)
+        assertEquals(RunTime(1_000L, 5_000L), session.time)
+    }
+
+    @Test
+    fun aMoveSavesTheActiveTimeSoFar() {
+        val game = Game.new(5L, startedMs = 1_000L)
+        val scene = Scene().also { it.load(game.board) }
+        val session = sessionOf(game)
+        session.tick(2f)
+
+        playToEnd(session.play(findValidMoves(game.board).first()), scene)
+        session.finish(scene)
+        storeInUse?.awaitWrites()
+
+        assertEquals(RunTime(1_000L, 2_000L), savedGame().time)
+    }
+
+    @Test
+    fun savingOnPauseWritesTheLatestActiveTime() {
+        val session = sessionOf(Game.new(5L, startedMs = 1_000L))
+        session.tick(3f)
+
+        session.save()
+
+        assertEquals(RunTime(1_000L, 3_000L), savedGame().time)
+    }
+
+    @Test
+    fun aNewGameStampsTheStartTimeAndResetsTheActiveTime() {
+        val game = Game.new(5L, startedMs = 1_000L)
+        val scene = Scene().also { it.load(game.board) }
+        val session = sessionOf(game, nowMs = 9_000L)
+        session.tick(5f)
+
+        playToEnd(session.newGame(scene), scene)
+        session.finish(scene)
+        storeInUse?.awaitWrites()
+
+        assertEquals(RunTime(9_000L, 0L), session.time)
+        assertEquals(RunTime(9_000L, 0L), savedGame().time)
     }
 
     @Test

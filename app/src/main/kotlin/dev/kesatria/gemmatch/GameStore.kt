@@ -22,8 +22,8 @@ class GameStore(
             Thread(task, "game-store").apply { isDaemon = true }
         }
 
-    /** The saved game, or null if there is none or it is damaged. */
-    fun loadGame(): Game? = read(GAME_FILE)?.let { Game.decode(it) }
+    /** The saved game, or null if there is none or it is damaged. An old save starts its run at [nowMs]. */
+    fun loadGame(nowMs: Long = System.currentTimeMillis()): Game? = read(GAME_FILE)?.let { Game.decode(it, nowMs) }
 
     fun loadBest(): Int = read(BEST_FILE)?.trim()?.toIntOrNull()?.takeIf { it >= 0 } ?: 0
 

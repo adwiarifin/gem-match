@@ -15,7 +15,7 @@ class GameSurfaceView(
 ) : SurfaceView(context),
     SurfaceHolder.Callback {
     private val controller =
-        GameController(store.loadGame() ?: Game.new(System.nanoTime()), BoardRenderer(), store, store.loadBest())
+        GameController(store.loadGame() ?: newGame(), BoardRenderer(), store, store.loadBest())
     private var loop: GameLoop? = null
 
     @Volatile private var layout: BoardLayout? = null
@@ -64,5 +64,7 @@ class GameSurfaceView(
 
     private companion object {
         const val MARGIN_DP = 16f
+
+        fun newGame(): Game = Game.new(System.nanoTime(), startedMs = System.currentTimeMillis())
     }
 }

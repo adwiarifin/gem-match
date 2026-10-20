@@ -1,6 +1,7 @@
 package dev.kesatria.gemmatch
 
 import dev.kesatria.gemmatch.core.Game
+import dev.kesatria.gemmatch.core.RunTime
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -217,6 +218,15 @@ class GameStoreTest {
         val onDisk = File(directory, "game.sav").readText()
         assertTrue(onDisk.startsWith("GM3;210;92694865759587301;"), onDisk)
         assertEquals(loaded.board, assertNotNull(store().loadGame()).board)
+    }
+
+    @Test
+    fun anOldFileStartsItsClockAtTheTimeItIsLoaded() {
+        File(directory, "game.sav").writeText(releasedGm1)
+
+        val loaded = assertNotNull(store().loadGame(nowMs = 7_000L))
+
+        assertEquals(RunTime(7_000L, 0L), loaded.time)
     }
 
     @Test

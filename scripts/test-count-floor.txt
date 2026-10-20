@@ -1,4 +1,4 @@
 # The fewest tests that may run. check-task fails below it, and the floor guard flags lowering a number.
 # A test that silently stops running (abstract class, early return, assumeTrue(false)) makes the count fall.
 core 326
-app 111
+app 122

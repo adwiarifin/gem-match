@@ -33,7 +33,7 @@ class PauseRaceTest {
         }
 
         val store = GameStore(directory)
-        val session = GameSession(Game.new(99L), store, 0) { 99L }
+        val session = GameSession(Game.new(99L), store, 0, { 0L }) { 99L }
         val scene = Scene().also { it.load(session.board) }
         val stop = AtomicBoolean(false)
         val pauseThread =
