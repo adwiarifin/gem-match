@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.1](https://github.com/adwiarifin/gem-match/compare/v0.3.0...v0.3.1) (2026-10-20)
+
+
+### Features
+
+* **scripts:** let the floor guard honour committed owner exceptions ([6a9e507](https://github.com/adwiarifin/gem-match/commit/6a9e5074a317f01334858981523fc59b75e54d51))
+
+
+### Bug Fixes
+
+* **scripts:** do not flag removing the empty exceptions placeholder row ([d79f656](https://github.com/adwiarifin/gem-match/commit/d79f6569c44044bf2b1e6baa3d0908adc49c976b))
+
+
+### Documentation
+
+* **constraints:** waive the reshuffle and GM3 test removals for 0.3.0 ([462944a](https://github.com/adwiarifin/gem-match/commit/462944a3c55f926628672f0e8ab0d35dc8a704a9))
+
+
+### Chores
+
+* release 0.3.1 ([20d3817](https://github.com/adwiarifin/gem-match/commit/20d3817ba3f6a752aa18d4a8bd43e4df9d3f7561))
+
 ## [0.3.0](https://github.com/adwiarifin/gem-match/compare/v0.2.0...v0.3.0) (2026-10-20)
 
 
