@@ -20,7 +20,10 @@ class GameSessionTest {
     @TempDir
     lateinit var directory: File
 
-    private val store get() = GameStore(directory)
+    private var storeInUse: GameStore? = null
+
+    /** One store per test, so [drainWrites] waits for every write the test caused. */
+    private val store by lazy { GameStore(directory).also { storeInUse = it } }
 
     private val history get() = FileRunHistory(store)
 
@@ -33,9 +36,7 @@ class GameSessionTest {
         best: Int = 0,
         seed: Long = 99L,
         nowMs: Long = NOW,
-    ) = GameSession(game, store.also { storeInUse = it }, best, { nowMs }) { seed }
-
-    private var storeInUse: GameStore? = null
+    ) = GameSession(game, store, best, { nowMs }) { seed }
 
     /** A move saves in the background; let it land before the temp directory is deleted. */
     @AfterTest
