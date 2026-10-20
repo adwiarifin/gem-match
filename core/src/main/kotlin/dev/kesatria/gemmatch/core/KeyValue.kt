@@ -25,3 +25,6 @@ private fun readPair(piece: String): Pair<String, Long>? {
     val value = halves.getOrNull(1)?.takeIf { it.isNotEmpty() && it.all(Char::isDigit) }?.toLongOrNull()
     return if (key != null && value != null) key to value else null
 }
+
+/** The value of [key], or 0 if the line did not have it. */
+internal fun Map<String, Long>.value(key: String): Long = this[key] ?: 0L
