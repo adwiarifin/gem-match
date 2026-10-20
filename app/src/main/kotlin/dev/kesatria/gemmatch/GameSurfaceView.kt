@@ -7,7 +7,6 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import dev.kesatria.gemmatch.core.BOARD_SIZE
 import dev.kesatria.gemmatch.core.BoardLayout
-import dev.kesatria.gemmatch.core.Game
 
 class GameSurfaceView(
     context: Context,
@@ -15,7 +14,12 @@ class GameSurfaceView(
 ) : SurfaceView(context),
     SurfaceHolder.Callback {
     private val controller =
-        GameController(store.loadGame() ?: newGame(), BoardRenderer(), store, store.loadBest())
+        GameController(
+            startupGame(store, FileRunHistory(store), System.currentTimeMillis(), System.nanoTime()),
+            BoardRenderer(),
+            store,
+            store.loadBest(),
+        )
     private var loop: GameLoop? = null
 
     @Volatile private var layout: BoardLayout? = null
@@ -64,7 +68,5 @@ class GameSurfaceView(
 
     private companion object {
         const val MARGIN_DP = 16f
-
-        fun newGame(): Game = Game.new(System.nanoTime(), startedMs = System.currentTimeMillis())
     }
 }

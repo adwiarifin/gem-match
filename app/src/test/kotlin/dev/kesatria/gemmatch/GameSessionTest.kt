@@ -22,6 +22,8 @@ class GameSessionTest {
 
     private val store get() = GameStore(directory)
 
+    private val history get() = FileRunHistory(store)
+
     private companion object {
         const val NOW = 50_000L
     }
@@ -304,6 +306,118 @@ class GameSessionTest {
 
         assertEquals(RunTime(9_000L, 0L), session.time)
         assertEquals(RunTime(9_000L, 0L), savedGame().time)
+    }
+
+    /** A game one move from the end: the state before the final swap of a game played with a fixed chooser. */
+    private fun oneMoveFromOver(startedMs: Long): Pair<Game, Move> {
+        for (seed in 1L..200L) {
+            var game = Game.new(seed, startedMs = startedMs)
+            var previous = game
+            var last: Move? = null
+            val chooser =
+                dev.kesatria.gemmatch.core
+                    .Rng(seed)
+            while (!game.isOver) {
+                val moves = findValidMoves(game.board)
+                last = moves[chooser.nextInt(moves.size)]
+                previous = game
+                game = (game.trySwap(last.from, last.to) as SwapOutcome.Accepted).game
+            }
+            if (last != null) return previous to last
+        }
+        error("no game ended")
+    }
+
+    private fun playLastMove(
+        session: GameSession,
+        before: Game,
+        move: Move,
+    ) {
+        val scene = Scene().also { it.load(before.board) }
+        playToEnd(session.play(move), scene)
+        session.finish(scene)
+        storeInUse?.awaitWrites()
+    }
+
+    @Test
+    fun aGameThatEndsIsRecordedOnceAndTheSavedGameBecomesAFreshOne() {
+        val (before, move) = oneMoveFromOver(startedMs = 1_000L)
+        val session = sessionOf(before, nowMs = 61_000L)
+        session.tick(10f)
+
+        playLastMove(session, before, move)
+
+        assertTrue(session.isOver, "the dead board stays up for the card")
+        val run = checkNotNull(session.finishedRun)
+        assertEquals(1L, history.lifetime().runs)
+        assertEquals(listOf(run), history.runs())
+        assertEquals(10_000L, run.activeMs)
+        assertEquals(60_000L, run.wallMs)
+        assertTrue(run.newBest, "the first run with a score is a new best")
+        assertFalse(savedGame().isOver, "the file on disk is a new game, not the dead board")
+    }
+
+    @Test
+    fun killingTheAppBeforeTheFreshGameWasWrittenRecordsTheRunOnceOnRelaunch() {
+        val (before, move) = oneMoveFromOver(startedMs = 1_000L)
+        val over = (before.trySwap(move.from, move.to) as SwapOutcome.Accepted).game
+        File(directory, "game.sav").writeText(over.encode())
+
+        val relaunched = startupGame(store, history, nowMs = 61_000L, seed = 7L)
+
+        assertFalse(relaunched.isOver, "a relaunch starts a new game")
+        assertEquals(1L, history.lifetime().runs)
+        startupGame(store, history, nowMs = 62_000L, seed = 8L)
+        assertEquals(1L, history.lifetime().runs, "a second relaunch finds a fresh game and adds nothing")
+    }
+
+    @Test
+    fun relaunchingOnTheSameDeadSaveTwiceNeverCountsItTwice() {
+        val (before, move) = oneMoveFromOver(startedMs = 1_000L)
+        val over = (before.trySwap(move.from, move.to) as SwapOutcome.Accepted).game
+
+        repeat(2) {
+            File(directory, "game.sav").writeText(over.encode())
+            startupGame(store, history, nowMs = 61_000L, seed = 7L)
+        }
+
+        assertEquals(1L, history.lifetime().runs)
+    }
+
+    @Test
+    fun withNoSaveAtAllARelaunchStartsANewGameStampedWithTheTime() {
+        val game = startupGame(store, history, nowMs = 61_000L, seed = 7L)
+
+        assertEquals(RunTime(61_000L, 0L), game.time)
+        assertEquals(0L, history.lifetime().runs)
+    }
+
+    @Test
+    fun aSavedGameInProgressIsLeftAlone() {
+        val saved = Game.new(5L, startedMs = 1_000L).withActiveMs(2_000L)
+        File(directory, "game.sav").writeText(saved.encode())
+
+        val game = startupGame(store, history, nowMs = 61_000L, seed = 7L)
+
+        assertEquals(saved.encode(), game.encode())
+        assertEquals(0L, history.lifetime().runs)
+    }
+
+    @Test
+    fun abandoningAGameRecordsNothing() {
+        val game = Game.new(5L, startedMs = 1_000L)
+        val scene = Scene().also { it.load(game.board) }
+        val session = sessionOf(game)
+        playToEnd(session.play(findValidMoves(game.board).first()), scene)
+        session.finish(scene)
+
+        playToEnd(session.newGame(scene), scene)
+        session.finish(scene)
+        storeInUse?.awaitWrites()
+
+        assertEquals(0L, history.lifetime().runs)
+        assertEquals(emptyList(), history.runs())
+        assertTrue(session.bestScore > 0, "the abandoned score still counts toward the best")
     }
 
     @Test

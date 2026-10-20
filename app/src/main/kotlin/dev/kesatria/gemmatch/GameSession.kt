@@ -2,12 +2,14 @@ package dev.kesatria.gemmatch
 
 import dev.kesatria.gemmatch.core.BOARD_SIZE
 import dev.kesatria.gemmatch.core.Board
+import dev.kesatria.gemmatch.core.FinishedRun
 import dev.kesatria.gemmatch.core.Game
 import dev.kesatria.gemmatch.core.Move
 import dev.kesatria.gemmatch.core.Placed
 import dev.kesatria.gemmatch.core.Pos
 import dev.kesatria.gemmatch.core.RunTime
 import dev.kesatria.gemmatch.core.SwapOutcome
+import dev.kesatria.gemmatch.core.finish
 import dev.kesatria.gemmatch.core.saturatingAdd
 
 /**
@@ -20,6 +22,7 @@ class GameSession(
     private val store: GameStore,
     initialBest: Int,
     private val nowMs: () -> Long = System::currentTimeMillis,
+    private val history: RunHistory = FileRunHistory(store),
     private val newSeed: () -> Long,
 ) {
     private val clock = RunClock(game.time.activeMs)
@@ -29,6 +32,11 @@ class GameSession(
 
     /** The newest resolved game, including a move whose animation is still playing. What gets saved. */
     @Volatile private var latest = game
+
+    /** The run that just ended, once its board is dead and it has been recorded. Null while a run is in progress. */
+    @Volatile
+    var finishedRun: FinishedRun? = null
+        private set
 
     var shownScore = game.score
         private set
@@ -73,6 +81,7 @@ class GameSession(
         bestScore = maxOf(bestScore, abandoned.score)
         scene.load(abandoned.board)
         game = Game.new(newSeed(), startedMs = nowMs())
+        finishedRun = null
         clock.reset()
         pending = game
         latest = game
@@ -94,6 +103,7 @@ class GameSession(
             scene.load(it.board)
             shownScore = it.score
             bestScore = maxOf(bestScore, shownScore)
+            if (game.isOver) endRun()
         }
         pending = null
         saveBestIfImproved()
@@ -101,6 +111,17 @@ class GameSession(
 
     /** Writes the current game and best score to disk and waits. Called from the UI thread when the app is paused. */
     fun save() = store.flush({ latest.withActiveMs(clock.activeMs) }, { bestScore })
+
+    /**
+     * Records the dead game as a finished run, once, then makes a fresh game the one that gets saved. The dead board
+     * stays in [game] for the card until the player starts the next game.
+     */
+    private fun endRun() {
+        val (run, fresh) = closeRun(game.withActiveMs(clock.activeMs), store, history, nowMs(), newSeed())
+        finishedRun = run
+        clock.reset()
+        latest = fresh
+    }
 
     private fun addPoints(points: Int) {
         shownScore = saturatingAdd(shownScore, points)
@@ -112,5 +133,41 @@ class GameSession(
             savedBest = bestScore
             store.saveBest(bestScore)
         }
+    }
+}
+
+/**
+ * Records the dead [game] as a finished run, once, and saves a fresh game in its place so that a relaunch starts a
+ * new game. Returns the run and the fresh game.
+ */
+internal fun closeRun(
+    game: Game,
+    store: GameStore,
+    history: RunHistory,
+    nowMs: Long,
+    seed: Long,
+): Pair<FinishedRun, Game> {
+    val run = game.finish(nowMs, history.lifetime().bestScore)
+    history.record(run)
+    val fresh = Game.new(seed, startedMs = nowMs)
+    store.saveGame(fresh)
+    return run to fresh
+}
+
+/**
+ * The game to start with: the saved one, or a new one if there is none. A kill after the last move can leave a dead
+ * board on disk; that run is recorded (once) and a new game starts.
+ */
+fun startupGame(
+    store: GameStore,
+    history: RunHistory,
+    nowMs: Long,
+    seed: Long,
+): Game {
+    val saved = store.loadGame(nowMs)
+    return when {
+        saved == null -> Game.new(seed, startedMs = nowMs)
+        saved.isOver -> closeRun(saved, store, history, nowMs, seed).second
+        else -> saved
     }
 }

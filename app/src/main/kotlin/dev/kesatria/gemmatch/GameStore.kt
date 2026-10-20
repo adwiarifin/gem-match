@@ -51,19 +51,27 @@ class GameStore(
             }.get()
     }
 
+    /** Runs [block] on the writer thread, after every write queued before it, and waits for its result. */
+    internal fun <T> onWriter(block: () -> T): T = writer.submit<T> { block() }.get()
+
     /** Waits until every write queued so far has finished. Lets tests check the disk without polling. */
     internal fun awaitWrites() {
         writer.submit {}.get()
     }
 
-    private fun read(name: String): String? =
+    /** The text of file [name] in the private directory, or null if it is missing, unreadable or over [maxBytes]. */
+    internal fun read(
+        name: String,
+        maxBytes: Long = MAX_FILE_BYTES,
+    ): String? =
         try {
-            File(directory, name).takeIf { it.isFile && it.length() <= MAX_FILE_BYTES }?.readText()
+            File(directory, name).takeIf { it.isFile && it.length() <= maxBytes }?.readText()
         } catch (_: IOException) {
             null
         }
 
-    private fun write(
+    /** Replaces file [name] with [text] through a temp file and a rename. Call it on the writer thread. */
+    internal fun write(
         name: String,
         text: String,
     ) {
@@ -84,7 +92,7 @@ class GameStore(
         const val GAME_FILE = "game.sav"
         const val BEST_FILE = "best.txt"
 
-        /** Both files are under 128 bytes when the app wrote them; a bigger file is damaged or planted. */
+        /** The game and best-score files are under 1 KiB when the app wrote them; a bigger one is damaged. */
         const val MAX_FILE_BYTES = 1024L
     }
 }
