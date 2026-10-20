@@ -114,7 +114,7 @@ Per run (all in `RunStats`, absent keys read 0):
 | `cB cR cC cX cS cF cW` | specials created, by kind (blast, line row, line column, cross, short X, full X, colour) |
 | `tB tR tC tX tS tF tW` | specials fired, by kind |
 | `wall`, `active` | milliseconds |
-| `ended` | epoch ms the run ended; `started` is kept in the save only |
+| `ended`, `started` | epoch ms the run ended and began (`started` is also in the save) |
 | `best` | 1 if it set a new best |
 
 Derived, never stored: average score per move, average score per run.
@@ -125,7 +125,7 @@ Lifetime (`LT1`): `runs` and sums of every key above that is a count or duration
 
 Three text files, written by `GameStore` with its temp-file-then-rename write on the single writer thread. Codecs and `RunStats` live in `core`; a small `RunHistory` interface (`record(run)`, `runs()`, `lifetime()`) lives in `app`, so the backend can change later. No database, no dependency.
 
-- `runs.txt`: newest 100 runs, one per line: `RN1;key=value,key=value,...`. Appending run 101 drops the oldest.
+- `runs.txt`: newest 100 runs, newest first, one per line: `RN1;key=value,key=value,...`. Appending run 101 drops the oldest.
 - `lifetime.txt`: one line, `LT1;key=value,...`, updated on every finish, never recomputed from `runs.txt`.
 - `game.sav`: `GM3;<score>;<rng>;<64 cells>;<key=value,...>`. The fifth part holds the run's stats so far, including `started` and `active`. `Game` encodes only `GM3` and decodes `GM3`, `GM2` (stats zero, `started` = load time) and `GM1`. A bad stats part makes the whole save null (a new game), never a crash. `MAX_SAVE_LENGTH` rises from 256 to 1024.
 - Reading: a missing key is 0, an unknown key is ignored, a malformed pair or a negative value makes that line unreadable and it is skipped. A bad line in `runs.txt` loses that run only. A bad `lifetime.txt` is treated as empty.
