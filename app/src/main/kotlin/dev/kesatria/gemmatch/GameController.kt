@@ -28,6 +28,7 @@ class GameController(
     private val scene = Scene().also { it.load(session.board) }
     private val hud = Hud()
     private val dialog = ConfirmDialog()
+    private val card = GameOverCard()
     private val drag = DragGesture(scene)
     private val idleHint = IdleHint(scene)
     private val touches = ConcurrentLinkedQueue<TouchEvent>()
@@ -65,6 +66,7 @@ class GameController(
             if (layout != null) handle(event, layout)
         }
         session.tick(seconds)
+        card.sync(session.finishedRun, session.bestScore, seconds)
         scene.advanceClock(seconds)
         timeline?.let { running ->
             running.advance(seconds, scene)
@@ -84,6 +86,7 @@ class GameController(
     ) {
         renderer.draw(canvas, layout, scene)
         hud.draw(canvas, layout, session.shownScore, session.bestScore)
+        if (card.isVisible) card.draw(canvas, layout)
         if (dialogOpen) dialog.draw(canvas, layout)
     }
 
@@ -94,6 +97,10 @@ class GameController(
         when {
             event.action == ACTION_BACK -> dialogOpen = false
             dialogOpen -> handleDialogTouch(event, layout)
+            card.isVisible ->
+                if (card.onTouch(event.action, event.x, event.y, layout) == CardChoice.PLAY_AGAIN) {
+                    timeline = session.newGame(scene)
+                }
             event.action == ACTION_DOWN -> beginTouch(event, layout)
             event.action == ACTION_MOVE -> drag.follow(Point(event.x, event.y), layout)
             else -> endTouch(event, layout)
