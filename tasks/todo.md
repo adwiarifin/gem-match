@@ -90,7 +90,7 @@ Each task ends with `make check-task`; drawing and wiring are checked on the A52
 - [x] T43: `runs.txt`, `lifetime.txt`, record once, `best.txt` seeds the best score. Done when: a run is never counted twice across a kill, the 101st run drops the oldest, damaged lines cost only themselves, abandoned games record nothing. Verify: `make check-task`
 - [x] T44: Game-over card (600 ms beat, fade-in, every stat, scroll, Play Again). Done when: it appears after the animation, blocks the board, scrolls and keeps buttons pinned. Verify: `make check-task`, the T46 runbook on the A52 (JVM parts done; the look on the A52 waits for T46)
 - [x] T45: Stats screen (lifetime block, last 100 runs, HUD and card buttons, Back). Done when: 101 runs show 100 rows newest first, empty history reads plainly. Verify: `make check-task`, look on the A52
-- [ ] T46: Near-dead fixture and device runbook (`docs/game-over-runbook.md`). Done when: the fixture test pins the board and the runbook reaches the card on the A52. Verify: `make check-task`, run the runbook once
+- [x] T46: Near-dead fixture and device runbook (`docs/game-over-runbook.md`). Done when: the fixture test pins the board and the runbook reaches the card on the A52. Verify: `make check-task`, run the runbook once
 - [ ] Checkpoint L: `make check-full` green, SC9 to SC12 on the A52, frame time recorded, owner plays a session
 - [ ] T47: Docs close-out (README, D22 and D23, SPEC status, CONSTRAINTS measured rows by the owner, open items). Owner approval, separate docs commit. Verify: `make check-fast`
 
