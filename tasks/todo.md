@@ -92,7 +92,9 @@ Each task ends with `make check-task`; drawing and wiring are checked on the A52
 - [x] T45: Stats screen (lifetime block, last 100 runs, HUD and card buttons, Back). Done when: 101 runs show 100 rows newest first, empty history reads plainly. Verify: `make check-task`, look on the A52
 - [x] T46: Near-dead fixture and device runbook (`docs/game-over-runbook.md`). Done when: the fixture test pins the board and the runbook reaches the card on the A52. Verify: `make check-task`, run the runbook once
 - [ ] Checkpoint L (emulator done 2026-10-20: card, scroll, Stats, Close, Play again, kill on the card, 100 rows; still the owner's: the same on the A52, frame time, a normal session): `make check-full` green, SC9 to SC12 on the A52, frame time recorded, owner plays a session
-- [x] T47: Docs close-out (README, D22 and D23, SPEC status, CONSTRAINTS measured rows by the owner, open items). Owner approval, separate docs commit. Verify: `make check-fast`
+- [x] T47: Docs close-out (README, D22 to D24, SPEC status done; the `CONSTRAINTS.md` measured rows are still the owner's, see the note below). Owner approval, separate docs commit. Verify: `make check-fast`
+
+Note on T47: the `CONSTRAINTS.md` "Measured, not yet enforced" rows are out of date again. Measured by `make check-full` on 2026-10-20: release APK 77,814 bytes unsigned, debug APK 1,137,551 bytes, 330 core tests and 171 app unit tests. `scripts/floor-guard.py` treats raising a "must not grow" number as loosening, so the update needs the owner. All are inside their caps.
 
 ## Open items after the review and release work (2026-10-16)
 
