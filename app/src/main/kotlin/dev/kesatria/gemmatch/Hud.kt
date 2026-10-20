@@ -67,21 +67,37 @@ class Hud {
         canvas.drawText("BEST", right, labelY, label)
         canvas.drawText(best.toString(), right, valueY, value)
 
-        buttons.draw(canvas, buttonRect(layout), "New game", BUTTON_COLOR, cell * BUTTON_TEXT)
+        buttons.draw(canvas, newGameRect(layout), "New game", BUTTON_COLOR, cell * BUTTON_TEXT)
+        buttons.draw(canvas, statsRect(layout), "Stats", BUTTON_COLOR, cell * BUTTON_TEXT)
     }
 
     fun isOnNewGameButton(
         layout: BoardLayout,
         x: Float,
         y: Float,
-    ): Boolean = buttonRect(layout).contains(x, y)
+    ): Boolean = newGameRect(layout).contains(x, y)
 
-    private fun buttonRect(layout: BoardLayout): RectF {
+    fun isOnStatsButton(
+        layout: BoardLayout,
+        x: Float,
+        y: Float,
+    ): Boolean = statsRect(layout).contains(x, y)
+
+    private fun newGameRect(layout: BoardLayout): RectF = place(layout, -1)
+
+    private fun statsRect(layout: BoardLayout): RectF = place(layout, 1)
+
+    /** The two buttons sit side by side under the board, [side] -1 for the left one and 1 for the right. */
+    private fun place(
+        layout: BoardLayout,
+        side: Int,
+    ): RectF {
         val cell = layout.cellSize
         val centreX = layout.originX + cell * BOARD_SIZE / 2
         val top = layout.originY + cell * BOARD_SIZE + cell * BUTTON_GAP
-        val halfWidth = cell * BUTTON_WIDTH / 2
-        button.set(centreX - halfWidth, top, centreX + halfWidth, top + cell * BUTTON_HEIGHT)
+        val inner = cell * BUTTON_SPACING / 2
+        val left = if (side < 0) centreX - inner - cell * BUTTON_WIDTH else centreX + inner
+        button.set(left, top, left + cell * BUTTON_WIDTH, top + cell * BUTTON_HEIGHT)
         return button
     }
 
@@ -92,6 +108,7 @@ class Hud {
         const val VALUE_SIZE = 0.7f
         const val BUTTON_GAP = 0.6f
         const val BUTTON_WIDTH = 3.4f
+        const val BUTTON_SPACING = 0.3f
         const val BUTTON_HEIGHT = 1.0f
         const val BUTTON_TEXT = 0.4f
         val BUTTON_COLOR = Color.rgb(60, 60, 110)

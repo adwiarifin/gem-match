@@ -6,6 +6,12 @@ class ScrollList {
         private set
 
     private var maxOffset = 0f
+    private var startY = 0f
+    private var lastY = 0f
+
+    /** True once the finger that is down has moved further than the slop, so lifting it is not a tap. */
+    var dragged = false
+        private set
 
     val canScroll: Boolean get() = maxOffset > 0f
 
@@ -25,5 +31,26 @@ class ScrollList {
 
     fun reset() {
         offset = 0f
+    }
+
+    /** Follows one touch event: a finger moving up scrolls down. [slop] is how far it may wander and still be a tap. */
+    fun touch(
+        action: Int,
+        y: Float,
+        slop: Float,
+    ) {
+        when (action) {
+            GameController.ACTION_DOWN -> {
+                startY = y
+                lastY = y
+                dragged = false
+            }
+
+            GameController.ACTION_MOVE -> {
+                if (kotlin.math.abs(y - startY) > slop) dragged = true
+                scrollBy(lastY - y)
+                lastY = y
+            }
+        }
     }
 }

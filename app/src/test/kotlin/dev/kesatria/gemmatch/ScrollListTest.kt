@@ -64,4 +64,30 @@ class ScrollListTest {
 
         assertEquals(0f, list.offset)
     }
+
+    @Test
+    fun aFingerMovingUpScrollsTheListDownAndCountsAsADrag() {
+        val list = ScrollList()
+        list.fit(1_000f, 400f)
+
+        list.touch(GameController.ACTION_DOWN, y = 500f, slop = 10f)
+        list.touch(GameController.ACTION_MOVE, y = 450f, slop = 10f)
+        list.touch(GameController.ACTION_MOVE, y = 400f, slop = 10f)
+
+        assertEquals(100f, list.offset)
+        assertTrue(list.dragged)
+    }
+
+    @Test
+    fun aFingerThatStaysWithinTheSlopIsStillATap() {
+        val list = ScrollList()
+        list.fit(1_000f, 400f)
+
+        list.touch(GameController.ACTION_DOWN, y = 500f, slop = 10f)
+        list.touch(GameController.ACTION_MOVE, y = 496f, slop = 10f)
+
+        assertFalse(list.dragged)
+        list.touch(GameController.ACTION_DOWN, y = 300f, slop = 10f)
+        assertFalse(list.dragged, "a new touch starts clean")
+    }
 }

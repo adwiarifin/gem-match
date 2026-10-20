@@ -29,11 +29,15 @@ class GameController(
     private val hud = Hud()
     private val dialog = ConfirmDialog()
     private val card = GameOverCard()
+    private val history = FileRunHistory(store)
+    private val stats = StatsScreen()
+    private val statsPainter = StatsPainter()
     private val drag = DragGesture(scene)
     private val idleHint = IdleHint(scene)
     private val touches = ConcurrentLinkedQueue<TouchEvent>()
     private var timeline: Timeline? = null
     private var buttonPressed = false
+    private var pressedStats = false
 
     @Volatile private var dialogOpen = false
 
@@ -51,7 +55,7 @@ class GameController(
 
     /** True if the back press was used to close the dialog; false means the app should handle it. */
     fun onBack(): Boolean {
-        if (!dialogOpen) return false
+        if (!dialogOpen && !stats.isOpen) return false
         touches.add(TouchEvent(ACTION_BACK, 0f, 0f))
         return true
     }
@@ -87,6 +91,7 @@ class GameController(
         renderer.draw(canvas, layout, scene)
         hud.draw(canvas, layout, session.shownScore, session.bestScore)
         if (card.isVisible) card.draw(canvas, layout)
+        if (stats.isOpen) statsPainter.draw(canvas, layout, stats)
         if (dialogOpen) dialog.draw(canvas, layout)
     }
 
@@ -95,11 +100,21 @@ class GameController(
         layout: BoardLayout,
     ) {
         when {
-            event.action == ACTION_BACK -> dialogOpen = false
+            event.action == ACTION_BACK -> {
+                dialogOpen = false
+                stats.close()
+            }
+
             dialogOpen -> handleDialogTouch(event, layout)
+
+            stats.isOpen ->
+                if (stats.onTouch(event.action, event.x, event.y, layout) == StatsAction.CLOSE) stats.close()
+
             card.isVisible ->
-                if (card.onTouch(event.action, event.x, event.y, layout) == CardChoice.PLAY_AGAIN) {
-                    timeline = session.newGame(scene)
+                when (card.onTouch(event.action, event.x, event.y, layout)) {
+                    CardChoice.PLAY_AGAIN -> timeline = session.newGame(scene)
+                    CardChoice.STATS -> stats.open(history)
+                    null -> Unit
                 }
             event.action == ACTION_DOWN -> beginTouch(event, layout)
             event.action == ACTION_MOVE -> drag.follow(Point(event.x, event.y), layout)
@@ -125,7 +140,7 @@ class GameController(
     }
 
     /**
-     * Touching a gem picks it up. A touch on the New Game button picks up nothing, and neither does a touch once the
+     * Touching a gem picks it up. A touch on a HUD button picks up nothing, and neither does a touch once the
      * game is over. A touch while an animation plays skips to its end and picks up nothing; the next touch plays.
      * A spring-back or a rejected swap is not skipped.
      */
@@ -133,7 +148,8 @@ class GameController(
         event: TouchEvent,
         layout: BoardLayout,
     ) {
-        buttonPressed = hud.isOnNewGameButton(layout, event.x, event.y)
+        pressedStats = hud.isOnStatsButton(layout, event.x, event.y)
+        buttonPressed = pressedStats || hud.isOnNewGameButton(layout, event.x, event.y)
         if (shouldSkipOnTouch(buttonPressed, session.isMovePlaying)) timeline?.skip(scene)
         val canPlay = !buttonPressed && timeline == null && !session.isOver
         drag.begin(if (canPlay) Point(event.x, event.y) else null, layout)
@@ -148,8 +164,15 @@ class GameController(
         layout: BoardLayout,
     ) {
         val released = event.action == ACTION_UP
-        if (released && buttonPressed && hud.isOnNewGameButton(layout, event.x, event.y)) dialogOpen = true
+        if (released && buttonPressed) {
+            if (pressedStats) {
+                if (hud.isOnStatsButton(layout, event.x, event.y)) stats.open(history)
+            } else if (hud.isOnNewGameButton(layout, event.x, event.y)) {
+                dialogOpen = true
+            }
+        }
         buttonPressed = false
+        pressedStats = false
 
         if (drag.isActive) {
             val move = if (released) drag.release(Point(event.x, event.y), layout) else null

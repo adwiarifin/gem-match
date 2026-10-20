@@ -22,9 +22,6 @@ class GameOverCard {
     private var bestText = ""
     private var newBest = false
 
-    private var touchStartY = 0f
-    private var touchLastY = 0f
-    private var dragged = false
     private val rect = RectF()
     private val dim = Paint().apply { color = Color.argb(DIM_ALPHA, 0, 0, 0) }
     private val panelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Palette.PANEL }
@@ -91,20 +88,8 @@ class GameOverCard {
         y: Float,
         layout: BoardLayout,
     ): CardChoice? {
-        when (action) {
-            GameController.ACTION_DOWN -> {
-                touchStartY = y
-                touchLastY = y
-                dragged = false
-            }
-
-            GameController.ACTION_MOVE -> {
-                if (kotlin.math.abs(y - touchStartY) > layout.cellSize * DRAG_SLOP) dragged = true
-                scroll.scrollBy(touchLastY - y)
-                touchLastY = y
-            }
-        }
-        return if (action == GameController.ACTION_UP && !dragged) CardLayout(layout).choiceAt(x, y) else null
+        scroll.touch(action, y, layout.cellSize * DRAG_SLOP)
+        return if (action == GameController.ACTION_UP && !scroll.dragged) CardLayout(layout).choiceAt(x, y) else null
     }
 
     fun draw(
