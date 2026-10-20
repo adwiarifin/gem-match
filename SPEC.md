@@ -1,6 +1,6 @@
 # Spec: Gem Match (Bejeweled-style clone, Android)
 
-Status: living document. The base game was approved by the owner and updated 2026-10-15 after the core module (T4-T10) was built. The special gems additions (marked below) were approved by the owner on 2026-10-17, built, and revised after the owner's playtest the same day (D16 to D20 in `docs/decisions.md`); the owner signed off the on-device session and the feature is built. The special gem rules in one page: `docs/special-gem-rules.md`.
+Status: living document. Game over and run stats (D22 to D24) were built and checked on an emulator on 2026-10-20; the checks on the A52 are the owner's (`docs/game-over-runbook.md`). The base game was approved by the owner and updated 2026-10-15 after the core module (T4-T10) was built. The special gems additions (marked below) were approved by the owner on 2026-10-17, built, and revised after the owner's playtest the same day (D16 to D20 in `docs/decisions.md`); the owner signed off the on-device session and the feature is built. The special gem rules in one page: `docs/special-gem-rules.md`.
 Source of intent: `docs/intent/bejeweled-clone.md`, plus one file per later feature (see Features at the end). Quality bar: `CONSTRAINTS.md`.
 
 Scope check (Phase 0): one product with two layers (`core`, `app`). Not decomposed into a capability map, because the layers are not independently shippable. Layer boundaries are specified below.

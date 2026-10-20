@@ -1,6 +1,8 @@
 # Runbook: checking game over on a phone
 
-A dead board is far too rare to reach by playing, and the release build has no debug switch. So this check loads a save that is one move from the end into the debug build. The save comes from `NearDeadFixtureTest`, which fails if the board stops being one move from dead. Needs `adb` and the phone on USB debugging.
+A dead board is far too rare to reach by playing, and the release build has no debug switch. So this check loads a save that is one move from the end into the debug build. The save comes from `NearDeadFixtureTest`, which fails if the board stops being one move from dead. Needs `adb` and a device with USB debugging.
+
+**Do not run this on a phone that has the signed release installed.** The debug build has the same application id but a different signature, so installing it means uninstalling the release first, which deletes its saved game and history. Use an emulator or a spare phone. With two devices attached, put `-s <serial>` after every `adb` (for example `adb -s emulator-5554 shell ...`), and install with `adb -s <serial> install -r app/build/outputs/apk/debug/app-debug.apk` instead of Gradle's `installDebug`, which installs on every device.
 
 ## 1. Install the debug build
 
@@ -14,7 +16,7 @@ The debug build is debuggable, which `run-as` below needs. Do not do this on the
 
 ```
 PKG=dev.kesatria.gemmatch
-START=$(($(date +%s) * 1000))
+START=$((($(date +%s) - 900) * 1000))
 HEAD='GM3;12430;6923093808337748099;2-5-4-1-3-4-0-1-5-3-2-3-5-6-5-6-4-6-6-4-0-1-0-1-2-3-5-3-4-5-4-6-1-4-1-5-2-1-5-3-4-6-4-6-2-2-6-1-2-3-0-5-1-5-1-4-5-1-2-0-6-0-4-0-;'
 STATS='moves=184,cascade=5,moveScore=450,gems=970,match=5,cB=10,cR=22,cC=18,cS=1,cW=1,tB=10,tR=22,tC=18,tS=1,tW=1'
 adb shell am force-stop $PKG
@@ -23,7 +25,7 @@ adb shell "run-as $PKG rm -f files/runs.txt files/lifetime.txt"
 adb shell am start -n $PKG/.MainActivity
 ```
 
-The last two lines of the stats part give the run a start time of now and 10 minutes of active time, so the card reads sensibly. `rm` gives the history a clean start; skip it to keep what is there.
+The stats part gives the run a start time 15 minutes ago and 10 minutes of active time, so the card reads sensibly (total time longer than active time). `rm` gives the history a clean start; skip it to keep what is there.
 
 ## 3. Make the last move
 
@@ -35,7 +37,7 @@ Check:
 - [ ] The card fades in over the dimmed board: "Game over", the score (above 12,430), "New best!", then the stats list, then **Play again** and **Stats** pinned at the bottom.
 - [ ] Touching the board behind the card does nothing.
 - [ ] The list scrolls by dragging, and a drag never presses a button.
-- [ ] Moves reads 185, Active time reads a little over 10:00, Total time is a little longer.
+- [ ] Moves reads 185, Active time reads a little over 10:00, Total time reads a little over 15:00.
 
 ## 4. Files
 
@@ -65,7 +67,7 @@ Repeat step 2 and 3 to reach the card again, then:
 
 Reach the card as above, but before the last move press Home and wait a minute, then come back and finish.
 
-- [ ] Total time is about a minute longer than Active time.
+- [ ] Total time is about a minute longer than it would have been without leaving.
 
 ## 8. A long list
 
@@ -79,3 +81,8 @@ Open Stats from the game screen.
 
 - [ ] The list scrolls smoothly to the end and shows 100 rows under "Last runs".
 - [ ] Frame time stays smooth while scrolling.
+
+## Last run
+
+2026-10-20 on an Android emulator (1080 by 2400, density 420), debug build from `main`: steps 2 to 6 and 8 passed. Step 3 showed the dead board, then the card with "New best!", 12,460, 185 moves and the scrolling list; Play again, Stats, Close and a kill on the card behaved as written (history stayed at the right number of runs, the relaunch showed a new game). Step 8 scrolled to the 100th row. Step 7 and the frame-time checks are for the Galaxy A52.
+
