@@ -60,7 +60,7 @@ Each task ends with `make check-task` and a look on the A52.
 
 - [x] T31: White gem becomes a pentagon. Done when: seven silhouettes distinct in grayscale. Verify: `make check-task`, install and look
 - [x] T32: Sprites carry `Piece`; created special appears and survives cascades and resume. Done when: rendered board equals core board, SC16 holds. Verify: `make check-task`, play on the A52
-- [x] T33: Overlays (burst, stripe, cross, colour wheel) and shimmer. Done when: four specials told apart on the A52. Verify: `make check-task`, look on the A52
+- [x] T33: Overlays (burst, stripe, cross, colour wheel) and shimmer. Done when: four specials told apart on the A52. Verify: `make check-task`, look on the A52 (JVM parts done; the look on the A52 waits for T46)
 - [x] Checkpoint H: `make check-full` green, owner sees all four specials on the A52
 - [x] T34: Effect animations (ring, beam, streaks; chains in order). Done when: SC17 holds, board matches core at the end, input blocked. Verify: `make check-task`, fire each effect on the A52
 - [x] T35: Idle hint prefers a match move, falls back to a special swap; GM1 save resumes after update. Done when: hint tests pass, install-over resumes. Verify: `make check-task`, install over the old build
@@ -88,8 +88,8 @@ Each task ends with `make check-task`; drawing and wiring are checked on the A52
 
 - [x] T42: `RunClock` (wall and foreground-only active time) and `GM3` in the session. Done when: pause adds no active time, a reload keeps `started` and `active`, New Game resets. Verify: `make check-task`
 - [x] T43: `runs.txt`, `lifetime.txt`, record once, `best.txt` seeds the best score. Done when: a run is never counted twice across a kill, the 101st run drops the oldest, damaged lines cost only themselves, abandoned games record nothing. Verify: `make check-task`
-- [x] T44: Game-over card (600 ms beat, fade-in, every stat, scroll, Play Again). Done when: it appears after the animation, blocks the board, scrolls and keeps buttons pinned. Verify: `make check-task`, the T46 runbook on the A52
-- [ ] T45: Stats screen (lifetime block, last 100 runs, HUD and card buttons, Back). Done when: 101 runs show 100 rows newest first, empty history reads plainly. Verify: `make check-task`, look on the A52
+- [x] T44: Game-over card (600 ms beat, fade-in, every stat, scroll, Play Again). Done when: it appears after the animation, blocks the board, scrolls and keeps buttons pinned. Verify: `make check-task`, the T46 runbook on the A52 (JVM parts done; the look on the A52 waits for T46)
+- [x] T45: Stats screen (lifetime block, last 100 runs, HUD and card buttons, Back). Done when: 101 runs show 100 rows newest first, empty history reads plainly. Verify: `make check-task`, look on the A52
 - [ ] T46: Near-dead fixture and device runbook (`docs/game-over-runbook.md`). Done when: the fixture test pins the board and the runbook reaches the card on the A52. Verify: `make check-task`, run the runbook once
 - [ ] Checkpoint L: `make check-full` green, SC9 to SC12 on the A52, frame time recorded, owner plays a session
 - [ ] T47: Docs close-out (README, D22 and D23, SPEC status, CONSTRAINTS measured rows by the owner, open items). Owner approval, separate docs commit. Verify: `make check-fast`
