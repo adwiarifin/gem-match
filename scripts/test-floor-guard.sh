@@ -109,6 +109,24 @@ floor_case "raising the test-count floor is allowed" 0 's/^core 10/core 12/'
 floor_case "lowering the test-count floor is flagged" 1 's/^core 10/core 9/'
 floor_case "dropping a module from the test-count floor is flagged" 1 '/^app /d'
 
+# An owner exception: a committed row waives named rules on one path until it expires; an uncommitted one waives nothing.
+waiver_case() {
+    local name=$1 want=$2 row=$3 commit=$4
+    reset
+    base_sha=$(git -C "$work" rev-parse HEAD)
+    printf '## Exceptions\n\n| ID | Rule | Path | Reason | Owner | Expires |\n|----|------|------|--------|-------|---------|\n%s\n' "$row" >"$work/CONSTRAINTS.md"
+    if [ "$commit" = yes ]; then git -C "$work" add -A && git -C "$work" commit -q -m waiver; fi
+    sed -i.bak '/assertTrue(board.isFull())/d' "$work/$test_file" && rm -f "$work/$test_file.bak"
+    (cd "$work" && python3 "$guard" --base "$base_sha" >/dev/null 2>&1)
+    local got=$?
+    if [ "$got" -eq "$want" ]; then echo "ok   $name"; else echo "FAIL $name (exit $got, wanted $want)"; failures=$((failures + 1)); fi
+}
+waiver_case "a committed exception waives its rule on its path" 0 "| W1 | assertion-removed | $test_file | reason | owner | 2999-01-01 |" yes
+waiver_case "an exception for another rule waives nothing" 1 "| W1 | test-removed | $test_file | reason | owner | 2999-01-01 |" yes
+waiver_case "an exception for another path waives nothing" 1 "| W1 | assertion-removed | core/src/test/kotlin/BarTest.kt | reason | owner | 2999-01-01 |" yes
+waiver_case "an expired exception waives nothing" 1 "| W1 | assertion-removed | $test_file | reason | owner | 2000-01-01 |" yes
+waiver_case "an uncommitted exception waives nothing" 1 "| W1 | assertion-removed | $test_file | reason | owner | 2999-01-01 |" no
+
 # A test file moved out of the test tree has no removed lines, so it needs its own check.
 reset
 mkdir -p "$work/docs"

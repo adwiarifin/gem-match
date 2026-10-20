@@ -14,6 +14,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import date
 
 CODE_FILES = re.compile(r"\.(kt|kts|java|xml|gradle|sh|py)$")
 TEST_FILES = re.compile(r"(^|/)src/[^/]*[tT]est/|Test\.kt$")
@@ -329,6 +330,29 @@ def weakened(old, new):
     return None
 
 
+def waivers():
+    """Exception rows of the committed CONSTRAINTS.md as (rules, path) pairs, expired ones left out.
+
+    Row: `| W1 | rule, rule | path | reason | owner | YYYY-MM-DD |`. Only the committed file counts, so a row added in
+    the working tree is flagged as a new exception and waives nothing until its owner commits it (a committed row is
+    not "new", so a release check over a longer range does not flag it).
+    """
+    found = []
+    for line in read_old("HEAD", "CONSTRAINTS.md"):
+        if not EXCEPTION_ROW.match(line.strip()):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 6:
+            continue
+        try:
+            live = date.fromisoformat(cells[5]) >= date.today()
+        except ValueError:
+            live = False
+        if live:
+            found.append(({r.strip() for r in cells[1].split(",")}, cells[2]))
+    return found
+
+
 def main():
     base = "HEAD"
     if "--base" in sys.argv:
@@ -347,6 +371,7 @@ def main():
     added, removed, deleted, added_at, removed_at = parse_diff(diff)
 
     findings = []
+    committed_rows = set(read_old("HEAD", "CONSTRAINTS.md"))
 
     def flag(rule, file, text):
         findings.append((rule, file, text.strip()[:120]))
@@ -359,7 +384,7 @@ def main():
                 flag("unfinished-work", file, text)
             if SKIPS.search(text):
                 flag("test-made-easier", file, text)
-        if file.endswith("CONSTRAINTS.md") and EXCEPTION_ROW.match(text.strip()):
+        if file.endswith("CONSTRAINTS.md") and EXCEPTION_ROW.match(text.strip()) and text not in committed_rows:
             flag("new-exception", file, text)
         if file.endswith(".gitattributes") and HIDES_DIFF.search(text):
             flag("hidden-diff", file, text)
@@ -410,6 +435,11 @@ def main():
         if verdict:
             flag(verdict, file, f"{text.strip()}  ->  {counterpart.strip()}")
 
+    allowed = waivers()
+    waived = [f for f in findings if any(f[0] in rules and f[1] == path for rules, path in allowed)]
+    findings = [f for f in findings if f not in waived]
+    if waived:
+        print(f"floor-guard: {len(waived)} finding(s) waived by an owner exception in CONSTRAINTS.md")
     if not findings:
         print("floor-guard: clean")
         return 0
