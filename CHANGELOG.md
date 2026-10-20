@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/adwiarifin/gem-match/compare/v0.3.1...v0.3.2) (2026-10-20)
+
+
+### Bug Fixes
+
+* **app:** drain every store a GameSessionTest creates before its temp directory goes ([c761164](https://github.com/adwiarifin/gem-match/commit/c761164b4ddd21117807101dde062d6eb8addb02))
+
 ## [0.3.1](https://github.com/adwiarifin/gem-match/compare/v0.3.0...v0.3.1) (2026-10-20)
 
 
