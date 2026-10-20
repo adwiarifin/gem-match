@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.3.0](https://github.com/adwiarifin/gem-match/compare/v0.2.0...v0.3.0) (2026-10-20)
+
+
+### Features
+
+* **app:** add a stats screen with lifetime records and the last 100 runs ([b8dc7a9](https://github.com/adwiarifin/gem-match/commit/b8dc7a994c3fb86391bff4e12872c3e36b0df57a))
+* **app:** record each finished run once in runs.txt and lifetime.txt ([f92ac06](https://github.com/adwiarifin/gem-match/commit/f92ac06bbb17a1319de4af0630d0d1982e71c910))
+* **app:** show a game-over card with the run's stats and a Play again button ([beae98e](https://github.com/adwiarifin/gem-match/commit/beae98ee7d923c16986473bba5d2e09914796320))
+* **app:** time a run in the foreground and save its clocks with the game ([d84607e](https://github.com/adwiarifin/gem-match/commit/d84607eda5ad1b859eeede4e405a2eeca27010c3))
+* **core:** end the run when no move is left; the reshuffle and its tests go because game over replaces it (SPEC assumption 7) ([9c6e62e](https://github.com/adwiarifin/gem-match/commit/9c6e62e00eef9c691a9cc8c5abc498b49fdcb12e))
+* **core:** finish a run into a record and fold records into lifetime totals ([16b089a](https://github.com/adwiarifin/gem-match/commit/16b089a1924ccd7e9bd125585de3edbe2bb364a2))
+* **core:** refill avoids matching a neighbour so dead boards come sooner ([c9287b6](https://github.com/adwiarifin/gem-match/commit/c9287b665fdf545acf636545fdab9e261390fb40))
+* **core:** save a run's stats and clocks in GM3; three retyped assertions now expect GM3 instead of GM2 ([c9d357d](https://github.com/adwiarifin/gem-match/commit/c9d357d84cf59b3434d0c88e196b085311822d53))
+* **core:** track a run's stats from the steps of each move ([8d29316](https://github.com/adwiarifin/gem-match/commit/8d293167b60c290763935d6c4d6661c5259dc252))
+
+
+### Tests
+
+* **core:** measure how long a run lasts before the board is dead ([8f69b19](https://github.com/adwiarifin/gem-match/commit/8f69b19b24d2ec041c4cd918dc23eb62be58c721))
+* **core:** pin a near-dead save and add the phone runbook for game over ([28cc044](https://github.com/adwiarifin/gem-match/commit/28cc044405c4bce3e6a9b22ea9bb5257d5f08794))
+
+
+### Documentation
+
+* **decisions:** record harsher spawn as D23 ([32e5dcb](https://github.com/adwiarifin/gem-match/commit/32e5dcb2b705185acf6286b7989ddbab24fcdf1b))
+* **decisions:** record measured run length as D22 ([a582c91](https://github.com/adwiarifin/gem-match/commit/a582c91707a0ff7144cdd7c324bf5d20ee0b0e18))
+* describe game over and run stats, record D24 and the emulator run ([88656c5](https://github.com/adwiarifin/gem-match/commit/88656c587411ae5b47cb9c6c78042fa64e5cbf09))
+* **intent:** add game over and run stats intent ([4cf846e](https://github.com/adwiarifin/gem-match/commit/4cf846e1a6c130eb6e2745788a2cb1df4c24bc57))
+* record the A52 run of the game-over runbook ([49cf737](https://github.com/adwiarifin/gem-match/commit/49cf7378fa5eb0805259eb6cb9fc551f1743d5c3))
+* **spec:** a dead board loads as an over game ([cd832e1](https://github.com/adwiarifin/gem-match/commit/cd832e1328e749220454bb99187eef39882ed10a))
+* **spec:** add game over and run stats ([643b084](https://github.com/adwiarifin/gem-match/commit/643b0849097f8f25c8af008958886a6c1126176a))
+* **spec:** add harsher spawn and task T37b ([28ec38f](https://github.com/adwiarifin/gem-match/commit/28ec38fa699ea45d168ce7297526f576411168e0))
+* **tasks:** note the measured values the owner still has to record ([bdf683e](https://github.com/adwiarifin/gem-match/commit/bdf683e39a089773fb256a9231314111ed98d4e1))
+* **tasks:** plan game over and run stats ([202cf46](https://github.com/adwiarifin/gem-match/commit/202cf46726984b0a0f59d9ce278d028bf9d42a04))
+* **tasks:** tick T39 to T41 and Checkpoint K ([c415261](https://github.com/adwiarifin/gem-match/commit/c4152616edbdb0ad60238c32330201f36bb464c2))
+* **tasks:** tick T42 to T44 ([482b1ae](https://github.com/adwiarifin/gem-match/commit/482b1ae90a221ad70114eaaa73e938b6fcdee7be))
+* **tasks:** tick T45 and note the device looks wait for T46 ([391c9ba](https://github.com/adwiarifin/gem-match/commit/391c9baeb69ac48b020bc60d68411c5458be412b))
+* **tasks:** tick T46 ([6b83722](https://github.com/adwiarifin/gem-match/commit/6b8372226481094ea55e739f58298b453044605c))
+* **tasks:** tick the signed 0.2.0 install over the old build on the A52 ([15812d5](https://github.com/adwiarifin/gem-match/commit/15812d5447ca2becd17971d0aa5cb2be7ab0db45))
+
+
+### Style
+
+* wrap the lines and nesting detekt flagged in earlier tasks ([70f5d7e](https://github.com/adwiarifin/gem-match/commit/70f5d7e0febb4f1a97cb8757741131d465a364fe))
+
 ## [0.2.0](https://github.com/adwiarifin/gem-match/compare/v0.1.2...v0.2.0) (2026-10-17)
 
 
