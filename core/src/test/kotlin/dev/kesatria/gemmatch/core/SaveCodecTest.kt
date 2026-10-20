@@ -41,7 +41,7 @@ class SaveCodecTest {
     @Test
     fun encodedGameStartsWithTheVersionMarker() {
         assertTrue(saved.startsWith("GM1;"))
-        assertTrue(played(8L, 5).encode().startsWith("GM2;"))
+        assertTrue(played(8L, 5).encode().startsWith("GM3;"))
     }
 
     @Test
@@ -170,7 +170,7 @@ class SaveCodecTest {
     fun boardDigitsMatchTheGameForReadability() {
         val game = fresh
 
-        assertTrue(game.encode().endsWith(boardDigits(game)))
+        assertTrue(game.encode().removeSuffix(";end=1").endsWith(boardDigits(game)))
     }
 
     private val everySpecialBoard =
@@ -195,6 +195,9 @@ class SaveCodecTest {
             Special.COLOUR to 'W',
         )
 
+    /** What the game writes for a board that [gm2] describes: the same fields as `GM3`, with no stats. */
+    private fun asGm3(gm2Text: String) = gm2Text.replaceFirst("GM2;", "GM3;") + ";end=1"
+
     private fun gm2(
         board: Board,
         score: Int = 120,
@@ -212,7 +215,7 @@ class SaveCodecTest {
 
     @Test
     fun aBoardHoldingEverySpecialRoundTripsEqual() {
-        val text = gm2(everySpecialBoard)
+        val text = asGm3(gm2(everySpecialBoard))
 
         val game = assertNotNull(Game.decode(text))
 
@@ -238,7 +241,7 @@ class SaveCodecTest {
     }
 
     @Test
-    fun aGm1SaveLoadsAndIsWrittenBackAsGm2() {
+    fun aGm1SaveLoadsAndIsWrittenBackAsGm3() {
         val old = fresh
 
         val loaded = assertNotNull(Game.decode(gm1(old)))
@@ -246,7 +249,7 @@ class SaveCodecTest {
         assertEquals(old.board, loaded.board)
         assertEquals(old.score, loaded.score)
         assertEquals(old.rngState, loaded.rngState)
-        assertTrue(loaded.encode().startsWith("GM2;"))
+        assertTrue(loaded.encode().startsWith("GM3;"))
         assertEquals(old.encode(), loaded.encode())
     }
 
@@ -297,7 +300,7 @@ class SaveCodecTest {
         assertEquals(letters.size, letters.values.toSet().size, "letters are unique")
         for (special in Special.entries) {
             val piece = Piece(if (special == Special.COLOUR) null else Gem.GREEN, special)
-            val text = gm2(randomStableBoard(11L).with(Pos(0, 0), piece))
+            val text = asGm3(gm2(randomStableBoard(11L).with(Pos(0, 0), piece)))
 
             assertEquals(text, assertNotNull(Game.decode(text), "$special").encode(), "$special")
         }
@@ -337,12 +340,12 @@ class SaveCodecTest {
     }
 
     @Test
-    fun aReleasedGm1GameIsWrittenBackAsGm2AndPlaysOn() {
+    fun aReleasedGm1GameIsWrittenBackAsGm3AndPlaysOn() {
         val game = assertNotNull(Game.decode(releasedGm1))
 
         val rewritten = game.encode()
 
-        assertTrue(rewritten.startsWith("GM2;210;92694865759587301;"), rewritten)
+        assertTrue(rewritten.startsWith("GM3;210;92694865759587301;"), rewritten)
         val reloaded = assertNotNull(Game.decode(rewritten))
         assertEquals(game.board, reloaded.board)
         val move = findValidMoves(game.board).first()

@@ -95,7 +95,7 @@ class GameStoreTest {
                 "",
                 "garbage",
                 good.take(good.length / 2),
-                good.replaceFirst("GM2", "GM9"),
+                good.replaceFirst("GM3", "GM9"),
                 good + ";extra",
             )
         for (text in damaged) {
@@ -205,7 +205,7 @@ class GameStoreTest {
             "6145022601136334006053121631042355443363401001654464611054132212"
 
     @Test
-    fun anOldGm1FileOnDiskLoadsAndIsRewrittenAsGm2() {
+    fun anOldGm1FileOnDiskLoadsAndIsRewrittenAsGm3() {
         File(directory, "game.sav").writeText(releasedGm1)
         val store = store()
 
@@ -215,14 +215,14 @@ class GameStoreTest {
         store.awaitWrites()
 
         val onDisk = File(directory, "game.sav").readText()
-        assertTrue(onDisk.startsWith("GM2;210;92694865759587301;"), onDisk)
+        assertTrue(onDisk.startsWith("GM3;210;92694865759587301;"), onDisk)
         assertEquals(loaded.board, assertNotNull(store().loadGame()).board)
     }
 
     @Test
     fun aGm2FileWithOneBadCellLoadsAsNoGame() {
         val good = Game.new(9L).encode()
-        val cells = good.substringAfterLast(';')
+        val cells = good.split(';')[3]
         val damaged =
             listOf(
                 good.replace(cells, "Z-" + cells.drop(2)),
