@@ -69,4 +69,8 @@ Ratchet tolerance: 0.5% on coverage.
 
 | ID | Rule | Path | Reason | Owner | Expires |
 |----|------|------|--------|-------|---------|
-| (none) | | | | | |
+| W1 | assertion-removed | app/src/test/kotlin/dev/kesatria/gemmatch/PlaybackTest.kt | Reshuffle removed (D24); reviewed at T38 | owner | 2027-01-31 |
+| W2 | assertion-removed, test-removed | app/src/test/kotlin/dev/kesatria/gemmatch/TimelineTest.kt | Reshuffle removed (D24); reviewed at T38 | owner | 2027-01-31 |
+| W3 | assertion-removed, test-removed | core/src/test/kotlin/dev/kesatria/gemmatch/core/ReshuffleTest.kt | Reshuffle removed (D24); reviewed at T38 | owner | 2027-01-31 |
+| W4 | assertion-removed | core/src/test/kotlin/dev/kesatria/gemmatch/core/SoakTest.kt | Reshuffle removed (D24); reviewed at T38 | owner | 2027-01-31 |
+| W5 | assertion-removed | core/src/test/kotlin/dev/kesatria/gemmatch/core/SaveCodecTest.kt | GM2 to GM3 save format; reviewed at T40 | owner | 2027-01-31 |
