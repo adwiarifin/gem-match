@@ -138,7 +138,10 @@ class CascadeTest {
         val result = resolveSwap(oneMoveBoard, swapA, swapB, rng)
 
         val spawned = result.steps.filterIsInstance<Step.Spawn>().sumOf { it.gems.size }
-        val draws = generateSequence(0) { it + 1 }.first { n -> Rng(5L).also { r -> repeat(n) { r.nextGem() } }.state == rng.state }
+        val draws =
+            generateSequence(0) { it + 1 }.first { n ->
+                Rng(5L).also { r -> repeat(n) { r.nextGem() } }.state == rng.state
+            }
         assertTrue(draws in spawned..spawned * (1 + SPAWN_RETRIES), "$draws draws for $spawned gems")
     }
 

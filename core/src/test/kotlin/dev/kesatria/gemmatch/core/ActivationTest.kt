@@ -162,7 +162,8 @@ class ActivationTest {
             val board = patterned(Pos(4, 4) to Piece(Gem.WHITE, Special.CROSS))
 
             // No spawn retries: the harsher spawn almost never cascades, and this test is about the depth numbering.
-            val clears = resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(seed), spawnRetries = 0).steps.filterIsInstance<Step.Clear>()
+            val result = resolveSwap(board, Pos(4, 4), Pos(4, 5), Rng(seed), spawnRetries = 0)
+            val clears = result.steps.filterIsInstance<Step.Clear>()
 
             assertEquals(1, clears.first().depth, "seed $seed")
             assertEquals((2 until clears.size + 1).toList(), clears.drop(1).map { it.depth }, "seed $seed")

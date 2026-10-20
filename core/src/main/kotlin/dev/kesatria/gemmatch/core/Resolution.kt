@@ -13,7 +13,8 @@ data class Resolution(
  * [a] is the cell the player dragged. A special fires when the swap moves it, when it is part of a match at any
  * depth, or when another effect reaches it. Every qualifying match group earns a special, whether or not anything
  * fired in the same clear.
- * Consumes [rng] in place (at least one draw per spawned gem, see [SPAWN_RETRIES]); pass a copy if the caller must keep its own.
+ * Consumes [rng] in place (at least one draw per spawned gem, see [SPAWN_RETRIES]); pass a copy if the caller must
+ * keep its own.
  */
 fun resolveSwap(
     board: Board,
@@ -115,8 +116,12 @@ private fun drawAvoidingNeighbours(
     retries: Int,
 ): Gem {
     val neighbours =
-        listOf(Pos(pos.row - 1, pos.col), Pos(pos.row + 1, pos.col), Pos(pos.row, pos.col - 1), Pos(pos.row, pos.col + 1))
-            .mapNotNull { board[it]?.gem }
+        listOf(
+            Pos(pos.row - 1, pos.col),
+            Pos(pos.row + 1, pos.col),
+            Pos(pos.row, pos.col - 1),
+            Pos(pos.row, pos.col + 1),
+        ).mapNotNull { board[it]?.gem }
     var gem = rng.nextGem()
     var left = retries
     while (left > 0 && gem in neighbours) {

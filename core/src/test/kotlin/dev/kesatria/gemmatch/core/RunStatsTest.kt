@@ -6,9 +6,12 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class RunStatsTest {
-    private fun greens(vararg cells: Pair<Int, Int>): Board = patternedBoard(cells.map { Pos(it.first, it.second) to Piece(Gem.GREEN) })
+    private fun greens(vararg cells: Pair<Int, Int>): Board {
+        val greenCells = cells.map { Pos(it.first, it.second) to Piece(Gem.GREEN) }
+        return patternedBoard(greenCells)
+    }
 
-    /** The game and outcome for the first seed whose move satisfies [accept], so the fixture does not depend on luck. */
+    /** The outcome for the first seed whose move satisfies [accept], so the fixture does not depend on luck. */
     private fun firstSeedWhere(
         board: Board,
         from: Pos,

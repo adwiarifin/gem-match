@@ -21,23 +21,7 @@ class PlaybackTest {
                 Step.Fall::class,
                 Step.Spawn::class,
             )
-        for (seed in 1L..40L) {
-            var game = Game.new(seed)
-            val scene = Scene().also { it.load(game.board) }
-            for (turn in 0 until 60) {
-                if (game.isOver) break
-                val candidates = findValidMoves(game.board)
-                val move = candidates[(turn * 7) % candidates.size]
-                val outcome = game.trySwap(move.from, move.to) as SwapOutcome.Accepted
-                var awarded = 0
-                playToEnd(Timeline.forSteps(outcome.steps) { awarded += it }, scene)
-
-                assertSceneShows(outcome.game.board, scene, "seed $seed move $turn")
-                assertEquals(outcome.game.score - game.score, awarded, "seed $seed move $turn: points heard")
-                outcome.steps.forEach { if (it::class in original) seen += it::class else addedBySpecials += it::class }
-                game = outcome.game
-            }
-        }
+        for (seed in 1L..40L) playGame(seed, original, seen, addedBySpecials)
         assertEquals(
             setOf(Step.Swap::class, Step.Clear::class, Step.Fall::class, Step.Spawn::class),
             seen,
@@ -48,5 +32,29 @@ class PlaybackTest {
             addedBySpecials,
             "and so must the steps that special gems add",
         )
+    }
+
+    private fun playGame(
+        seed: Long,
+        original: Set<KClass<out Step>>,
+        seen: MutableSet<KClass<out Step>>,
+        addedBySpecials: MutableSet<KClass<out Step>>,
+    ) {
+        var game = Game.new(seed)
+        val scene = Scene().also { it.load(game.board) }
+        var turn = 0
+        while (turn < 60 && !game.isOver) {
+            val candidates = findValidMoves(game.board)
+            val move = candidates[(turn * 7) % candidates.size]
+            val outcome = game.trySwap(move.from, move.to) as SwapOutcome.Accepted
+            var awarded = 0
+            playToEnd(Timeline.forSteps(outcome.steps) { awarded += it }, scene)
+
+            assertSceneShows(outcome.game.board, scene, "seed $seed move $turn")
+            assertEquals(outcome.game.score - game.score, awarded, "seed $seed move $turn: points heard")
+            outcome.steps.forEach { (if (it::class in original) seen else addedBySpecials) += it::class }
+            game = outcome.game
+            turn++
+        }
     }
 }

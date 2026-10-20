@@ -7,7 +7,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * How long a run lasts before the game is over (the board has no valid move). The sample is small so the suite stays fast; set `RUN_LENGTH_SEEDS`
+ * How long a run lasts before the game is over (the board has no valid move). The sample is small so the suite
+ * stays fast; set `RUN_LENGTH_SEEDS`
  * (and optionally `RUN_LENGTH_CAP`) to measure properly and read the report with `./gradlew :core:test -i`.
  */
 class RunLengthTest {

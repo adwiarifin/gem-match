@@ -117,8 +117,9 @@ class GameController(
     }
 
     /**
-     * Touching a gem picks it up. A touch on the New Game button picks up nothing, and neither does a touch once the game is over. A touch while an animation plays
-     * skips to its end and picks up nothing; the next touch plays. A spring-back or a rejected swap is not skipped.
+     * Touching a gem picks it up. A touch on the New Game button picks up nothing, and neither does a touch once the
+     * game is over. A touch while an animation plays skips to its end and picks up nothing; the next touch plays.
+     * A spring-back or a rejected swap is not skipped.
      */
     private fun beginTouch(
         event: TouchEvent,
