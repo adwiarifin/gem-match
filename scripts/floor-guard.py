@@ -28,6 +28,7 @@ SKIPS = re.compile(r"@[I]gnore|@[D]isabled")
 ASSERTIONS = re.compile(r"\b(assert\w*|fail)\(")
 
 EXCEPTION_ROW = re.compile(r"^\|\s*[WE]\d+\s*\|")
+NO_EXCEPTIONS = re.compile(r"^\|\s*\(none\)\s*\|")
 MIN_WORDS = re.compile(r"(≥|>=|at least|must not fall|or more)", re.I)
 MAX_WORDS = re.compile(r"(≤|<=|at most|must not grow|or less|under)", re.I)
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
@@ -428,7 +429,7 @@ def main():
     for file, text in removed_rules:
         counterpart = next((t for _, t in added_rules if rule_key(t) == rule_key(text)), None)
         if counterpart is None:
-            if not EXCEPTION_ROW.match(text.strip()):
+            if not EXCEPTION_ROW.match(text.strip()) and not NO_EXCEPTIONS.match(text.strip()):
                 flag("rule-removed", file, text)
             continue
         verdict = weakened(text, counterpart)
